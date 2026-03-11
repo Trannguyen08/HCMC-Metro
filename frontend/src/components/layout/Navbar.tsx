@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { useLanguage } from "@/lib/i18n";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const NAV_LINKS = [
   { href: "/#uu-dai", label: "Ưu đãi" },
@@ -35,8 +37,16 @@ const NAV_LINKS = [
 export function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const [openMobile, setOpenMobile] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+
+  const navLinks = [
+    { href: "/#uu-dai", label: t("nav.promo") },
+    { href: "/lo-trinh", label: t("nav.route") },
+    { href: "/tien-ich", label: t("nav.amenities") },
+    { href: "/ban-do-so", label: t("nav.map") }
+  ];
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -72,7 +82,7 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-6 lg:flex">
-          {NAV_LINKS.map((l) => {
+          {navLinks.map((l) => {
             const active = l.href !== "/#uu-dai" && pathname === l.href;
             return (
               <Link
@@ -90,13 +100,25 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <div className="mr-2 w-24">
+            <Select value={language} onValueChange={(v: any) => setLanguage(v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vi">VN</SelectItem>
+                <SelectItem value="en">EN</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {!isAuthenticated ? (
             <>
               <Button variant="outline" asChild>
-                <Link href="/login">Đăng nhập</Link>
+                <Link href="/login">{t("nav.login")}</Link>
               </Button>
               <Button asChild>
-                <Link href="/register">Đăng ký</Link>
+                <Link href="/register">{t("nav.register")}</Link>
               </Button>
             </>
           ) : (
@@ -105,26 +127,26 @@ export function Navbar() {
                 <Button variant="outline" className="gap-2">
                   <Avatar className="h-7 w-7">
                     <AvatarFallback>
-                      {user?.name?.slice(0, 1)?.toUpperCase() ?? "U"}
+                      {user?.full_name?.slice(0, 1)?.toUpperCase() ?? "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="max-w-[140px] truncate text-sm">{user?.name}</span>
+                  <span className="max-w-[140px] truncate text-sm">{user?.full_name}</span>
                   <ChevronDown className="h-4 w-4 opacity-60" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("nav.account")}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/profile" className="gap-2">
                     <CircleUser className="h-4 w-4" />
-                    Hồ sơ
+                    {t("nav.profile")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/lo-trinh" className="gap-2">
                     <Ticket className="h-4 w-4" />
-                    Đặt vé
+                    {t("nav.book")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -133,7 +155,7 @@ export function Navbar() {
                   onClick={logout}
                 >
                   <LogOut className="h-4 w-4" />
-                  Đăng xuất
+                  {t("nav.logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

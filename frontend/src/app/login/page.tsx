@@ -4,20 +4,29 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Chrome, TrainFront } from "lucide-react";
+import { useGoogleLogin } from "@react-oauth/google";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
+import api from "@/lib/api";
+
+const KEYS = {
+  user: "metro.user",
+  access: "metro.access",
+  refresh: "metro.refresh",
+} as const;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, loginWithGoogle, updateProfile } = useAuth();
   const [identifier, setIdentifier] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +41,32 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      await loginWithGoogle(credentialResponse.access_token);
+      router.push("/profile");
+    } catch (err: any) {
+      setError(err.message || "Đăng nhập Google thất bại.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const onGoogleLogin = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: () => {
+      setError("Đăng nhập Google thất bại.");
+      setGoogleLoading(false);
+    },
+    onNonOAuthError: () => setGoogleLoading(false),
+  });
+
+  const triggerGoogleLogin = () => {
+    setError(null);
+    setGoogleLoading(true);
+    onGoogleLogin();
+  };
 
   return (
     <div className="relative flex min-h-[70vh] items-center justify-center">
@@ -86,7 +121,7 @@ export default function LoginPage() {
 
             {error && <p className="text-sm text-rose-600">{error}</p>}
 
-            <Button className="w-full" type="submit" disabled={loading}>
+            <Button className="w-full" type="submit" disabled={loading || googleLoading}>
               {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
 
@@ -94,10 +129,11 @@ export default function LoginPage() {
               className="w-full"
               variant="outline"
               type="button"
-              onClick={() => setError("Đăng nhập Google (mock) chưa được triển khai.")}
+              disabled={loading || googleLoading}
+              onClick={triggerGoogleLogin}
             >
               <Chrome className="h-4 w-4" />
-              Đăng nhập với Google
+              {googleLoading ? "Đang mở Google..." : "Đăng nhập với Google"}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
@@ -112,4 +148,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
