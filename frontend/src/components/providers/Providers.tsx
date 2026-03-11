@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 import { AuthProvider } from "@/lib/auth";
+import { LanguageProvider } from "@/lib/i18n";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
@@ -12,7 +13,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <GoogleOAuthProvider clientId={clientId}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <AuthProvider>{children}</AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </GoogleOAuthProvider>
   );

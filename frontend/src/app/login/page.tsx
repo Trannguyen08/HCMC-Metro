@@ -21,7 +21,7 @@ const KEYS = {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, updateProfile } = useAuth();
+  const { login, loginWithGoogle, updateProfile } = useAuth();
   const [identifier, setIdentifier] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
@@ -44,21 +44,10 @@ export default function LoginPage() {
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
-      // useGoogleLogin returns an OAuth token response (access_token).
-      const { data } = await api.post("/auth/google/", {
-        access_token: credentialResponse.access_token,
-      });
-      localStorage.setItem(KEYS.access, data.access);
-      localStorage.setItem(KEYS.refresh, data.refresh);
-      localStorage.setItem(KEYS.user, JSON.stringify(data.user));
-      
-      // Force auth context update by doing a meaningless patch just to trigger state reload
-      // This is a bit hacky, but avoids reinventing the wheel
-      updateProfile({});
+      await loginWithGoogle(credentialResponse.access_token);
       router.push("/profile");
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || "Đăng nhập Google thất bại.";
-      setError(msg);
+      setError(err.message || "Đăng nhập Google thất bại.");
     } finally {
       setGoogleLoading(false);
     }

@@ -18,7 +18,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
   login: (input: { identifier: string; password: string }) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: (accessToken: string) => Promise<void>;
   register: (input: {
     full_name: string;
     email: string;
@@ -94,11 +94,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
 
       // ── Google OAuth ──────────────────────────────────────────────────────
-      loginWithGoogle: async () => {
-        // We will remove this function from context and use useGoogleLogin directly in the component
-        // Since useGoogleLogin requires being inside the GoogleOAuthProvider context,
-        // it's better to call it from within the LoginPage component instead of here.
-        throw new Error("Pushed to component layer for GoogleOAuthProvider context");
+      loginWithGoogle: async (access_token: string) => {
+        try {
+          const { data } = await api.post("/auth/google/", { access_token });
+          _persistAuth(data);
+        } catch (err: any) {
+          const msg = err?.response?.data?.detail || "Đăng nhập Google thất bại.";
+          throw new Error(msg);
+        }
       },
 
       // ── Register ──────────────────────────────────────────────────────────
