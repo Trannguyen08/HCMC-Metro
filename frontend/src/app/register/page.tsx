@@ -33,8 +33,12 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register({ name, email, phone, password });
-      router.push("/profile");
+      const res = await register({ full_name: name, email, phone, password });
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("metro.pendingEmail", res.email);
+        sessionStorage.setItem("metro.pendingVerificationToken", res.verification_token);
+      }
+      router.push("/verify-email");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Đăng ký thất bại.");
     } finally {
