@@ -43,12 +43,16 @@ export default function VerifyEmailPage() {
     }
     setLoading(true);
     try {
-      await verifyEmailOtp({ verification_token: token, otp });
+      const user = await verifyEmailOtp({ verification_token: token, otp });
       if (typeof window !== "undefined") {
         sessionStorage.removeItem("metro.pendingEmail");
         sessionStorage.removeItem("metro.pendingVerificationToken");
       }
-      router.push("/profile");
+      if (user.is_admin) {
+        router.push("/admin");
+      } else {
+        router.push("/profile");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Xác thực email thất bại.");
     } finally {

@@ -42,6 +42,9 @@ services:
     container_name: project_backend
     env_file:
       - .env
+    environment:
+      - DB_HOST=db
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-postgres}
     depends_on:
       - db
     ports:
@@ -72,4 +75,3 @@ volumes:
     driver: local
   redis-data:
     driver: local
-

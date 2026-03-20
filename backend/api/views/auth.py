@@ -1,3 +1,5 @@
+import secrets
+import requests
 from django.conf import settings
 from django.core.mail import send_mail
 from django.core import signing
@@ -7,38 +9,16 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
-
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-import requests
-import secrets
 
-from .models import User, OAuthAccount
-from .serializers import RegisterSerializer, LoginSerializer, _hash_password
-
-
-def _make_tokens(user: User) -> dict:
-    """Generate access + refresh JWT pair for a User instance."""
-    refresh = RefreshToken()
-    refresh["user_id"] = str(user.id)
-    refresh["email"] = user.email
-    refresh["full_name"] = user.full_name
-    return {
-        "access": str(refresh.access_token),
-        "refresh": str(refresh),
-    }
-
-
-def _user_data(user: User) -> dict:
-    return {
-        "id": str(user.id),
-        "full_name": user.full_name,
-        "email": user.email,
-        "phone": user.phone or "",
-        "avatar_url": user.avatar_url or "",
-        "email_verified": user.email_verified,
-    }
-
+from ..models import User, OAuthAccount
+from ..serializers import (
+    RegisterSerializer,
+    LoginSerializer,
+    _hash_password,
+)
+from .common import _make_tokens, _user_data
 
 def _send_register_otp_email(full_name: str, email: str, otp: str) -> None:
     subject = "Mã OTP xác thực đăng ký HCMC Metro"
@@ -56,13 +36,6 @@ def _send_register_otp_email(full_name: str, email: str, otp: str) -> None:
         fail_silently=False,
     )
 
-
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def health(request):
-    return Response({"status": "ok"})
-
-
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
@@ -71,7 +44,6 @@ def register(request):
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     data = serializer.validated_data
-    # Không tạo user ngay; chỉ hash mật khẩu và gửi OTP
     raw_password = data["password"]
     password_hash = _hash_password(raw_password)
     otp = f"{secrets.randbelow(1_000_000):06d}"
@@ -87,7 +59,6 @@ def register(request):
     try:
         _send_register_otp_email(data["full_name"], data["email"], otp)
     except Exception as exc:
-        # Không chặn flow đăng ký nếu gửi email lỗi; chỉ log ra console.
         print("Send OTP email failed:", exc)
 
     token = signing.dumps(payload, salt="register-otp")
@@ -100,13 +71,11 @@ def register(request):
         status=status.HTTP_201_CREATED,
     )
 
-
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login(request):
     serializer = LoginSerializer(data=request.data)
     if not serializer.is_valid():
-        # Flatten DRF errors into a single message for FE
         errors = serializer.errors
         msg = ""
         for field_errors in errors.values():
@@ -119,7 +88,6 @@ def login(request):
     tokens = _make_tokens(user)
     return Response({**tokens, "user": _user_data(user)})
 
-
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def verify_register_otp(request):
@@ -129,7 +97,7 @@ def verify_register_otp(request):
         return Response({"detail": "Thiếu token hoặc OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        payload = signing.loads(token, salt="register-otp", max_age=600)  # 10 phút
+        payload = signing.loads(token, salt="register-otp", max_age=600)
     except signing.SignatureExpired:
         return Response({"detail": "OTP đã hết hạn. Vui lòng đăng ký lại."}, status=status.HTTP_400_BAD_REQUEST)
     except signing.BadSignature:
@@ -154,19 +122,11 @@ def verify_register_otp(request):
     tokens = _make_tokens(user)
     return Response({**tokens, "user": _user_data(user)})
 
-
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def google_login(request):
-    """
-    Accepts either:
-    - Google ID token (JWT, usually returned as `credential` by Google Identity Services), or
-    - Google OAuth access token (returned by @react-oauth/google useGoogleLogin as `access_token`).
-
-    Verifies it, then creates or logs in the corresponding user.
-    """
-    credential = request.data.get("credential", "")  # id_token (JWT)
-    access_token = request.data.get("access_token", "")  # OAuth access token
+    credential = request.data.get("credential", "")
+    access_token = request.data.get("access_token", "")
     token = credential or access_token
     if not token:
         return Response({"detail": "Missing credential."}, status=status.HTTP_400_BAD_REQUEST)
@@ -177,14 +137,12 @@ def google_login(request):
 
     try:
         if credential or (isinstance(token, str) and token.count(".") >= 2):
-            # Looks like a JWT id_token.
             id_info = id_token.verify_oauth2_token(
                 token,
                 google_requests.Request(),
                 client_id,
             )
         else:
-            # Treat as access token: fetch user profile from Google.
             r = requests.get(
                 "https://www.googleapis.com/oauth2/v3/userinfo",
                 headers={"Authorization": f"Bearer {token}"},
@@ -203,12 +161,10 @@ def google_login(request):
     full_name = id_info.get("name", "Google User")
     avatar_url = id_info.get("picture", "")
 
-    # Check existing OAuth account
     oauth = OAuthAccount.objects.filter(provider="google", provider_id=google_sub).first()
     if oauth:
         user = oauth.user
     else:
-        # Find or create user by email
         user = User.objects.filter(email=email).first()
         if not user:
             user = User.objects.create(
@@ -228,28 +184,21 @@ def google_login(request):
     tokens = _make_tokens(user)
     return Response({**tokens, "user": _user_data(user)})
 
-
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def logout(request):
-    """Blacklist the refresh token."""
     refresh_token = request.data.get("refresh", "")
     if refresh_token:
         try:
             token = RefreshToken(refresh_token)
             token.blacklist()
         except TokenError:
-            pass  # already invalid / blacklisted
+            pass
     return Response({"detail": "Đã đăng xuất."})
-
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me(request):
-    """
-    Returns current user info. Requires valid Bearer access token.
-    The JWT payload carries user_id; we look up the DB record.
-    """
     user_id = request.auth.payload.get("user_id") if request.auth else None
     if not user_id:
         return Response({"detail": "Token không hợp lệ."}, status=status.HTTP_401_UNAUTHORIZED)

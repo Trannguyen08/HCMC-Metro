@@ -33,8 +33,12 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await login({ identifier, password });
-      router.push("/profile");
+      const user = await login({ identifier, password });
+      if (user.is_admin) {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Đăng nhập thất bại.");
     } finally {
@@ -44,8 +48,12 @@ export default function LoginPage() {
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
-      await loginWithGoogle(credentialResponse.access_token);
-      router.push("/profile");
+      const user = await loginWithGoogle(credentialResponse.access_token);
+      if (user.is_admin) {
+        router.push("/admin");
+      } else {
+        router.push("/profile");
+      }
     } catch (err: any) {
       setError(err.message || "Đăng nhập Google thất bại.");
     } finally {

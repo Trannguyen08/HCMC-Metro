@@ -12,20 +12,21 @@ export type AuthUser = {
   phone?: string;
   avatar_url?: string;
   email_verified?: boolean;
+  is_admin?: boolean;
 };
 
 type AuthContextValue = {
   user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (input: { identifier: string; password: string }) => Promise<void>;
-  loginWithGoogle: (accessToken: string) => Promise<void>;
+  login: (input: { identifier: string; password: string }) => Promise<AuthUser>;
+  loginWithGoogle: (accessToken: string) => Promise<AuthUser>;
   register: (input: {
     full_name: string;
     email: string;
     phone: string;
     password: string;
   }) => Promise<{ email: string; verification_token: string }>;
-  verifyEmailOtp: (input: { verification_token: string; otp: string }) => Promise<void>;
+  verifyEmailOtp: (input: { verification_token: string; otp: string }) => Promise<AuthUser>;
   logout: () => Promise<void>;
   updateProfile: (patch: Partial<Omit<AuthUser, "id">>) => void;
 };
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const { data } = await api.post("/auth/login/", { identifier, password });
           _persistAuth(data);
+          return data.user;
         } catch (err: any) {
           const msg =
             err?.response?.data?.detail ||
@@ -98,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const { data } = await api.post("/auth/google/", { access_token });
           _persistAuth(data);
+          return data.user;
         } catch (err: any) {
           const msg = err?.response?.data?.detail || "Đăng nhập Google thất bại.";
           throw new Error(msg);
@@ -135,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             otp,
           });
           _persistAuth(data);
+          return data.user;
         } catch (err: any) {
           const msg =
             err?.response?.data?.detail ||

@@ -1,7 +1,7 @@
 import hashlib
 import os
 from rest_framework import serializers
-from .models import User
+from .models import User, News, NewsCategory
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -69,3 +69,29 @@ def _verify_password(password: str, password_hash: str) -> bool:
         return expected == hashed
     except Exception:
         return False
+
+class NewsCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NewsCategory
+        fields = ["id", "name"]
+
+
+class NewsSerializer(serializers.ModelSerializer):
+    category_name = serializers.ReadOnlyField(source="category.name")
+
+    class Meta:
+        model = News
+        fields = [
+            "id",
+            "category",
+            "category_name",
+            "title",
+            "summary",
+            "thumbnail_url",
+            "is_published",
+            "published_at",
+            "slug",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]

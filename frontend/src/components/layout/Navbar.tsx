@@ -9,7 +9,8 @@ import {
   LogOut,
   Menu,
   Ticket,
-  TrainFront
+  TrainFront,
+  LayoutDashboard
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,8 @@ const NAV_LINKS = [
   { href: "/#uu-dai", label: "Ưu đãi" },
   { href: "/lo-trinh", label: "Tra cứu Lộ trình" },
   { href: "/tien-ich", label: "Tiện ích quanh Ga" },
-  { href: "/ban-do-so", label: "Bản đồ số" }
+  { href: "/ban-do-so", label: "Bản đồ số" },
+  { href: "/tin-tuc", label: "Tin tức" }
 ];
 
 export function Navbar() {
@@ -45,7 +47,8 @@ export function Navbar() {
     { href: "/#uu-dai", label: t("nav.promo") },
     { href: "/lo-trinh", label: t("nav.route") },
     { href: "/tien-ich", label: t("nav.amenities") },
-    { href: "/ban-do-so", label: t("nav.map") }
+    { href: "/ban-do-so", label: t("nav.map") },
+    { href: "/tin-tuc", label: t("nav.news") || "Tin tức" }
   ];
 
   React.useEffect(() => {
@@ -143,6 +146,14 @@ export function Navbar() {
                     {t("nav.profile")}
                   </Link>
                 </DropdownMenuItem>
+                {user?.is_admin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin" className="gap-2">
+                      <LayoutDashboard className="h-4 w-4" />
+                      Quản trị
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link href="/lo-trinh" className="gap-2">
                     <Ticket className="h-4 w-4" />
@@ -210,6 +221,11 @@ export function Navbar() {
                 <Button variant="outline" className="flex-1" asChild>
                   <Link href="/profile">Hồ sơ</Link>
                 </Button>
+                {user?.is_admin && (
+                  <Button variant="outline" className="flex-1" asChild>
+                    <Link href="/admin">Quản trị</Link>
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   className="flex-1 text-rose-600"
