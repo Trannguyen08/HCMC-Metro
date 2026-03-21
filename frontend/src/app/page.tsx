@@ -1,7 +1,7 @@
-import { HeroSection } from "@/components/home/HeroSection";
-import { StatsSection } from "@/components/home/StatsSection";
-import { FeaturesSection } from "@/components/home/FeaturesSection";
-import { NewsSection } from "@/components/home/NewsSection";
+import { HeroSection } from "@/features/metro/components/home/HeroSection";
+import { StatsSection } from "@/features/metro/components/home/StatsSection";
+import { FeaturesSection } from "@/features/metro/components/home/FeaturesSection";
+import { NewsSection } from "@/features/news/components/NewsSection";
 
 export default function HomePage() {
   return (
@@ -13,4 +13,3 @@ export default function HomePage() {
     </div>
   );
 }
-
