@@ -48,7 +48,7 @@ export function Navbar() {
     { href: "/lo-trinh", label: t("nav.route") },
     { href: "/tien-ich", label: t("nav.amenities") },
     { href: "/ban-do-so", label: t("nav.map") },
-    { href: "/tin-tuc", label: t("nav.news") || "Tin tức" }
+    { href: "/tin-tuc", label: t("nav.news") }
   ];
 
   React.useEffect(() => {

@@ -12,11 +12,19 @@ news_service = NewsService()
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def public_news_list(request):
-    category_id = request.query_params.get("category")
+    category = request.query_params.get("category")
+    search = request.query_params.get("search")
     exclude_id = request.query_params.get("exclude")
-    limit = request.query_params.get("limit")
+    offset = request.query_params.get("offset", 0)
+    limit = request.query_params.get("limit", 10)
     
-    news = news_service.get_published_news(category_id, exclude_id, limit)
+    news = news_service.get_published_news(
+        category=category, 
+        search=search, 
+        exclude_id=exclude_id, 
+        offset=offset, 
+        limit=limit
+    )
     serializer = NewsSerializer(news, many=True)
     return Response(serializer.data)
 

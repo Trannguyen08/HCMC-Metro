@@ -3,128 +3,237 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { vi } from "date-fns/locale";
-import { Calendar, ChevronRight } from "lucide-react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle,
-  CardFooter 
-} from "@/components/ui/card";
+import { Clock, Search, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { newsService } from "../services/news-service";
 import { News, NewsCategory } from "../types";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export function NewsList() {
   const [news, setNews] = useState<News[]>([]);
   const [categories, setCategories] = useState<NewsCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
-    newsService.getCategories()
+    newsService
+      .getCategories()
       .then(setCategories)
       .catch((err) => console.error("Fetch categories failed:", err));
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    newsService.getNews({ category: selectedCategory || undefined })
-      .then(setNews)
-      .catch((err) => console.error("Fetch news failed:", err))
-      .finally(() => setLoading(false));
-  }, [selectedCategory]);
+    const fetchInitialNews = async () => {
+      setLoading(true);
+      setOffset(0);
+      try {
+        const data = await newsService.getNews({
+          category: selectedCategory === "all" ? undefined : selectedCategory,
+          search: debouncedSearch || undefined,
+          offset: 0,
+          limit: PAGE_SIZE,
+        });
+        setNews(data);
+        setHasMore(data.length === PAGE_SIZE);
+      } catch (err) {
+        console.error("Fetch news failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitialNews();
+  }, [selectedCategory, debouncedSearch]);
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const newOffset = offset + PAGE_SIZE;
+    try {
+      const data = await newsService.getNews({
+        category: selectedCategory === "all" ? undefined : selectedCategory,
+        search: debouncedSearch || undefined,
+        offset: newOffset,
+        limit: PAGE_SIZE,
+      });
+      if (data.length > 0) {
+        setNews((prev) => [...prev, ...data]);
+        setOffset(newOffset);
+        setHasMore(data.length === PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Load more failed:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   return (
-    <div className="space-y-8 pb-12">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-heading font-bold tracking-tight">Tin tức & Sự kiện</h1>
-        <p className="text-muted-foreground">Cập nhật những thông tin mới nhất về hệ thống Metro TP.HCM.</p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 items-center">
-        <Button 
-          variant={selectedCategory === null ? "default" : "outline"} 
-          size="sm"
-          onClick={() => setSelectedCategory(null)}
-          className="rounded-full"
-        >
-          Tất cả
-        </Button>
-        {categories.map((cat) => (
-          <Button 
-            key={cat.id}
-            variant={selectedCategory === cat.slug ? "default" : "outline"} 
-            size="sm"
-            onClick={() => setSelectedCategory(cat.slug)}
-            className="rounded-full"
-          >
-            {cat.name}
-          </Button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="overflow-hidden border-none shadow-sm ring-1 ring-border">
-              <Skeleton className="aspect-video w-full" />
-              <CardHeader className="space-y-2">
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-6 w-full" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3 mt-2" />
-              </CardContent>
-            </Card>
-          ))}
+    <div className="max-w-4xl mx-auto pb-12 px-4">
+      {/* Header */}
+      <div className="flex flex-col gap-5 pt-6 pb-6">
+        <div className="flex items-center gap-2.5">
+          {/* Icon clipboard/news */}
+          <div className="p-1.5 bg-blue-50 rounded-md">
+            <svg className="h-5 w-5 text-metro-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+              <line x1="9" y1="12" x2="15" y2="12"/>
+              <line x1="9" y1="16" x2="13" y2="16"/>
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-slate-800">Tin tức &amp; Sự kiện</h1>
         </div>
-      ) : news.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {news.map((item) => (
-            <Link key={item.id} href={`/tin-tuc/${item.slug}`}>
-              <Card className="h-full group overflow-hidden border-none shadow-sm ring-1 ring-border transition-all hover:shadow-md hover:ring-metro-blue/30">
-                <div className="relative aspect-video overflow-hidden">
-                  <img 
-                    src={item.thumbnail_url || "https://images.unsplash.com/photo-1556155092-490a1ba16284?q=80&w=2070&auto=format&fit=crop"} 
+
+        {/* Search + Filter — merged single bar */}
+        <div className="flex items-center h-11 bg-white border border-slate-200 rounded-lg overflow-hidden">
+          {/* Search icon */}
+          <Search className="ml-3 h-4 w-4 text-slate-400 shrink-0" />
+
+          {/* Search input — grows to fill */}
+          <input
+            type="text"
+            placeholder="Tìm kiếm tiêu đề bài viết..."
+            className="flex-1 h-full px-3 text-sm bg-transparent outline-none text-slate-700 placeholder:text-slate-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-slate-200 shrink-0" />
+
+          {/* Category select — right side, fixed width */}
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="h-full w-[200px] border-none shadow-none rounded-none bg-transparent text-sm pl-3 pr-3 focus:ring-0">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-slate-400 shrink-0" />
+                <SelectValue placeholder="Tất cả tin tức" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả tin tức</SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.slug || cat.id.toString()}>
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* News List */}
+      <div className="divide-y divide-slate-100 px-[100px]">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex gap-4 py-5">
+              <Skeleton className="w-[120px] h-[90px] rounded-lg shrink-0" />
+              <div className="flex-1 space-y-2.5 pt-1">
+                <Skeleton className="h-3.5 w-20" />
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-4/5" />
+                <Skeleton className="h-3.5 w-1/3" />
+              </div>
+            </div>
+          ))
+        ) : news.length > 0 ? (
+          <>
+            {news.map((item) => (
+              <Link key={item.id} href={`/tin-tuc/${item.slug}`} className="group flex gap-4 py-5 hover:bg-slate-50/60 transition-colors rounded-lg px-1 -mx-1">
+                <div className="w-[150px] h-[150px] rounded-lg overflow-hidden shrink-0 bg-slate-100">
+                  <img
+                    src={
+                      item.thumbnail_url ||
+                      "https://images.unsplash.com/photo-1556155092-490a1ba16284?auto=format&fit=crop&q=80&w=400"
+                    }
                     alt={item.title}
-                    className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                    className="w-[150px] h-[150px] object-cover"
                   />
-                  <Badge className="absolute top-3 left-3 bg-white/90 text-metro-blue hover:bg-white border-none shadow-sm">
-                    {item.category_name}
-                  </Badge>
                 </div>
-                <CardHeader className="space-y-2 pb-2">
-                  <div className="flex items-center text-xs text-muted-foreground gap-1.5">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {item.published_at ? format(new Date(item.published_at), "dd MMMM, yyyy", { locale: vi }) : "Chưa xuất bản"}
+
+                {/* Content */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                  <div>
+                    {/* Category badge */}
+                    <Badge
+                      variant="secondary"
+                      className="mb-2 bg-blue-50 text-metro-blue border-none uppercase text-[10px] font-bold tracking-wider px-2 py-0.5"
+                    >
+                      {item.category_name}
+                    </Badge>
+
+                    {/* Title */}
+                    <h2 className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2 group-hover:text-metro-blue transition-colors">
+                      {item.title}
+                    </h2>
+
+                    {/* Summary — optional, shown on larger screens */}
+                    <p className="md:block mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      {item.summary}
+                    </p>
                   </div>
-                  <CardTitle className="text-xl leading-tight group-hover:text-metro-blue transition-colors">
-                    {item.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pb-4">
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {item.summary}
-                  </p>
-                </CardContent>
-                <CardFooter className="pt-0 text-sm font-medium text-metro-blue flex items-center gap-1">
-                  Xem chi tiết <ChevronRight className="h-4 w-4" />
-                </CardFooter>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <div className="py-20 text-center border rounded-xl bg-muted/20">
-          <p className="text-muted-foreground">Không có tin tức nào trong danh mục này.</p>
-          <Button variant="link" onClick={() => setSelectedCategory(null)}>Xem tất cả tin tức</Button>
-        </div>
-      )}
+
+                  {/* Date */}
+                  <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1.5">
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      {item.published_at
+                        ? format(new Date(item.published_at), "dd/MM/yyyy")
+                        : "01/01/2024"}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+
+            {/* Load More */}
+            {hasMore && (
+              <div className="flex justify-center pt-6">
+                <Button
+                  variant="outline"
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="rounded-full px-7 h-9 text-sm text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-metro-blue transition-all"
+                >
+                  {loadingMore ? "Đang tải..." : "Xem thêm tin cũ"}
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="py-20 text-center border-2 border-dashed rounded-2xl bg-slate-50 mt-2">
+            <p className="text-slate-500 text-sm">Không tìm thấy tin tức nào phù hợp.</p>
+            <Button
+              variant="link"
+              className="mt-2 text-metro-blue text-sm"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCategory("all");
+              }}
+            >
+              Đặt lại bộ lọc
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

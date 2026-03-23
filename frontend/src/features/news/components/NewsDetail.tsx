@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { vi } from "date-fns/locale";
-import { Calendar, ChevronLeft, Share2, Printer, MapPin } from "lucide-react";
+import { Calendar, ChevronLeft, Share2, Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,7 +21,7 @@ export function NewsDetail() {
 
   useEffect(() => {
     if (!slug || typeof slug !== "string") return;
-    
+
     setLoading(true);
     newsService.getNewsDetail(slug)
       .then((data) => {
@@ -30,10 +29,10 @@ export function NewsDetail() {
         if (data.category) {
           setLoadingRelated(true);
           setErrorRelated(false);
-          newsService.getNews({ 
-            category: data.category.toString(), 
-            exclude: data.id, 
-            limit: 5 
+          newsService.getNews({
+            category: data.category.toString(),
+            exclude: data.id,
+            limit: 5,
           })
             .then(setRelatedNews)
             .catch((err) => {
@@ -79,9 +78,9 @@ export function NewsDetail() {
 
   return (
     <article className="max-w-4xl mx-auto pb-20">
-      <Button 
-        variant="ghost" 
-        size="sm" 
+      <Button
+        variant="ghost"
+        size="sm"
         className="mb-6 -ml-2 text-muted-foreground hover:text-metro-blue"
         onClick={() => router.push("/tin-tuc")}
       >
@@ -89,90 +88,79 @@ export function NewsDetail() {
       </Button>
 
       <div className="space-y-6">
+        {/* Header */}
         <div className="space-y-4">
-          <Badge className="bg-metro-blue/10 text-metro-blue hover:bg-metro-blue/20 border-none px-3 py-1 text-xs">
-            {news.category_name}
-          </Badge>
+          {news.category_name && (
+            <Badge className="bg-metro-blue/10 text-metro-blue hover:bg-metro-blue/20 border-none px-3 py-1 text-xs">
+              {news.category_name}
+            </Badge>
+          )}
           <h1 className="text-3xl md:text-4xl font-heading font-extrabold tracking-tight leading-tight">
             {news.title}
           </h1>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground border-b pb-6">
             <div className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
-              {news.published_at ? format(new Date(news.published_at), "dd/MM/yyyy HH:mm") : "Chưa xuất bản"}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <MapPin className="h-4 w-4" />
-              TP. Hồ Chí Minh
+              {news.published_at
+                ? format(new Date(news.published_at), "dd/MM/yyyy HH:mm")
+                : "Chưa xuất bản"}
             </div>
             <div className="ml-auto flex items-center gap-2">
-               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                 <Share2 className="h-4 w-4" />
-               </Button>
-               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={() => window.print()}>
-                 <Printer className="h-4 w-4" />
-               </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                <Share2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                onClick={() => window.print()}
+              >
+                <Printer className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
 
-        <div className="relative aspect-video overflow-hidden rounded-2xl shadow-lg ring-1 ring-border">
-          <img 
-            src={news.thumbnail_url || "https://images.unsplash.com/photo-1556155092-490a1ba16284?q=80&w=2070&auto=format&fit=crop"} 
-            alt={news.title}
-            className="object-cover w-full h-full"
-          />
+        {/* Thumbnail */}
+        {news.thumbnail_url && (
+          <div className="relative aspect-video overflow-hidden rounded-2xl shadow-lg ring-1 ring-border">
+            <img
+              src={news.thumbnail_url}
+              alt={news.title}
+              className="object-cover w-full h-full"
+            />
+          </div>
+        )}
+
+        {/* Fixed Content */}
+        <div className="prose prose-metro lg:prose-lg max-w-none mt-8 text-foreground/80 leading-loose">
+          <p>Nội dung bài viết hiển thị tóm tắt hoặc cố định.</p>
         </div>
 
-        <div className="prose prose-metro lg:prose-lg max-w-none">
-          <p className="text-xl font-medium leading-relaxed text-foreground/90 bg-muted/30 p-6 rounded-xl border-l-4 border-metro-blue italic">
-            {news.summary}
-          </p>
-          
-          <div className="mt-8 space-y-6 text-foreground/80 leading-loose">
-            <p>
-              Đây là nội dung chi tiết của bài viết. Trong thực tế, bạn có thể sử dụng một Rich Text Editor để quản lý nội dung này 
-              với đầy đủ định dạng HTML, hình ảnh và video. 
-            </p>
-            <p>
-              Hệ thống Metro TP.HCM (Management Authority for Urban Railways - MAUR) đang nỗ lực đẩy nhanh tiến độ 
-              hoàn thành các tuyến đường sắt đô thị, nhằm giải quyết vấn đề giao thông và thúc đẩy phát triển kinh tế bền vững cho thành phố.
-            </p>
-            <h3 className="text-2xl font-bold text-foreground mt-8 mb-4">Mục tiêu phát triển</h3>
-            <p>
-              Tuyến Metro số 1 (Bến Thành - Suối Tiên) là dự án trọng điểm, dự kiến sẽ thay đổi diện mạo giao thông công cộng. 
-              Người dân sẽ có những trải nghiệm di chuyển hiện đại, an toàn và nhanh chóng.
-            </p>
-            <img 
-              src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=2075&auto=format&fit=crop" 
-              alt="Hệ thống Metro" 
-              className="rounded-xl w-full shadow-md my-8"
-            />
-            <p>
-              Chúng tôi sẽ tiếp tục cập nhật những thông tin mới nhất về lộ trình, giá vé và các tiện ích đi kèm trong các bản tin tiếp theo. 
-              Hãy theo dõi thường xuyên để không bỏ lỡ các thông tin quan trọng.
-            </p>
+        {/* Author (fixed) */}
+        <div className="mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-6 border-none">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-full metro-gradient flex items-center justify-center text-white font-bold">
+              BQ
+            </div>
+            <div>
+              <div className="font-bold">Ban quản lý</div>
+              <div className="text-xs text-muted-foreground">Ban quản lý tin tức</div>
+            </div>
           </div>
-        </div>
-        
-        <div className="mt-12 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-6">
-           <div className="flex items-center gap-4">
-             <div className="h-12 w-12 rounded-full metro-gradient flex items-center justify-center text-white font-bold">
-               M
-             </div>
-             <div>
-               <div className="font-bold">Ban Quản lý Đường sắt Đô thị (MAUR)</div>
-               <div className="text-xs text-muted-foreground">Phòng Quan hệ Công chúng & Truyền thông</div>
-             </div>
-           </div>
-           
-           <Button variant="outline" className="rounded-full shadow-sm" asChild>
-             <a href="#" target="_blank" rel="noopener noreferrer">Xem bài viết đầy đủ</a>
-           </Button>
+
+          {news.slug && (
+            <Button variant="outline" className="rounded-full shadow-sm" asChild>
+              <a href={`/tin-tuc/${news.slug}`} target="_blank" rel="noopener noreferrer">
+                Xem bài viết đầy đủ
+              </a>
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="mt-16 pt-10 border-t">
+      {/* Related News */}
+      <div className="mt-6 pt-10 ">
         <h2 className="text-2xl font-bold mb-6">Tin tức liên quan</h2>
         {loadingRelated ? (
           <div className="flex gap-4 overflow-x-auto pb-4">
@@ -185,29 +173,35 @@ export function NewsDetail() {
             ))}
           </div>
         ) : errorRelated ? (
-          <p className="text-destructive font-medium bg-destructive/10 p-4 rounded-lg inline-block">Không thể tải tin tức liên quan</p>
+          <p className="text-destructive font-medium bg-destructive/10 p-4 rounded-lg inline-block">
+            Không thể tải tin tức liên quan
+          </p>
         ) : relatedNews.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {relatedNews.map((item) => (
-              <div 
-                key={item.id} 
+              <div
+                key={item.id}
                 className="group cursor-pointer rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden hover:shadow-md transition-all"
                 onClick={() => router.push(`/tin-tuc/${item.slug}`)}
               >
-                <div className="relative aspect-video overflow-hidden bg-muted">
-                  <img 
-                    src={item.thumbnail_url || "https://images.unsplash.com/photo-1556155092-490a1ba16284?q=80&w=2070&auto=format&fit=crop"} 
-                    alt={item.title}
-                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
+                {item.thumbnail_url && (
+                  <div className="relative aspect-video overflow-hidden bg-muted">
+                    <img
+                      src={item.thumbnail_url}
+                      alt={item.title}
+                      className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
                 <div className="p-4 space-y-2">
                   <h3 className="font-semibold line-clamp-2 text-sm leading-tight group-hover:text-metro-blue transition-colors">
                     {item.title}
                   </h3>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    {item.published_at ? format(new Date(item.published_at), "dd/MM/yyyy HH:mm") : "Chưa xuất bản"}
+                    {item.published_at
+                      ? format(new Date(item.published_at), "dd/MM/yyyy HH:mm")
+                      : "Chưa xuất bản"}
                   </p>
                 </div>
               </div>

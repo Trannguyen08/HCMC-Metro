@@ -1,11 +1,20 @@
 from apps.news.models import News, NewsCategory
 
 class NewsService:
-    def get_published_news(self, category_id=None, exclude_id=None, limit=None):
+    def get_published_news(self, category=None, search=None, exclude_id=None, offset=0, limit=10):
         news = News.objects.filter(is_published=True).order_by("-published_at")
         
-        if category_id:
-            news = news.filter(category_id=category_id)
+        if category:
+            if category.isdigit():
+                news = news.filter(category_id=category)
+            else:
+                news = news.filter(category__slug=category)
+
+        if search:
+            from django.db.models import Q
+            news = news.filter(
+                Q(title__icontains=search) | Q(summary__icontains=search)
+            )
             
         if exclude_id:
             try:
@@ -13,8 +22,13 @@ class NewsService:
             except ValueError:
                 pass
                 
-        if limit and limit.isdigit():
-            news = news[:int(limit)]
+        # Pagination
+        try:
+            offset = int(offset)
+            limit = int(limit)
+            news = news[offset : offset + limit]
+        except (ValueError, TypeError):
+            news = news[:10]
             
         return news
 

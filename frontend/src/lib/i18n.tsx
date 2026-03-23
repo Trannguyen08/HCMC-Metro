@@ -23,6 +23,7 @@ const translations: TranslationDict = {
   "nav.book": { vi: "Đặt vé", en: "Booking" },
   "nav.logout": { vi: "Đăng xuất", en: "Logout" },
   "nav.account": { vi: "Tài khoản", en: "Account" },
+  "nav.news": { vi: "Tin tức", en: "News" },
 
   // Profile Page
   "profile.title": { vi: "Hồ sơ", en: "Profile" },
