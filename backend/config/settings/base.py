@@ -120,3 +120,72 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="HCMC Metro <noreply@metrohcm.vn>")
+
+# ---------------------------------------------------------------------------
+# Redis Configuration
+# ---------------------------------------------------------------------------
+# Pull from env; fallback to localhost so the app still starts without Redis.
+# In docker-compose the service is named "redis" → REDIS_URL=redis://redis:6379/0
+REDIS_URL: str = env("REDIS_URL", default="redis://localhost:6379/0")
+
+# CACHES — primary cache backed by Redis (via django-redis).
+# Uses a shared ConnectionPool (max_connections=50) so we never create a new
+# TCP connection per request.  KEY_PREFIX namespaces every key with the app name.
+# SOCKET_CONNECT_TIMEOUT / SOCKET_TIMEOUT give us graceful degradation:
+# if Redis is down, cache operations raise ConnectionError which we catch in helpers.
+_REDIS_AVAILABLE = False
+try:
+    import redis as _redis_lib
+    _pool = _redis_lib.ConnectionPool.from_url(
+        REDIS_URL,
+        max_connections=50,
+        socket_connect_timeout=1,
+        socket_timeout=1,
+    )
+    _ping_client = _redis_lib.Redis(connection_pool=_pool)
+    _ping_client.ping()
+    _REDIS_AVAILABLE = True
+except Exception:
+    pass  # Redis not reachable at settings-load time — use LocMemCache fallback
+
+if _REDIS_AVAILABLE:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "KEY_PREFIX": "hcmc_metro",   # namespace: hcmc_metro:<version>:<key>
+            "VERSION": 1,                 # bump VERSION to invalidate all keys at once
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": {
+                    "max_connections": 50,
+                    "socket_connect_timeout": 1,
+                    "socket_timeout": 1,
+                },
+                # Use JSON serializer — safe for user-originated data (no pickle).
+                # django-redis bundles this; falls back to pickle only for complex types.
+                "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+                # Ignore Redis errors → cache miss instead of 500.
+                "IGNORE_EXCEPTIONS": True,
+            },
+        }
+    }
+    # Session stored in Redis (DB 0, separate key prefix avoids collision).
+    # Falls back to DB session automatically if CACHES["default"] is unavailable.
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+else:
+    # Graceful degradation: in-process memory cache (dev / Redis-down scenario).
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "hcmc-metro-fallback",
+        }
+    }
+    # Fallback: use DB-backed sessions so no data is lost.
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
+# Cache TTL constants (seconds) — referenced by services/views.
+CACHE_TTL_HOT = 60 * 5          # 5 min  — news list, categories (changes often)
+CACHE_TTL_WARM = 60 * 30        # 30 min — metro lines/stations (changes rarely)
+CACHE_TTL_COLD = 60 * 60 * 24  # 24 h   — static reference data

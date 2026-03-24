@@ -9,11 +9,12 @@ metro_service = MetroService()
 @permission_classes([IsAdminUser])
 def admin_metro_lines(request):
     lines = metro_service.get_all_lines()
-    data = [{
+    if isinstance(lines, list) and lines and isinstance(lines[0], dict):
+        return Response(lines)
+    return Response([{
         "id": l.id,
         "name": l.name,
         "code": l.code,
         "color": l.color,
         "is_active": l.is_active
-    } for l in lines]
-    return Response(data)
+    } for l in lines])

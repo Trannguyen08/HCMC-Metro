@@ -9,3 +9,7 @@ google-auth==2.29.0
 requests==2.31.0
 python-dotenv==1.0.1
 cloudinary==1.38.0
+
+# Redis integration
+django-redis==5.4.0
+redis==5.0.8

@@ -1,153 +1,130 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { MapPinned, Star } from "lucide-react";
+// src/features/metro/AmenitiesPage.tsx
 
-import { StationSelect } from "./StationSelect";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import {
-  AMENITIES,
-  METRO_STATIONS,
-  type Amenity,
-  type AmenityCategory,
-  type MetroStation
-} from "@/lib/mock-data";
+import React from 'react';
+import { Map } from 'lucide-react';
+import { useAmenities } from '../../../hooks/useAmenities';
+import { AmenityFiltersBar } from './AmenityFiltersbar';
+import { AmenityCard } from './AmenityCard';
+import { Amenity } from '../../../types/amenity';
 
-const CATEGORIES: { key: AmenityCategory; label: string }[] = [
-  { key: "Tất cả", label: "Tất cả" },
-  { key: "Y tế", label: "🏥 Y tế" },
-  { key: "Giáo dục", label: "🏫 Giáo dục" },
-  { key: "Ăn uống", label: "🍜 Ăn uống" },
-  { key: "Mua sắm", label: "🏪 Mua sắm" },
-  { key: "Ngân hàng", label: "🏦 Ngân hàng" },
-  { key: "Bãi xe", label: "🅿️ Bãi xe" }
-];
+// ─── Skeleton loader ──────────────────────────────────────────────────────────
 
-function AmenityCard({ a }: { a: Amenity }) {
+const SkeletonCard: React.FC = () => (
+  <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 animate-pulse">
+    <div className="h-48 bg-gray-200" />
+    <div className="p-4 space-y-3">
+      <div className="flex justify-between">
+        <div className="h-5 w-20 bg-gray-200 rounded-full" />
+        <div className="h-5 w-10 bg-gray-200 rounded-full" />
+      </div>
+      <div className="h-5 w-3/4 bg-gray-200 rounded-lg" />
+      <div className="h-4 w-full bg-gray-100 rounded-lg" />
+      <div className="h-4 w-2/3 bg-gray-100 rounded-lg" />
+    </div>
+  </div>
+);
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+const EmptyState: React.FC<{ onReset: () => void }> = ({ onReset }) => (
+  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+    <div className="text-6xl mb-4">🔍</div>
+    <h3 className="text-lg font-semibold text-gray-700 mb-2">Không tìm thấy tiện ích</h3>
+    <p className="text-gray-500 text-sm mb-6">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+    <button
+      onClick={onReset}
+      className="px-5 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+    >
+      Xóa bộ lọc
+    </button>
+  </div>
+);
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
+const AmenitiesPage: React.FC = () => {
+  const {
+    amenities, stations, filters, loading, error, total,
+    setSearch, setStationId, setType, resetFilters,
+  } = useAmenities();
+
+  const handleCardClick = (amenity: Amenity) => {
+    // TODO: open detail modal or navigate
+    console.log('Clicked:', amenity);
+  };
+
   return (
-    <Card className="card-hover">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
+    <div className="min-h-screen bg-gray-50">
+      {/* ── Header ── */}
+      <div className="bg-white border-b border-gray-100 px-6 py-6">
+        <div className="max-w-7xl mx-auto flex items-start justify-between gap-4">
           <div>
-            <CardTitle className="text-base">{a.name}</CardTitle>
-            <div className="mt-1 text-sm text-muted-foreground">{a.address}</div>
+            <h1 className="text-2xl font-bold text-gray-900">Khám phá Tiện ích</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              Tìm kiếm nhà hàng, quán cafe quanh các ga.
+            </p>
           </div>
-          <Badge variant="outline">{a.category}</Badge>
+          <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shrink-0 shadow-sm">
+            <Map className="w-4 h-4" />
+            Bản đồ
+          </button>
         </div>
-      </CardHeader>
-      <CardContent className="flex items-center justify-between text-sm">
-        <div className="text-muted-foreground">{a.distanceKm.toFixed(1)} km</div>
-        <div className="flex items-center gap-1">
-          <Star className="h-4 w-4 text-amber-500" />
-          <span className="font-medium">{a.rating.toFixed(1)}</span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function StationAmenities() {
-  const [station, setStation] = React.useState<MetroStation | null>(METRO_STATIONS[0]);
-  const [category, setCategory] = React.useState<AmenityCategory>("Tất cả");
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    setLoading(true);
-    const t = window.setTimeout(() => setLoading(false), 650);
-    return () => window.clearTimeout(t);
-  }, [station, category]);
-
-  const filtered = React.useMemo(() => {
-    const base = AMENITIES.filter((a) => a.stationId === (station?.id ?? 1));
-    if (category === "Tất cả") return base;
-    return base.filter((a) => a.category === category);
-  }, [station, category]);
-
-  return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">Tiện ích quanh Ga</h1>
-        <p className="text-sm text-muted-foreground">
-          Chọn ga và lọc theo danh mục để xem tiện ích gần nhất (dữ liệu mô phỏng).
-        </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-12">
-        <Card className="lg:col-span-8 shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Bộ lọc</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Chọn ga</div>
-                <StationSelect value={station} onChange={setStation} placeholder="Chọn ga" />
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Danh mục</div>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((c) => (
-                    <Button
-                      key={c.key}
-                      type="button"
-                      variant={category === c.key ? "default" : "outline"}
-                      size="sm"
-                      className={cn("rounded-full", category !== c.key && "text-muted-foreground")}
-                      onClick={() => setCategory(c.key)}
-                    >
-                      {c.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
+      {/* ── Filters ── */}
+      <div className="bg-white border-b border-gray-100 px-6 py-4">
+        <div className="max-w-7xl mx-auto">
+          <AmenityFiltersBar
+            search={filters.search}
+            stationId={filters.stationId}
+            type={filters.type}
+            stations={stations}
+            onSearchChange={setSearch}
+            onStationChange={setStationId}
+            onTypeChange={setType}
+          />
+        </div>
+      </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {loading
-                ? Array.from({ length: 4 }).map((_, i) => (
-                    <Card key={i} className="p-6">
-                      <Skeleton className="h-5 w-4/5" />
-                      <Skeleton className="mt-2 h-4 w-full" />
-                      <Skeleton className="mt-6 h-4 w-2/3" />
-                    </Card>
-                  ))
-                : filtered.map((a) => <AmenityCard key={a.id} a={a} />)}
-              {!loading && filtered.length === 0 && (
-                <Card className="md:col-span-2">
-                  <CardContent className="p-6 text-sm text-muted-foreground">
-                    Chưa có tiện ích cho bộ lọc này (mock).
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* ── Content ── */}
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Result count */}
+        {!loading && !error && (
+          <p className="text-sm text-gray-500 mb-4">
+            {total > 0
+              ? `Hiển thị ${amenities.length} / ${total} tiện ích`
+              : ''}
+          </p>
+        )}
 
-        <Card className="lg:col-span-4 shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Bản đồ (placeholder)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex aspect-square w-full items-center justify-center rounded-xl border bg-muted/40">
-              <div className="text-center text-sm text-muted-foreground">
-                <MapPinned className="mx-auto mb-2 h-6 w-6" />
-                Bản đồ tiện ích sẽ hiển thị tại đây
-                <div className="mt-1 text-xs">(không dùng Maps API)</div>
-              </div>
-            </div>
-            <div className="mt-4 text-xs text-muted-foreground">
-              Ga hiện tại: <span className="font-medium text-foreground">{station?.name}</span>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Số tiện ích: <span className="font-medium text-foreground">{loading ? "..." : filtered.length}</span>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 rounded-xl px-4 py-3 text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {loading ? (
+            Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+          ) : amenities.length === 0 ? (
+            <EmptyState onReset={resetFilters} />
+          ) : (
+            amenities.map((amenity) => (
+              <AmenityCard
+                key={amenity.id}
+                amenity={amenity}
+                onClick={handleCardClick}
+              />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default AmenitiesPage;
