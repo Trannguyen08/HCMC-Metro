@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.metro.models import Amenity, Station
+from apps.metro.models import Amenity, AmenityType, Station
 
 
 AMENITY_TYPE_ALIASES: dict[str, tuple[str, ...]] = {
@@ -171,4 +171,59 @@ class AmenitySerializer(serializers.ModelSerializer):
         ]
 
     def get_type(self, obj: Amenity) -> str:
+        return map_amenity_type(getattr(obj.amenity_type, "name", ""))
+
+
+class AmenityTypeOptionSerializer(serializers.ModelSerializer):
+    category = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AmenityType
+        fields = ["id", "name", "category"]
+
+    def get_category(self, obj: AmenityType) -> str:
+        return map_amenity_type(obj.name)
+
+
+class AdminAmenitySerializer(serializers.ModelSerializer):
+    category = serializers.SerializerMethodField(read_only=True)
+    station_code = serializers.CharField(source="station.code", read_only=True)
+    station_name = serializers.CharField(source="station.name", read_only=True)
+    amenity_type_name = serializers.CharField(source="amenity_type.name", read_only=True)
+    station = serializers.SlugRelatedField(
+        slug_field="code",
+        queryset=Station.objects.filter(is_active=True),
+        write_only=True,
+    )
+    amenity_type = serializers.PrimaryKeyRelatedField(
+        queryset=AmenityType.objects.all(),
+        write_only=True,
+    )
+
+    class Meta:
+        model = Amenity
+        fields = [
+            "id",
+            "name",
+            "category",
+            "address",
+            "station",
+            "station_code",
+            "station_name",
+            "amenity_type",
+            "amenity_type_name",
+            "distance_meters",
+            "image_url",
+            "description",
+            "rating",
+            "opening_hours",
+            "phone",
+            "website",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_category(self, obj: Amenity) -> str:
         return map_amenity_type(getattr(obj.amenity_type, "name", ""))

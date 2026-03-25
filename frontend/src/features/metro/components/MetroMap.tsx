@@ -111,7 +111,7 @@ export function MetroMap() {
   const [selected, setSelected] = React.useState<MetroStation>(METRO_STATIONS[0]);
   const [createOpen, setCreateOpen] = React.useState(false);
   const [placeName, setPlaceName] = React.useState("");
-  const [placeCategory, setPlaceCategory] = React.useState<AmenityCategory>("Ăn uống");
+  const [placeCategory, setPlaceCategory] = React.useState<AmenityCategory>("Nhà hàng");
   const [placeDistance, setPlaceDistance] = React.useState("");
   const [formError, setFormError] = React.useState<string | null>(null);
 
@@ -162,7 +162,7 @@ export function MetroMap() {
                     <SelectValue placeholder="Chọn danh mục" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(["Y tế", "Giáo dục", "Ăn uống", "Mua sắm", "Ngân hàng", "Bãi xe"] as const).map((c) => (
+                    {(["Cà phê", "Nhà hàng", "Mua sắm", "Khách sạn", "Dịch vụ"] as const).map((c) => (
                       <SelectItem key={c} value={c}>
                         {c}
                       </SelectItem>
