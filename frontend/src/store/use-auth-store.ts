@@ -11,15 +11,15 @@ interface AuthState {
 
   // Actions
   setUser: (user: AuthUser | null) => void;
-  login: (input: { identifier: string; password: string }) => Promise<void>;
-  loginWithGoogle: (accessToken: string) => Promise<void>;
+  login: (input: { identifier: string; password: string }) => Promise<AuthUser>;
+  loginWithGoogle: (accessToken: string) => Promise<AuthUser>;
   register: (input: {
     full_name: string;
     email: string;
     phone: string;
     password: string;
   }) => Promise<{ email: string; verification_token: string }>;
-  verifyEmailOtp: (input: { verification_token: string; otp: string }) => Promise<void>;
+  verifyEmailOtp: (input: { verification_token: string; otp: string }) => Promise<AuthUser>;
   logout: () => Promise<void>;
   updateProfile: (patch: Partial<Omit<AuthUser, "id">>) => void;
   setError: (error: string | null) => void;
@@ -44,6 +44,7 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem("metro.access", data.access);
           localStorage.setItem("metro.refresh", data.refresh);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
+          return data.user;
         } catch (err: any) {
           const msg = err.message || "Đăng nhập thất bại.";
           set({ error: msg, isLoading: false });
@@ -58,6 +59,7 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem("metro.access", data.access);
           localStorage.setItem("metro.refresh", data.refresh);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
+          return data.user;
         } catch (err: any) {
           const msg = err.message || "Đăng nhập Google thất bại.";
           set({ error: msg, isLoading: false });
@@ -85,6 +87,7 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem("metro.access", data.access);
           localStorage.setItem("metro.refresh", data.refresh);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
+          return data.user;
         } catch (err: any) {
           const msg = err.message || "Xác thực OTP thất bại.";
           set({ error: msg, isLoading: false });
