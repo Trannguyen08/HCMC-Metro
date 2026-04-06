@@ -83,6 +83,10 @@ CREATE TABLE metro_lines (
     name            VARCHAR(100) NOT NULL,       -- 'Tuyến 1', 'Tuyến 2', ...
     code            VARCHAR(20) UNIQUE NOT NULL, -- 'L1', 'L2'
     color           VARCHAR(10),                 -- Hex color: '#FF0000'
+    color_hex       VARCHAR(10) DEFAULT '#0066CC',
+    stroke_weight   INT DEFAULT 4,
+    geojson_coordinates JSONB,
+    status          VARCHAR(30) DEFAULT 'active',
     description     TEXT,
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMPTZ DEFAULT NOW()
@@ -194,6 +198,17 @@ CREATE TABLE payments (
 -- 5. TIỆN ÍCH QUANH GA
 -- ============================================================
 
+CREATE TABLE amenity_categories (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    slug            VARCHAR(50) UNIQUE NOT NULL,
+    icon_svg        TEXT,
+    color_hex       VARCHAR(10) DEFAULT '#6B7280',
+    bg_color_hex    VARCHAR(10) DEFAULT '#F3F4F6',
+    sort_order      INT DEFAULT 0,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE amenity_types (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,       -- 'Nhà hàng', 'ATM', 'Siêu thị', 'Bệnh viện', ...
@@ -203,9 +218,11 @@ CREATE TABLE amenity_types (
 
 CREATE TABLE amenities (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    station_id      INT NOT NULL REFERENCES stations(id) ON DELETE CASCADE,
-    amenity_type_id INT NOT NULL REFERENCES amenity_types(id) ON DELETE SET NULL,
+    station_id      INT REFERENCES stations(id) ON DELETE CASCADE,
+    amenity_type_id INT REFERENCES amenity_types(id) ON DELETE SET NULL,
+    category_id     INT REFERENCES amenity_categories(id) ON DELETE SET NULL,
     name            VARCHAR(255) NOT NULL,       -- Tên tiện ích
+    slug            VARCHAR(300),
     distance_meters INT,                         -- Cách ga bao nhiêu mét
     address         VARCHAR(500),
     latitude        DECIMAL(10, 8),
@@ -245,6 +262,19 @@ CREATE TABLE map_configs (
     display_label   VARCHAR(255),
     popup_content   TEXT,                        -- HTML snippet hiển thị popup
     created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE bus_stop_cache (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL,
+    code            VARCHAR(50),
+    latitude        DECIMAL(10, 8) NOT NULL,
+    longitude       DECIMAL(11, 8) NOT NULL,
+    address         VARCHAR(500),
+    routes          TEXT[],
+    station_id      INT REFERENCES stations(id) ON DELETE SET NULL,
+    distance_to_station INT,
+    fetched_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================================

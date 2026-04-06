@@ -1,5 +1,5 @@
-import { MetroMap } from "@/features/metro/components/MetroMap";
+import { DigitalMap } from "@/features/metro/components/DigitalMap/DigitalMap";
 
 export default function BanDoSoPage() {
-  return <MetroMap />;
+  return <DigitalMap />;
 }
