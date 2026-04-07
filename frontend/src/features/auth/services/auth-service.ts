@@ -1,5 +1,22 @@
 import api from "@/services/api-client";
+import axios from "axios";
 import { AuthUser, LoginResponse, RegisterResponse } from "../types";
+
+export const getApiErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === "string" && detail.trim()) return detail;
+
+    const errors = error.response?.data?.errors;
+    if (errors && typeof errors === "object") {
+      const firstField = Object.keys(errors)[0];
+      const firstError = firstField ? errors[firstField]?.[0] : null;
+      if (typeof firstError === "string" && firstError.trim()) return firstError;
+    }
+  }
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallback;
+};
 
 export const authService = {
   login: async (input: { identifier: string; password: string }): Promise<LoginResponse> => {
@@ -7,8 +24,11 @@ export const authService = {
     return data;
   },
 
-  loginWithGoogle: async (access_token: string): Promise<LoginResponse> => {
-    const { data } = await api.post<LoginResponse>("/auth/google/", { access_token });
+  loginWithGoogle: async (payload: {
+    access_token?: string;
+    credential?: string;
+  }): Promise<LoginResponse> => {
+    const { data } = await api.post<LoginResponse>("/auth/google/", payload);
     return data;
   },
 
@@ -16,6 +36,7 @@ export const authService = {
     full_name: string;
     email: string;
     phone: string;
+    date_of_birth?: string | null;
     password: string;
   }): Promise<RegisterResponse> => {
     const { data } = await api.post<RegisterResponse>("/auth/register/", input);

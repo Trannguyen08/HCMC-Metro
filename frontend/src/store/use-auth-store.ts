@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { AuthUser } from "@/features/auth/types";
-import { authService } from "@/features/auth/services/auth-service";
+import { authService, getApiErrorMessage } from "@/features/auth/services/auth-service";
 
 interface AuthState {
   user: AuthUser | null;
@@ -12,17 +12,20 @@ interface AuthState {
   // Actions
   setUser: (user: AuthUser | null) => void;
   login: (input: { identifier: string; password: string }) => Promise<AuthUser>;
-  loginWithGoogle: (accessToken: string) => Promise<AuthUser>;
+  loginWithGoogle: (payload: { access_token?: string; credential?: string }) => Promise<AuthUser>;
   register: (input: {
     full_name: string;
     email: string;
     phone: string;
+    date_of_birth?: string | null;
     password: string;
   }) => Promise<{ email: string; verification_token: string }>;
   verifyEmailOtp: (input: { verification_token: string; otp: string }) => Promise<AuthUser>;
   logout: () => Promise<void>;
   updateProfile: (patch: Partial<Omit<AuthUser, "id">>) => void;
   setError: (error: string | null) => void;
+  setPendingBooking: (booking: any | null) => void;
+  pendingBooking: any | null;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -45,23 +48,23 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem("metro.refresh", data.refresh);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
           return data.user;
-        } catch (err: any) {
-          const msg = err.message || "Đăng nhập thất bại.";
+        } catch (err) {
+          const msg = getApiErrorMessage(err, "Dang nhap that bai.");
           set({ error: msg, isLoading: false });
           throw new Error(msg);
         }
       },
 
-      loginWithGoogle: async (accessToken) => {
+      loginWithGoogle: async (payload) => {
         set({ isLoading: true, error: null });
         try {
-          const data = await authService.loginWithGoogle(accessToken);
+          const data = await authService.loginWithGoogle(payload);
           localStorage.setItem("metro.access", data.access);
           localStorage.setItem("metro.refresh", data.refresh);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
           return data.user;
-        } catch (err: any) {
-          const msg = err.message || "Đăng nhập Google thất bại.";
+        } catch (err) {
+          const msg = getApiErrorMessage(err, "Dang nhap Google that bai.");
           set({ error: msg, isLoading: false });
           throw new Error(msg);
         }
@@ -73,8 +76,8 @@ export const useAuthStore = create<AuthState>()(
           const data = await authService.register(input);
           set({ isLoading: false });
           return data;
-        } catch (err: any) {
-          const msg = err.message || "Đăng ký thất bại.";
+        } catch (err) {
+          const msg = getApiErrorMessage(err, "Dang ky that bai.");
           set({ error: msg, isLoading: false });
           throw new Error(msg);
         }
@@ -88,8 +91,8 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem("metro.refresh", data.refresh);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
           return data.user;
-        } catch (err: any) {
-          const msg = err.message || "Xác thực OTP thất bại.";
+        } catch (err) {
+          const msg = getApiErrorMessage(err, "Xac thuc OTP that bai.");
           set({ error: msg, isLoading: false });
           throw new Error(msg);
         }
@@ -111,7 +114,11 @@ export const useAuthStore = create<AuthState>()(
           set({ user: { ...user, ...patch } });
         }
       },
+
+      setPendingBooking: (booking) => set({ pendingBooking: booking }),
+      pendingBooking: null,
     }),
+
     {
       name: "metro.user",
       storage: createJSONStorage(() => localStorage),

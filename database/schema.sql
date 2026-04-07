@@ -21,9 +21,33 @@ CREATE TABLE users (
     is_active       BOOLEAN DEFAULT TRUE,
     is_admin        BOOLEAN DEFAULT FALSE,
     email_verified  BOOLEAN DEFAULT FALSE,
+    category_id     INT DEFAULT 1, -- Defaults to Regular
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================================
+-- 1.1 USER CATEGORIES (ĐỐI TƯỢNG GIẢM GIÁ)
+-- ============================================================
+
+CREATE TABLE user_categories (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL, -- 'Sinh viên', 'Trẻ em', 'Người cao tuổi', 'Phổ thông'
+    slug            VARCHAR(50) UNIQUE NOT NULL,
+    discount_rate   DECIMAL(3, 2) DEFAULT 0.00, -- 0.50 = 50% off
+    description     TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default categories
+INSERT INTO user_categories (name, slug, discount_rate) VALUES
+    ('Phổ thông',      'regular',  0.00),
+    ('Sinh viên',      'student',  0.50),
+    ('Trẻ em',         'child',    0.50),
+    ('Người cao tuổi', 'elderly',  0.50);
+
+-- Link users to categories
+ALTER TABLE users ADD CONSTRAINT fk_user_category FOREIGN KEY (category_id) REFERENCES user_categories(id);
 
 -- Đăng nhập với Google (OAuth)
 CREATE TABLE oauth_accounts (
@@ -133,8 +157,8 @@ CREATE TABLE train_schedules (
 -- 4. VÉ & ĐẶT VÉ
 -- ============================================================
 
-CREATE TYPE ticket_type AS ENUM ('single_day', 'three_day', 'weekly', 'monthly');
-CREATE TYPE ticket_status AS ENUM ('active', 'expired', 'cancelled', 'pending');
+CREATE TYPE ticket_type AS ENUM ('single', 'single_day', 'three_day', 'weekly', 'monthly');
+CREATE TYPE ticket_status AS ENUM ('active', 'expired', 'cancelled', 'pending', 'used');
 
 CREATE TABLE ticket_types (
     id              SERIAL PRIMARY KEY,
@@ -149,6 +173,7 @@ CREATE TABLE ticket_types (
 
 -- Insert mặc định các loại vé
 INSERT INTO ticket_types (type, name, duration_days, price) VALUES
+    ('single',      'Vé lượt',    0,  7000), -- Base price for single trip
     ('single_day',  'Vé ngày',   1,  40000),
     ('three_day',   'Vé 3 ngày', 3,  90000),
     ('weekly',      'Vé tuần',   7,  150000),

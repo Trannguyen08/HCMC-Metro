@@ -13,3 +13,8 @@ cloudinary==1.38.0
 # Redis integration
 django-redis==5.4.0
 redis==5.0.8
+
+# Ticketing features
+qrcode[pil]==7.4.2
+geopy==2.4.1
+

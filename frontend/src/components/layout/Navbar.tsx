@@ -29,7 +29,7 @@ import { useLanguage } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const NAV_LINKS = [
-  { href: "/#uu-dai", label: "Ưu đãi" },
+  { href: "/dat-ve", label: "Đặt vé" },
   { href: "/lo-trinh", label: "Tra cứu Lộ trình" },
   { href: "/tien-ich", label: "Tiện ích quanh Ga" },
   { href: "/ban-do-so", label: "Bản đồ số" },
@@ -44,7 +44,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = React.useState(false);
 
   const navLinks = [
-    { href: "/#uu-dai", label: t("nav.promo") },
+    { href: "/dat-ve", label: t("nav.book") },
     { href: "/lo-trinh", label: t("nav.route") },
     { href: "/tien-ich", label: t("nav.amenities") },
     { href: "/ban-do-so", label: t("nav.map") },
@@ -86,7 +86,7 @@ export function Navbar() {
 
         <nav className="hidden items-center gap-6 lg:flex">
           {navLinks.map((l) => {
-            const active = l.href !== "/#uu-dai" && pathname === l.href;
+            const active = pathname === l.href;
             return (
               <Link
                 key={l.href}
@@ -155,7 +155,7 @@ export function Navbar() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
-                  <Link href="/lo-trinh" className="gap-2">
+                  <Link href="/dat-ve" className="gap-2">
                     <Ticket className="h-4 w-4" />
                     {t("nav.book")}
                   </Link>

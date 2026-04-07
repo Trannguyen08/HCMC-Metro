@@ -11,11 +11,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../hooks/use-auth";
+import { useAuthStore } from "@/store/use-auth-store";
 import { getPostAuthRedirect } from "../lib/get-post-auth-redirect";
 
 export function LoginForm() {
   const router = useRouter();
   const { login, loginWithGoogle, error: authError, setError } = useAuth();
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const [identifier, setIdentifier] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -27,19 +29,29 @@ export function LoginForm() {
     setLoading(true);
     try {
       const user = await login({ identifier, password });
-      router.replace(getPostAuthRedirect(user));
-    } catch (err) {
-      // Error is handled by store
+      const pendingBooking = useAuthStore.getState().pendingBooking;
+      router.replace(getPostAuthRedirect(user, pendingBooking));
+    } catch {
+      // Error handled by store
     } finally {
       setLoading(false);
     }
   }
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
+    const accessToken = credentialResponse?.access_token;
+    const credential = credentialResponse?.credential;
+    if (!accessToken && !credential) {
+      setError("Khong nhan duoc token Google. Vui long thu lai.");
+      setGoogleLoading(false);
+      return;
+    }
+
     try {
-      const user = await loginWithGoogle(credentialResponse.access_token);
-      router.replace(getPostAuthRedirect(user));
-    } catch (err: any) {
+      const user = await loginWithGoogle({ access_token: accessToken, credential });
+      const pendingBooking = useAuthStore.getState().pendingBooking;
+      router.replace(getPostAuthRedirect(user, pendingBooking));
+    } catch {
       // Error handled by store
     } finally {
       setGoogleLoading(false);
@@ -47,16 +59,24 @@ export function LoginForm() {
   };
 
   const onGoogleLogin = useGoogleLogin({
+    flow: "implicit",
     onSuccess: handleGoogleSuccess,
     onError: () => {
-      setError("Đăng nhập Google thất bại.");
+      setError("Dang nhap Google that bai.");
       setGoogleLoading(false);
     },
-    onNonOAuthError: () => setGoogleLoading(false),
+    onNonOAuthError: () => {
+      setError("Khong the khoi dong cua so Google. Kiem tra client ID va popup.");
+      setGoogleLoading(false);
+    },
   });
 
   const triggerGoogleLogin = () => {
     setError(null);
+    if (!googleClientId) {
+      setError("Google login chua duoc cau hinh (thieu NEXT_PUBLIC_GOOGLE_CLIENT_ID).");
+      return;
+    }
     setGoogleLoading(true);
     onGoogleLogin();
   };
@@ -70,38 +90,35 @@ export function LoginForm() {
           </div>
           <div className="text-center leading-tight">
             <div className="font-heading text-base font-extrabold">HCMC METRO</div>
-            <div className="text-xs text-muted-foreground">Đăng nhập hệ thống</div>
+            <div className="text-xs text-muted-foreground">Dang nhap he thong</div>
           </div>
         </div>
-        <CardTitle className="text-center text-lg">Chào mừng bạn quay lại</CardTitle>
+        <CardTitle className="text-center text-lg">Chao mung ban quay lai</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1">
-            <Label>Email/SĐT</Label>
+            <Label>Email/SDT</Label>
             <Input
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="vd: user@metrohcm.vn hoặc 090..."
+              placeholder="vd: user@metrohcm.vn hoac 090..."
               autoComplete="username"
             />
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <Label>Mật khẩu</Label>
-              <Link
-                href="/#faq"
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                Quên mật khẩu?
+              <Label>Mat khau</Label>
+              <Link href="/#faq" className="text-xs text-muted-foreground hover:text-foreground">
+                Quen mat khau?
               </Link>
             </div>
             <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="********"
               autoComplete="current-password"
             />
           </div>
@@ -109,7 +126,7 @@ export function LoginForm() {
           {authError && <p className="text-sm text-rose-600">{authError}</p>}
 
           <Button className="w-full" type="submit" disabled={loading || googleLoading}>
-            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+            {loading ? "Dang dang nhap..." : "Dang nhap"}
           </Button>
 
           <Button
@@ -120,13 +137,13 @@ export function LoginForm() {
             onClick={triggerGoogleLogin}
           >
             <Chrome className="h-4 w-4" />
-            {googleLoading ? "Đang mở Google..." : "Đăng nhập với Google"}
+            {googleLoading ? "Dang mo Google..." : "Dang nhap voi Google"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
-            Chưa có tài khoản?{" "}
+            Chua co tai khoan?{" "}
             <Link href="/register" className="font-medium text-primary hover:underline">
-              Đăng ký
+              Dang ky
             </Link>
           </p>
         </form>

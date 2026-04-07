@@ -1,27 +1,15 @@
-"""
-apps/users/views/auth.py
-─────────────────────────
-Auth views with Redis rate limiting on sensitive endpoints:
-  - login:    5 attempts / 60s per IP  (brute-force protection)
-  - register: 3 attempts / 60s per IP
-  - google_login: 10 attempts / 60s per IP
-
-Rate limiting degrades gracefully: if Redis is down, requests are allowed through.
-"""
-from __future__ import annotations
-
-from rest_framework import status
+﻿from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.users.serializers.auth import (
-    RegisterSerializer,
-    LoginSerializer,
-    VerifyOTPSerializer,
     GoogleLoginSerializer,
+    LoginSerializer,
+    RegisterSerializer,
+    VerifyOTPSerializer,
 )
 from apps.users.services.auth_service import AuthService
 from infrastructure.rate_limit import rate_limit
@@ -31,7 +19,7 @@ auth_service = AuthService()
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@rate_limit(limit=3, window_seconds=60)   # max 3 registrations/min per IP
+@rate_limit(limit=3, window_seconds=60)
 def register(request):
     serializer = RegisterSerializer(data=request.data)
     if not serializer.is_valid():
@@ -43,6 +31,7 @@ def register(request):
             full_name=data["full_name"],
             email=data["email"],
             phone=data.get("phone"),
+            date_of_birth=data.get("date_of_birth"),
             password=data["password"],
         )
         return Response(result, status=status.HTTP_201_CREATED)
@@ -52,7 +41,7 @@ def register(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@rate_limit(limit=10, window_seconds=60)  # OTP verification: more lenient
+@rate_limit(limit=10, window_seconds=60)
 def verify_register_otp(request):
     serializer = VerifyOTPSerializer(data=request.data)
     if not serializer.is_valid():
@@ -70,7 +59,7 @@ def verify_register_otp(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
-@rate_limit(limit=5, window_seconds=60)   # 5 login attempts/min per IP — brute-force guard
+@rate_limit(limit=5, window_seconds=60)
 def login(request):
     serializer = LoginSerializer(data=request.data)
     if not serializer.is_valid():
@@ -121,12 +110,8 @@ def logout(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me(request):
-    user_id = request.auth.payload.get("user_id") if request.auth else None
-    if not user_id:
-        return Response({"detail": "Token không hợp lệ."}, status=status.HTTP_401_UNAUTHORIZED)
-
-    user = auth_service.user_repo.get_by_id(user_id)
-    if not user or not user.is_active:
+    user = request.user
+    if not user or not getattr(user, "is_active", False):
         return Response({"detail": "Tài khoản không tồn tại."}, status=status.HTTP_404_NOT_FOUND)
 
     return Response(auth_service.serialize_user(user))

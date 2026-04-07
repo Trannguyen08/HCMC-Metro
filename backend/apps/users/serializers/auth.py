@@ -4,6 +4,7 @@ class RegisterSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255)
     email = serializers.EmailField()
     phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
     password = serializers.CharField(min_length=6, write_only=True)
 
 class VerifyOTPSerializer(serializers.Serializer):
