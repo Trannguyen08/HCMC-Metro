@@ -1,15 +1,18 @@
-import secrets
 import hashlib
 import os
+import secrets
+
 import requests
 from django.conf import settings
-from django.core.mail import send_mail
 from django.core import signing
-from rest_framework_simplejwt.tokens import RefreshToken
-from google.oauth2 import id_token
+from django.core.mail import send_mail
 from google.auth.transport import requests as google_requests
-from apps.users.repositories.user_repository import UserRepository
+from google.oauth2 import id_token
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from apps.users.models.oauth import OAuthAccount
+from apps.users.repositories.user_repository import UserRepository
+
 
 class AuthService:
     def __init__(self):
@@ -31,18 +34,19 @@ class AuthService:
             "full_name": user.full_name,
             "email": user.email,
             "phone": user.phone or "",
+            "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
             "avatar_url": user.avatar_url or "",
             "email_verified": user.email_verified,
             "is_admin": user.is_admin,
         }
 
     def send_register_otp(self, full_name, email, otp):
-        subject = "Mã OTP xác thực đăng ký HCMC Metro"
+        subject = "Ma OTP xac thuc dang ky HCMC Metro"
         body = (
-            f"Xin chào {full_name},\n\n"
-            f"Mã OTP xác thực email của bạn là: {otp}\n"
-            f"Mã có hiệu lực trong 10 phút.\n\n"
-            "Nếu bạn không yêu cầu đăng ký, hãy bỏ qua email này."
+            f"Xin chao {full_name},\n\n"
+            f"Ma OTP xac thuc email cua ban la: {otp}\n"
+            f"Ma co hieu luc trong 10 phut.\n\n"
+            "Neu ban khong yeu cau dang ky, hay bo qua email nay."
         )
         send_mail(
             subject=subject,
@@ -65,25 +69,26 @@ class AuthService:
         except Exception:
             return False
 
-    def initiate_registration(self, full_name, email, phone, password):
+    def initiate_registration(self, full_name, email, phone, date_of_birth, password):
         if self.user_repo.get_by_email(email.lower()):
-            raise ValueError("Email này đã được sử dụng.")
-        
+            raise ValueError("Email nay da duoc su dung.")
+
         password_hash = self.hash_password(password)
         otp = f"{secrets.randbelow(1_000_000):06d}"
         payload = {
             "full_name": full_name,
             "email": email.lower(),
             "phone": phone or "",
+            "date_of_birth": date_of_birth.isoformat() if date_of_birth else None,
             "password_hash": password_hash,
             "otp": otp,
         }
-        
+
         try:
             self.send_register_otp(full_name, email, otp)
-        except Exception as exc:
-            pass # Or log it
-        
+        except Exception:
+            pass
+
         token = signing.dumps(payload, salt="register-otp")
         return {
             "requires_email_verification": True,
@@ -95,21 +100,22 @@ class AuthService:
         try:
             payload = signing.loads(token, salt="register-otp", max_age=600)
         except signing.SignatureExpired:
-            raise ValueError("OTP đã hết hạn. Vui lòng đăng ký lại.")
+            raise ValueError("OTP da het han. Vui long dang ky lai.")
         except signing.BadSignature:
-            raise ValueError("Token không hợp lệ.")
-            
+            raise ValueError("Token khong hop le.")
+
         if otp_input != payload.get("otp"):
-            raise ValueError("OTP không đúng.")
-            
+            raise ValueError("OTP khong dung.")
+
         email = payload["email"]
         if self.user_repo.get_by_email(email.lower()):
-            raise ValueError("Email này đã được sử dụng.")
-            
+            raise ValueError("Email nay da duoc su dung.")
+
         user = self.user_repo.create(
             full_name=payload["full_name"],
             email=email,
             phone=payload.get("phone", ""),
+            date_of_birth=payload.get("date_of_birth"),
             password_hash=payload["password_hash"],
             is_active=True,
             email_verified=True,
@@ -122,23 +128,25 @@ class AuthService:
         if "@" in identifier:
             user = self.user_repo.get_by_email(identifier.lower())
         else:
-            # Add get_by_phone to repo if needed. For now using ORM directly in service as pragmatic fallback
+            # Fallback query by phone for current schema.
             from apps.users.models import User
+
             user = User.objects.filter(phone=identifier, is_active=True).first()
-            
+
         if not user or not user.is_active:
-            raise ValueError("Tài khoản không tồn tại.")
+            raise ValueError("Tai khoan khong ton tai.")
         if not user.password_hash:
-            raise ValueError("Tài khoản này đăng nhập bằng Google. Vui lòng dùng nút Google.")
+            raise ValueError("Tai khoan nay dang nhap bang Google. Vui long dung nut Google.")
         if not self.verify_password(password, user.password_hash):
-            raise ValueError("Mật khẩu không đúng.")
-            
+            raise ValueError("Mat khau khong dung.")
+
         return self.generate_tokens(user), self.serialize_user(user)
 
     def process_google_login(self, token):
         client_id = settings.GOOGLE_CLIENT_ID
         if not client_id:
             raise Exception("Google login is not configured.")
+
         try:
             if isinstance(token, str) and token.count(".") >= 2:
                 id_info = id_token.verify_oauth2_token(
@@ -153,15 +161,15 @@ class AuthService:
                     timeout=10,
                 )
                 if r.status_code != 200:
-                    raise ValueError("Google access token không hợp lệ.")
+                    raise ValueError("Google access token khong hop le.")
                 id_info = r.json()
         except ValueError as e:
-            raise ValueError(f"Token không hợp lệ: {e}")
+            raise ValueError(f"Token khong hop le: {e}")
 
         google_sub = id_info.get("sub")
         if not google_sub:
-            raise ValueError("Không lấy được thông tin Google user.")
-            
+            raise ValueError("Khong lay duoc thong tin Google user.")
+
         email = id_info.get("email", "").lower()
         full_name = id_info.get("name", "Google User")
         avatar_url = id_info.get("picture", "")

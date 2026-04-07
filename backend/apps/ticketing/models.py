@@ -1,10 +1,12 @@
 import uuid
+
 from django.db import models
-from apps.users.models import User
+
 from apps.metro.models import Station
+from apps.users.models import User
 
 class TicketType(models.Model):
-    type = models.CharField(max_length=50) # ENUM in SQL
+    type = models.CharField(max_length=50) # 'single', 'single_day', etc.
     name = models.CharField(max_length=100)
     duration_days = models.IntegerField()
     price = models.DecimalField(max_digits=12, decimal_places=2)
@@ -21,7 +23,7 @@ class Ticket(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, db_column="user_id")
     ticket_type = models.ForeignKey(TicketType, on_delete=models.PROTECT, db_column="ticket_type_id")
     qr_code = models.TextField(unique=True, null=True, blank=True)
-    status = models.CharField(max_length=30, default="pending") # ENUM in SQL
+    status = models.CharField(max_length=30, default="pending") 
     valid_from = models.DateField()
     valid_until = models.DateField()
     from_station = models.ForeignKey(Station, on_delete=models.SET_NULL, null=True, related_name="tickets_from", db_column="from_station_id")
