@@ -7,6 +7,10 @@ class MetroLine(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=20, unique=True)
     color = models.CharField(max_length=10, null=True, blank=True)
+    color_hex = models.CharField(max_length=10, null=True, blank=True)
+    stroke_weight = models.IntegerField(null=True, blank=True)
+    geojson_coordinates = models.JSONField(null=True, blank=True)
+    status = models.CharField(max_length=30, default="active")
     description = models.TextField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -54,6 +58,20 @@ class Train(models.Model):
         managed = False
 
 
+class AmenityCategory(models.Model):
+    name = models.CharField(max_length=100)
+    slug = models.CharField(max_length=50, unique=True)
+    icon_svg = models.TextField(null=True, blank=True)
+    color_hex = models.CharField(max_length=10, null=True, blank=True)
+    bg_color_hex = models.CharField(max_length=10, null=True, blank=True)
+    sort_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "amenity_categories"
+        managed = False
+
+
 class AmenityType(models.Model):
     name = models.CharField(max_length=100)
     icon_url = models.TextField(null=True, blank=True)
@@ -69,6 +87,8 @@ class Amenity(models.Model):
     station = models.ForeignKey(
         Station,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         db_column="station_id",
         related_name="amenities",
     )
@@ -78,8 +98,17 @@ class Amenity(models.Model):
         null=True,
         blank=True,
         db_column="amenity_type_id",
+        related_name="legacy_amenities",
+    )
+    category = models.ForeignKey(
+        AmenityCategory,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="category_id",
         related_name="amenities",
     )
+    slug = models.CharField(max_length=300, null=True, blank=True)
     name = models.CharField(max_length=255)
     distance_meters = models.IntegerField(null=True, blank=True)
     address = models.CharField(max_length=500, null=True, blank=True)
@@ -97,4 +126,27 @@ class Amenity(models.Model):
 
     class Meta:
         db_table = "amenities"
+        managed = False
+
+
+class BusStopCache(models.Model):
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50, null=True, blank=True)
+    latitude = models.DecimalField(max_digits=10, decimal_places=8)
+    longitude = models.DecimalField(max_digits=11, decimal_places=8)
+    address = models.CharField(max_length=500, null=True, blank=True)
+    routes = models.JSONField(null=True, blank=True) # Text[] array stored as JSON
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="station_id",
+        related_name="bus_stops",
+    )
+    distance_to_station = models.IntegerField(null=True, blank=True)
+    fetched_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "bus_stop_cache"
         managed = False

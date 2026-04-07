@@ -1,7 +1,14 @@
 from django.urls import path
-from apps.metro.views import admin, aminity
+from apps.metro.views import admin, aminity, map_views
 
 urlpatterns = [
+    # Map feature API
+    path("map/init/", map_views.map_init, name="map_init"),
+    path("map/amenities/", map_views.map_amenities, name="map_amenities"),
+    path("map/bus-stops/", map_views.map_bus_stops, name="map_bus_stops"),
+    path("map/stations/search/", map_views.search_stations, name="search_stations"),
+
+    # Admin and legacy API
     path("admin/lines/", admin.admin_metro_lines, name="admin_metro_lines"),
     path("admin/amenity-types/", admin.admin_amenity_types, name="admin_amenity_types"),
     path("admin/amenities/", admin.admin_amenity_list, name="admin_amenity_list"),
