@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../hooks/use-auth";
+import { getPostAuthRedirect } from "../lib/get-post-auth-redirect";
 
 export function LoginForm() {
   const router = useRouter();
@@ -25,11 +26,8 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await login({ identifier, password });
-      // Redirect happens after successful login, but since it's a client component 
-      // we can check is_admin from the user object if needed, or just rely on state change.
-      // However, the original code had explicit routing:
-      router.push("/");
+      const user = await login({ identifier, password });
+      router.replace(getPostAuthRedirect(user));
     } catch (err) {
       // Error is handled by store
     } finally {
@@ -39,8 +37,8 @@ export function LoginForm() {
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
-      await loginWithGoogle(credentialResponse.access_token);
-      router.push("/");
+      const user = await loginWithGoogle(credentialResponse.access_token);
+      router.replace(getPostAuthRedirect(user));
     } catch (err: any) {
       // Error handled by store
     } finally {

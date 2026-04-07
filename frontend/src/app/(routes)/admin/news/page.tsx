@@ -45,6 +45,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import axios from "axios";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { IMAGE_UPLOAD_ACCEPT, validateImageFile } from "@/lib/upload-validation";
 
 interface News {
   id: string;
@@ -123,6 +124,7 @@ export default function AdminNewsPage() {
 
   const handleOpenCreate = () => {
     setEditingItem(null);
+    setSelectedFile(null);
     setFormData({
       title: "",
       summary: "",
@@ -136,6 +138,7 @@ export default function AdminNewsPage() {
 
   const handleOpenEdit = (item: News) => {
     setEditingItem(item);
+    setSelectedFile(null);
     setFormData({
       title: item.title,
       summary: item.summary,
@@ -155,6 +158,14 @@ export default function AdminNewsPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const validationError = validateImageFile(file);
+
+      if (validationError) {
+        alert(validationError);
+        e.target.value = "";
+        return;
+      }
+
       setSelectedFile(file);
       // Optional: auto-generate slug from title if slug is empty
       if (!formData.slug && formData.title) {
@@ -425,7 +436,7 @@ export default function AdminNewsPage() {
                 <div className="flex-1 space-y-2">
                   <Input 
                     type="file" 
-                    accept="image/*" 
+                    accept={IMAGE_UPLOAD_ACCEPT}
                     onChange={handleFileChange}
                     className="cursor-pointer"
                   />
@@ -477,7 +488,7 @@ export default function AdminNewsPage() {
           <DialogHeader>
             <DialogTitle>Xác nhận xóa</DialogTitle>
             <DialogDescription>
-              Bạn có chắc chắn muốn xóa bài viết "{itemToDelete?.title}"? Hành động này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa bài viết &quot;{itemToDelete?.title}&quot;? Hành động này không thể hoàn tác.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

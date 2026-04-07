@@ -1,3 +1,15 @@
+"""
+apps/users/views/auth.py
+─────────────────────────
+Auth views with Redis rate limiting on sensitive endpoints:
+  - login:    5 attempts / 60s per IP  (brute-force protection)
+  - register: 3 attempts / 60s per IP
+  - google_login: 10 attempts / 60s per IP
+
+Rate limiting degrades gracefully: if Redis is down, requests are allowed through.
+"""
+from __future__ import annotations
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -5,32 +17,42 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from apps.users.serializers.auth import RegisterSerializer, LoginSerializer, VerifyOTPSerializer, GoogleLoginSerializer
+from apps.users.serializers.auth import (
+    RegisterSerializer,
+    LoginSerializer,
+    VerifyOTPSerializer,
+    GoogleLoginSerializer,
+)
 from apps.users.services.auth_service import AuthService
+from infrastructure.rate_limit import rate_limit
 
 auth_service = AuthService()
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@rate_limit(limit=3, window_seconds=60)   # max 3 registrations/min per IP
 def register(request):
     serializer = RegisterSerializer(data=request.data)
     if not serializer.is_valid():
         return Response({"errors": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     data = serializer.validated_data
     try:
         result = auth_service.initiate_registration(
             full_name=data["full_name"],
             email=data["email"],
             phone=data.get("phone"),
-            password=data["password"]
+            password=data["password"],
         )
         return Response(result, status=status.HTTP_201_CREATED)
     except ValueError as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@rate_limit(limit=10, window_seconds=60)  # OTP verification: more lenient
 def verify_register_otp(request):
     serializer = VerifyOTPSerializer(data=request.data)
     if not serializer.is_valid():
@@ -39,14 +61,16 @@ def verify_register_otp(request):
     try:
         tokens, user_data = auth_service.verify_registration_otp(
             token=serializer.validated_data["verification_token"],
-            otp_input=serializer.validated_data["otp"].strip()
+            otp_input=serializer.validated_data["otp"].strip(),
         )
         return Response({**tokens, "user": user_data})
     except ValueError as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@rate_limit(limit=5, window_seconds=60)   # 5 login attempts/min per IP — brute-force guard
 def login(request):
     serializer = LoginSerializer(data=request.data)
     if not serializer.is_valid():
@@ -55,19 +79,21 @@ def login(request):
     try:
         tokens, user_data = auth_service.login_with_password(
             identifier=serializer.validated_data["identifier"],
-            password=serializer.validated_data["password"]
+            password=serializer.validated_data["password"],
         )
         return Response({**tokens, "user": user_data})
     except ValueError as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@rate_limit(limit=10, window_seconds=60)
 def google_login(request):
     serializer = GoogleLoginSerializer(data=request.data)
     if not serializer.is_valid():
         return Response({"detail": "Missing credential."}, status=status.HTTP_400_BAD_REQUEST)
-        
+
     token = serializer.validated_data.get("credential") or serializer.validated_data.get("access_token")
     if not token:
         return Response({"detail": "Missing credential."}, status=status.HTTP_400_BAD_REQUEST)
@@ -77,6 +103,7 @@ def google_login(request):
         return Response({**tokens, "user": user_data})
     except Exception as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -89,6 +116,7 @@ def logout(request):
         except TokenError:
             pass
     return Response({"detail": "Đã đăng xuất."})
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])

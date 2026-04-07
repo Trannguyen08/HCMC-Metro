@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../hooks/use-auth";
+import { getPostAuthRedirect } from "../lib/get-post-auth-redirect";
 
 export function VerifyEmailForm() {
   const router = useRouter();
@@ -42,12 +43,12 @@ export function VerifyEmailForm() {
     }
     setLoading(true);
     try {
-      await verifyEmailOtp({ verification_token: token, otp });
+      const user = await verifyEmailOtp({ verification_token: token, otp });
       if (typeof window !== "undefined") {
         sessionStorage.removeItem("metro.pendingEmail");
         sessionStorage.removeItem("metro.pendingVerificationToken");
       }
-      router.push("/");
+      router.replace(getPostAuthRedirect(user));
     } catch (err: any) {
       // Error handled by store
     } finally {

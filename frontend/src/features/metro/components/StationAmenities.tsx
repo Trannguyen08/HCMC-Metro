@@ -1,153 +1,260 @@
 "use client";
 
-import * as React from "react";
-import { MapPinned, Star } from "lucide-react";
+import React from "react";
+import Link from "next/link";
+import { ArrowRight, Compass, Map, Sparkles, Store, TrainFront } from "lucide-react";
 
-import { StationSelect } from "./StationSelect";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import {
-  AMENITIES,
-  METRO_STATIONS,
-  type Amenity,
-  type AmenityCategory,
-  type MetroStation
-} from "@/lib/mock-data";
+import { Card, CardContent } from "@/components/ui/card";
+import { useAmenities } from "@/hooks/useAmenities";
+import { AmenityType } from "@/types/amenity";
+import { AmenityFiltersBar } from "./AmenityFiltersbar";
+import { AmenityCard } from "./AmenityCard";
 
-const CATEGORIES: { key: AmenityCategory; label: string }[] = [
-  { key: "Tất cả", label: "Tất cả" },
-  { key: "Y tế", label: "🏥 Y tế" },
-  { key: "Giáo dục", label: "🏫 Giáo dục" },
-  { key: "Ăn uống", label: "🍜 Ăn uống" },
-  { key: "Mua sắm", label: "🏪 Mua sắm" },
-  { key: "Ngân hàng", label: "🏦 Ngân hàng" },
-  { key: "Bãi xe", label: "🅿️ Bãi xe" }
-];
+const CATEGORY_COUNT = 5;
 
-function AmenityCard({ a }: { a: Amenity }) {
+function SkeletonCard() {
   return (
-    <Card className="card-hover">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-base">{a.name}</CardTitle>
-            <div className="mt-1 text-sm text-muted-foreground">{a.address}</div>
-          </div>
-          <Badge variant="outline">{a.category}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="flex items-center justify-between text-sm">
-        <div className="text-muted-foreground">{a.distanceKm.toFixed(1)} km</div>
-        <div className="flex items-center gap-1">
-          <Star className="h-4 w-4 text-amber-500" />
-          <span className="font-medium">{a.rating.toFixed(1)}</span>
-        </div>
+    <div className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white">
+      <div className="aspect-[4/3] animate-pulse bg-slate-200" />
+      <div className="space-y-3 p-5">
+        <div className="h-5 w-24 animate-pulse rounded-full bg-slate-200" />
+        <div className="h-6 w-4/5 animate-pulse rounded-xl bg-slate-200" />
+        <div className="h-4 w-full animate-pulse rounded-lg bg-slate-100" />
+        <div className="h-4 w-2/3 animate-pulse rounded-lg bg-slate-100" />
+        <div className="h-24 animate-pulse rounded-2xl bg-slate-100" />
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  hint,
+  accentClass,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  accentClass: string;
+}) {
+  return (
+    <Card className="rounded-[28px] border-slate-200/80 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+      <CardContent className="p-5">
+        <div className={`mb-4 h-2 w-16 rounded-full ${accentClass}`} />
+        <p className="text-sm font-medium text-slate-500">{label}</p>
+        <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">{hint}</p>
       </CardContent>
     </Card>
   );
 }
 
-export function StationAmenities() {
-  const [station, setStation] = React.useState<MetroStation | null>(METRO_STATIONS[0]);
-  const [category, setCategory] = React.useState<AmenityCategory>("Tất cả");
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    setLoading(true);
-    const t = window.setTimeout(() => setLoading(false), 650);
-    return () => window.clearTimeout(t);
-  }, [station, category]);
-
-  const filtered = React.useMemo(() => {
-    const base = AMENITIES.filter((a) => a.stationId === (station?.id ?? 1));
-    if (category === "Tất cả") return base;
-    return base.filter((a) => a.category === category);
-  }, [station, category]);
-
+function EmptyState({
+  onReset,
+  type,
+}: {
+  onReset: () => void;
+  type: AmenityType;
+}) {
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">Tiện ích quanh Ga</h1>
-        <p className="text-sm text-muted-foreground">
-          Chọn ga và lọc theo danh mục để xem tiện ích gần nhất (dữ liệu mô phỏng).
-        </p>
+    <div className="col-span-full rounded-[32px] border border-dashed border-slate-300 bg-white/80 px-6 py-16 text-center shadow-sm">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+        <Compass className="h-7 w-7" />
       </div>
-
-      <div className="grid gap-4 lg:grid-cols-12">
-        <Card className="lg:col-span-8 shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Bộ lọc</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Chọn ga</div>
-                <StationSelect value={station} onChange={setStation} placeholder="Chọn ga" />
-              </div>
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Danh mục</div>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((c) => (
-                    <Button
-                      key={c.key}
-                      type="button"
-                      variant={category === c.key ? "default" : "outline"}
-                      size="sm"
-                      className={cn("rounded-full", category !== c.key && "text-muted-foreground")}
-                      onClick={() => setCategory(c.key)}
-                    >
-                      {c.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {loading
-                ? Array.from({ length: 4 }).map((_, i) => (
-                    <Card key={i} className="p-6">
-                      <Skeleton className="h-5 w-4/5" />
-                      <Skeleton className="mt-2 h-4 w-full" />
-                      <Skeleton className="mt-6 h-4 w-2/3" />
-                    </Card>
-                  ))
-                : filtered.map((a) => <AmenityCard key={a.id} a={a} />)}
-              {!loading && filtered.length === 0 && (
-                <Card className="md:col-span-2">
-                  <CardContent className="p-6 text-sm text-muted-foreground">
-                    Chưa có tiện ích cho bộ lọc này (mock).
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-4 shadow-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Bản đồ (placeholder)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex aspect-square w-full items-center justify-center rounded-xl border bg-muted/40">
-              <div className="text-center text-sm text-muted-foreground">
-                <MapPinned className="mx-auto mb-2 h-6 w-6" />
-                Bản đồ tiện ích sẽ hiển thị tại đây
-                <div className="mt-1 text-xs">(không dùng Maps API)</div>
-              </div>
-            </div>
-            <div className="mt-4 text-xs text-muted-foreground">
-              Ga hiện tại: <span className="font-medium text-foreground">{station?.name}</span>
-            </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Số tiện ích: <span className="font-medium text-foreground">{loading ? "..." : filtered.length}</span>
-            </div>
-          </CardContent>
-        </Card>
+      <h3 className="mt-5 text-2xl font-semibold text-slate-900">Chua tim thay tien ich phu hop</h3>
+      <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">
+        Thu doi ga, loai tien ich hoac tu khoa tim kiem. He thong se hien thi danh sach moi ngay khi co ket qua phu hop.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <Button onClick={onReset} className="rounded-full px-5">
+          Xoa bo loc
+        </Button>
+        {type !== "all" ? (
+          <Button variant="outline" onClick={() => onReset()} className="rounded-full px-5">
+            Quay lai tat ca nhom
+          </Button>
+        ) : null}
       </div>
     </div>
   );
 }
+
+const AmenitiesPage: React.FC = () => {
+  const {
+    amenities,
+    stations,
+    filters,
+    loading,
+    error,
+    total,
+    setSearch,
+    setStationId,
+    setType,
+    resetFilters,
+  } = useAmenities();
+
+  return (
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f7fafc_0%,#eef5ff_26%,#ffffff_100%)] pb-16">
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <section className="relative overflow-hidden rounded-[36px] border border-slate-200/80 bg-white px-6 py-8 shadow-[0_28px_80px_rgba(15,23,42,0.08)] sm:px-8 lg:px-10 lg:py-10">
+          <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(0,168,107,0.18),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(0,85,165,0.12),transparent_42%)] lg:block" />
+          <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] lg:items-end">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#0055A5]/15 bg-[#0055A5]/8 px-4 py-2 text-sm font-medium text-[#0055A5]">
+                <Sparkles className="h-4 w-4" />
+                Tien ich quanh ga Metro
+              </div>
+
+              <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
+                Tim diem dung phu hop truoc va sau moi chang Metro.
+              </h1>
+
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                Tu ca phe, nha hang den mua sam va dich vu thiet yeu, ban co the loc nhanh theo ga de len hanh trinh gon hon va de quan sat hon.
+              </p>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Button asChild className="rounded-full px-5">
+                  <Link href="/ban-do-so">
+                    Kham pha ban do so
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="rounded-full px-5">
+                  <Link href="/lo-trinh">
+                    <TrainFront className="mr-2 h-4 w-4" />
+                    Ket hop voi lo trinh
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/90 p-5">
+                <p className="text-sm font-medium text-slate-500">Trang thai hien tai</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{loading ? "Dang tai..." : `${total} diem`}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Danh sach duoc cap nhat theo bo loc ban dang chon.
+                </p>
+              </div>
+              <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/90 p-5">
+                <p className="text-sm font-medium text-slate-500">Phu ga Metro</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{stations.length} ga</p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Nhanh tay loc theo khu vuc de thu hep lua chon.
+                </p>
+              </div>
+              <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/90 p-5">
+                <p className="text-sm font-medium text-slate-500">Danh muc</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{CATEGORY_COUNT} nhom</p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Du lich, an uong, mua sam va cac dich vu co ban.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <AmenityFiltersBar
+          search={filters.search}
+          stationId={filters.stationId}
+          type={filters.type}
+          stations={stations}
+          onSearchChange={setSearch}
+          onStationChange={setStationId}
+          onTypeChange={setType}
+        />
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <StatCard
+            label="Ket qua dang hien thi"
+            value={loading ? "--" : amenities.length.toString()}
+            hint="So luong the dang hien tren man hinh theo bo loc hien tai."
+            accentClass="bg-[#0055A5]"
+          />
+          <StatCard
+            label="Tong diem phu hop"
+            value={loading ? "--" : total.toString()}
+            hint="Tong ket qua tim duoc tren toan bo he thong cho lua chon hien tai."
+            accentClass="bg-[#00A86B]"
+          />
+          <StatCard
+            label="Che do duyet"
+            value={filters.stationId ? "Theo ga" : "Toan mang"}
+            hint="Ban co the chuyen nhanh giua xem tong hop va xem theo tung nha ga."
+            accentClass="bg-amber-400"
+          />
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Danh sach tien ich</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Anh trong moi the duoc giu cung mot ti le de danh sach gon va de quet hon.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
+              <Store className="h-4 w-4 text-[#0055A5]" />
+              {loading ? "Dang tai du lieu..." : `${amenities.length} / ${total || amenities.length} ket qua`}
+            </div>
+          </div>
+
+          {error ? (
+            <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {loading
+              ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
+              : amenities.length === 0
+                ? <EmptyState onReset={resetFilters} type={filters.type} />
+                : amenities.map((amenity) => <AmenityCard key={amenity.id} amenity={amenity} />)}
+          </div>
+        </section>
+
+        <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <Card className="rounded-[30px] border-slate-200/80 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
+            <CardContent className="flex h-full flex-col justify-between gap-5 p-6">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-slate-500">Goi y su dung</p>
+                <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
+                  Loc theo ga truoc, sau do thu hep theo nhu cau.
+                </h3>
+                <p className="text-sm leading-7 text-slate-600">
+                  Cach nay giup danh sach gon hon va de tim cac diem dung chan thuc su co ich trong hanh trinh cua ban.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 text-sm font-medium text-[#0055A5]">
+                <Map className="h-4 w-4" />
+                Ban co the tiep tuc doi bo loc o phia tren bat cu luc nao.
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[30px] border-slate-200/80 bg-slate-950 text-white shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
+            <CardContent className="flex h-full flex-col justify-between gap-5 p-6">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-white/70">Trai nghiem tot hon</p>
+                <h3 className="text-2xl font-semibold tracking-tight">Anh card dong deu, noi dung de quet, bo loc de dung.</h3>
+                <p className="text-sm leading-7 text-white/75">
+                  Giao dien moi uu tien tinh ro rang va giu nhip thi giac on dinh tren desktop lan mobile.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
+                <ArrowRight className="h-4 w-4" />
+                Mo tung the de xem thong tin chi tiet va chi duong.
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      </div>
+    </div>
+  );
+};
+
+export default AmenitiesPage;
