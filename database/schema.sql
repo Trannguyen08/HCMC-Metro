@@ -19,6 +19,7 @@ CREATE TABLE users (
     date_of_birth   DATE,
     avatar_url      TEXT,
     is_active       BOOLEAN DEFAULT TRUE,
+    is_admin        BOOLEAN DEFAULT FALSE,
     email_verified  BOOLEAN DEFAULT FALSE,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
@@ -55,8 +56,6 @@ CREATE TABLE user_sessions (
 CREATE TABLE news_categories (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,       -- 'Thông báo', 'Sự kiện', 'Khuyến mãi', ...
-    slug            VARCHAR(100) UNIQUE NOT NULL,
-    description     TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -318,7 +317,8 @@ SELECT
     s1.name         AS from_station,
     s2.name         AS to_station,
     t.price_paid,
-    t.created_at
+    t.created_at,
+    u.is_admin
 FROM tickets t
 JOIN users u        ON t.user_id = u.id
 JOIN ticket_types tt ON t.ticket_type_id = tt.id
