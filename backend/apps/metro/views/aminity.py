@@ -65,7 +65,9 @@ def amenity_list(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-def amenity_detail(request, amenity_id):
+def amenity_detail(request, id_slug):
+    # UUIDs are 36 chars long. Extract it from the beginning of id_slug.
+    amenity_id = id_slug[:36]
     amenity = get_object_or_404(
         Amenity.objects.filter(is_active=True).select_related("station", "amenity_type", "station__line"),
         pk=amenity_id,

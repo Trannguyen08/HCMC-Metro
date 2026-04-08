@@ -12,6 +12,7 @@ export interface MetroStation {
 export interface Amenity {
   id: string;
   name: string;
+  slug: string;
   type: Exclude<AmenityType, 'all'>;
   address: string;
   stationId: string;

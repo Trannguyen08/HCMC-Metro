@@ -18,14 +18,66 @@ L.Icon.Default.mergeOptions({
 });
 
 // Helpers
+const AMENITY_ICONS: Record<string, { color: string; path: string }> = {
+  cafe: {
+    color: "#D97706",
+    path: '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>',
+  },
+  restaurant: {
+    color: "#059669",
+    path: '<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/>',
+  },
+  shopping: {
+    color: "#DB2777",
+    path: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  },
+  hotel: {
+    color: "#2563EB",
+    path: '<path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>',
+  },
+  service: {
+    color: "#475569",
+    path: '<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 10V7"/>',
+  },
+};
+
 const createAmenityIcon = (categorySlug: string) => {
-  const color = categorySlug ? '#D97706' : '#2563EB';
-  const html = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`;
+  const config = AMENITY_ICONS[categorySlug] || {
+    color: "#2563EB",
+    path: '<circle cx="12" cy="12" r="10"/>',
+  };
+
+  const html = `
+    <div style="
+      background-color: ${config.color};
+      width: 32px;
+      height: 32px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    ">
+      <svg xmlns="http://www.w3.org/2000/svg" 
+           viewBox="0 0 24 24" 
+           fill="none" 
+           stroke="white" 
+           stroke-width="2" 
+           stroke-linecap="round" 
+           stroke-linejoin="round"
+           style="transform: rotate(45deg); width: 18px; height: 18px;">
+        ${config.path}
+      </svg>
+    </div>
+  `;
+
   return L.divIcon({
     html,
-    className: '',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    className: "",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32], // Anchor at the tip of the "pin"
   });
 };
 
@@ -239,8 +291,16 @@ export default function DigitalMapClient() {
               key={amenity.id}
               position={[Number(amenity.latitude), Number(amenity.longitude)]}
               icon={createAmenityIcon(amenity.category_slug)}
-              eventHandlers={{ click: () => handleAmenityClick(amenity) }}
+              eventHandlers={{ 
+                click: () => handleAmenityClick(amenity),
+                mouseover: (e) => {
+                  e.target.openPopup();
+                }
+              }}
             >
+              <Popup closeButton={true} minWidth={300} className="amenity-custom-popup">
+                <AmenityPopup amenity={amenity} />
+              </Popup>
               <Tooltip direction="top" offset={[0, -10]}>
                 {amenity.name}
               </Tooltip>
@@ -248,14 +308,6 @@ export default function DigitalMapClient() {
           );
         })}
       </MapContainer>
-
-      {/* Floating Amenity Panel */}
-      {selectedAmenity && (
-        <AmenityPopup 
-          amenity={selectedAmenity} 
-          onClose={() => setSelectedAmenity(null)} 
-        />
-      )}
     </div>
   );
 }

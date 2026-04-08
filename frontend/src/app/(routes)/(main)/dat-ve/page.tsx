@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -50,11 +51,13 @@ export default function BookingPage() {
     fromStationId,
     toStationId,
     ticketTypeId,
+    isRoundTrip,
     ticketTypes,
     calculation,
     setFromStation,
     setToStation,
     setTicketType,
+    setIsRoundTrip,
     fetchInitialData,
   } = useBookingStore();
 
@@ -127,12 +130,13 @@ export default function BookingPage() {
 
     if (!ticketTypeId) return;
 
+    // Chi bat buoc chon ga doi voi ve luot
     if (isSingleTicket && (!fromStationId || !toStationId)) {
-      setMessage({ type: "error", text: "Vui lòng chọn đủ ga khởi hành và ga đến." });
+      setMessage({ type: "error", text: "Vui lòng chọn đủ ga khởi hành và ga đến cho vé lượt." });
       return;
     }
 
-    if (sameStationSelected) {
+    if (isSingleTicket && sameStationSelected) {
       setMessage({ type: "error", text: "Ga khởi hành và ga đến không được trùng nhau." });
       return;
     }
@@ -141,21 +145,25 @@ export default function BookingPage() {
     setMessage(null);
 
     try {
-      const res = await api.post(`/ticketing/booking/book/`, {
+      const res = await api.post(`/payments/payos/create/`, {
         ticket_type_id: ticketTypeId,
-        from_station_id: fromStationId,
-        to_station_id: toStationId,
+        from_station_id: isSingleTicket ? fromStationId : null,
+        to_station_id: isSingleTicket ? toStationId : null,
+        is_round_trip: isSingleTicket ? isRoundTrip : false,
       });
 
-      if (!res.data?.id) {
-        setMessage({ type: "error", text: "Đặt vé thành công nhưng thiếu mã vé để chuyển trang." });
+      if (!res.data?.payment_url) {
+        setMessage({ type: "error", text: "Không lấy được liên kết thanh toán PayOS." });
         return;
       }
 
-      setMessage({ type: "success", text: "Đặt vé thành công! Vui lòng kiểm tra email để nhận mã QR." });
-      setTimeout(() => {
-        router.push(`/dat-ve/thanh-cong?id=${res.data.id}`);
-      }, 1200);
+      if (!res.data?.ticket_id) {
+        setMessage({ type: "error", text: "Không tạo được vé chờ thanh toán." });
+        return;
+      }
+
+      setMessage({ type: "success", text: "Đã lưu vé chờ thanh toán, đang chuyển sang trang thanh toán..." });
+      router.push(`/dat-ve/thanh-toan?ticket_id=${res.data.ticket_id}`);
     } catch (err: any) {
       if (err.response?.status === 401) {
         setPendingBooking({
@@ -194,15 +202,15 @@ export default function BookingPage() {
                 <MapPin className="h-5 w-5 text-primary" />
                 Thông tin hành trình
               </CardTitle>
-              <CardDescription>Chọn ga đi và ga đến (chỉ áp dụng cho Vé lượt)</CardDescription>
+              <CardDescription>Chọn ga đi và ga đến (Chỉ bắt buộc cho vé lượt, các vé khác có thể bỏ qua)</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col items-center gap-4 md:flex-row">
                 <div className="w-full flex-1 space-y-2">
-                  <Label>Ga đi</Label>
-                  <Select value={fromStationId?.toString() || ""} onValueChange={onChangeFromStation} disabled={!isSingleTicket && selectedTicketType !== undefined}>
+                  <Label>Ga đi {isSingleTicket ? <span className="text-rose-500">*</span> : ""}</Label>
+                  <Select value={fromStationId?.toString() || ""} onValueChange={onChangeFromStation} disabled={!isSingleTicket}>
                     <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Chọn ga khởi hành" />
+                      <SelectValue placeholder={isSingleTicket ? "Chọn ga khởi hành" : "Không bắt buộc (Tất cả ga)"} />
                     </SelectTrigger>
                     <SelectContent>
                       {fromStations.map((st) => (
@@ -227,10 +235,10 @@ export default function BookingPage() {
                 </div>
 
                 <div className="w-full flex-1 space-y-2">
-                  <Label>Ga đến</Label>
-                  <Select value={toStationId?.toString() || ""} onValueChange={onChangeToStation} disabled={!isSingleTicket && selectedTicketType !== undefined}>
+                  <Label>Ga đến {isSingleTicket ? <span className="text-rose-500">*</span> : ""}</Label>
+                  <Select value={toStationId?.toString() || ""} onValueChange={onChangeToStation} disabled={!isSingleTicket}>
                     <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Chọn ga kết thúc" />
+                      <SelectValue placeholder={isSingleTicket ? "Chọn ga kết thúc" : "Không bắt buộc (Tất cả ga)"} />
                     </SelectTrigger>
                     <SelectContent>
                       {toStations.map((st) => (
@@ -282,6 +290,25 @@ export default function BookingPage() {
                     </div>
                   ))}
                 </div>
+                {isSingleTicket && (
+                  <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="round-trip"
+                        checked={isRoundTrip}
+                        onCheckedChange={(checked) => setIsRoundTrip(Boolean(checked))}
+                      />
+                      <div className="space-y-1">
+                        <Label htmlFor="round-trip" className="cursor-pointer font-semibold">
+                          Vé khứ hồi
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          Giá vé lượt sẽ nhân đôi (x2) và có 2 lượt quét.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Separator />
@@ -368,7 +395,7 @@ export default function BookingPage() {
                       Đang xử lý...
                     </>
                   ) : isAuthenticated ? (
-                    "Đặt vé ngay"
+                     "Tiến hành thanh toán"
                   ) : (
                     "Đăng nhập để đặt vé"
                   )}

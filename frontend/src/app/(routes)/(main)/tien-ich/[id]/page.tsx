@@ -5,5 +5,7 @@ export default function AmenityDetailRoute({
 }: {
   params: { id: string };
 }) {
-  return <AmenityDetailPage amenityId={params.id} />;
+  // Extract 36-char UUID from the combined string (the folder is named [id] now)
+  const amenityId = params.id.substring(0, 36);
+  return <AmenityDetailPage amenityId={amenityId} />;
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { Chrome, TrainFront } from "lucide-react";
-import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,16 +39,15 @@ export function LoginForm() {
   }
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
-    const accessToken = credentialResponse?.access_token;
     const credential = credentialResponse?.credential;
-    if (!accessToken && !credential) {
+    if (!credential) {
       setError("Khong nhan duoc token Google. Vui long thu lai.");
       setGoogleLoading(false);
       return;
     }
 
     try {
-      const user = await loginWithGoogle({ access_token: accessToken, credential });
+      const user = await loginWithGoogle({ credential });
       const pendingBooking = useAuthStore.getState().pendingBooking;
       router.replace(getPostAuthRedirect(user, pendingBooking));
     } catch {
@@ -56,29 +55,6 @@ export function LoginForm() {
     } finally {
       setGoogleLoading(false);
     }
-  };
-
-  const onGoogleLogin = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: handleGoogleSuccess,
-    onError: () => {
-      setError("Dang nhap Google that bai.");
-      setGoogleLoading(false);
-    },
-    onNonOAuthError: () => {
-      setError("Khong the khoi dong cua so Google. Kiem tra client ID va popup.");
-      setGoogleLoading(false);
-    },
-  });
-
-  const triggerGoogleLogin = () => {
-    setError(null);
-    if (!googleClientId) {
-      setError("Google login chua duoc cau hinh (thieu NEXT_PUBLIC_GOOGLE_CLIENT_ID).");
-      return;
-    }
-    setGoogleLoading(true);
-    onGoogleLogin();
   };
 
   return (
@@ -129,16 +105,30 @@ export function LoginForm() {
             {loading ? "Dang dang nhap..." : "Dang nhap"}
           </Button>
 
-          <Button
-            className="w-full"
-            variant="outline"
-            type="button"
-            disabled={loading || googleLoading}
-            onClick={triggerGoogleLogin}
-          >
-            <Chrome className="h-4 w-4" />
-            {googleLoading ? "Dang mo Google..." : "Dang nhap voi Google"}
-          </Button>
+          <div className="w-full rounded-md border p-2">
+            {googleClientId ? (
+              <GoogleLogin
+                theme="outline"
+                size="large"
+                text="signin_with"
+                shape="rectangular"
+                width="100%"
+                onSuccess={(res) => {
+                  setGoogleLoading(true);
+                  void handleGoogleSuccess(res);
+                }}
+                onError={() => {
+                  setError("Dang nhap Google that bai.");
+                  setGoogleLoading(false);
+                }}
+              />
+            ) : (
+              <Button className="w-full" variant="outline" type="button" disabled>
+                <Chrome className="h-4 w-4" />
+                Thieu NEXT_PUBLIC_GOOGLE_CLIENT_ID
+              </Button>
+            )}
+          </div>
 
           <p className="text-center text-sm text-muted-foreground">
             Chua co tai khoan?{" "}

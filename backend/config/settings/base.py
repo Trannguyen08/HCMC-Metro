@@ -14,9 +14,13 @@ env = environ.Env(
     DEBUG=(bool, False),
 )
 
-env_file = BASE_DIR / ".env"
-if env_file.exists():
-    env.read_env(env_file)
+env_files = [
+    BASE_DIR / ".env",
+    BASE_DIR.parent / ".env",
+]
+for env_file in env_files:
+    if env_file.exists():
+        env.read_env(env_file)
 
 SECRET_KEY = env("SECRET_KEY", default="change-me")
 
@@ -189,3 +193,9 @@ else:
 CACHE_TTL_HOT = 60 * 5          # 5 min  — news list, categories (changes often)
 CACHE_TTL_WARM = 60 * 30        # 30 min — metro lines/stations (changes rarely)
 CACHE_TTL_COLD = 60 * 60 * 24  # 24 h   — static reference data
+# PayOS Settings
+PAYOS_CLIENT_ID = env("PAYOS_CLIENT_ID", default="")
+PAYOS_API_KEY = env("PAYOS_API_KEY", default="")
+PAYOS_CHECKSUM_KEY = env("PAYOS_CHECKSUM_KEY", default="")
+PAYOS_API_BASE = env("PAYOS_API_BASE", default="https://api-merchant.payos.vn")
+

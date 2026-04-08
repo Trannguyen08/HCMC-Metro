@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { LogIn, QrCode, UserCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,13 +33,13 @@ function statusLabel(status: string): string {
     case "active":
       return "Đang hoạt động";
     case "pending":
-      return "Đang xử lý";
+      return "Chưa thanh toán";
     case "cancelled":
       return "Đã hủy";
     case "expired":
       return "Hết hạn";
     case "used":
-      return "Đã sử dụng";
+      return "Đang sử dụng";
     default:
       return status;
   }
@@ -71,6 +72,7 @@ function formatRoute(t: TicketItem) {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { user, isAuthenticated, updateProfile, logout } = useAuth();
   const { t } = useLanguage();
 
@@ -82,6 +84,7 @@ export default function ProfilePage() {
   const [tickets, setTickets] = React.useState<TicketItem[]>([]);
   const [loadingTickets, setLoadingTickets] = React.useState(false);
   const [qrByTicket, setQrByTicket] = React.useState<Record<string, string>>({});
+  const [actingTicketId, setActingTicketId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setName(user?.full_name ?? "");
@@ -144,6 +147,45 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error("Failed to load QR", err);
+    }
+  };
+
+  const downloadQrImage = (ticketId: string) => {
+    const qr = qrByTicket[ticketId];
+    if (!qr) return;
+    const link = document.createElement("a");
+    link.href = `data:image/png;base64,${qr}`;
+    link.download = `metro-ticket-${ticketId.slice(0, 8)}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const continuePayment = async (ticketId: string) => {
+    setActingTicketId(ticketId);
+    try {
+      const res = await api.post("/payments/payos/continue/", { ticket_id: ticketId });
+      if (!res.data?.payment_url) {
+        alert("Không tạo được liên kết thanh toán.");
+        return;
+      }
+      window.location.href = res.data.payment_url;
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Không thể tiếp tục thanh toán.");
+    } finally {
+      setActingTicketId(null);
+    }
+  };
+
+  const cancelTicket = async (ticketId: string) => {
+    setActingTicketId(ticketId);
+    try {
+      await api.post(`/ticketing/my-tickets/${ticketId}/cancel/`);
+      setTickets((prev) => prev.map((item) => (item.id === ticketId ? { ...item, status: "cancelled" } : item)));
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Không thể hủy vé.");
+    } finally {
+      setActingTicketId(null);
     }
   };
 
@@ -257,6 +299,7 @@ export default function ProfilePage() {
                         <th className="px-4 py-3 font-medium">{t("table.type")}</th>
                         <th className="px-4 py-3 font-medium">{t("table.price")}</th>
                         <th className="px-4 py-3 font-medium">{t("table.status")}</th>
+                        <th className="px-4 py-3 font-medium">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -269,6 +312,33 @@ export default function ProfilePage() {
                           <td className="px-4 py-3">{Math.round(parseFloat(ticket.price_paid || "0")).toLocaleString("vi-VN")}đ</td>
                           <td className="px-4 py-3">
                             <TicketStatusBadge status={ticket.status} />
+                          </td>
+                          <td className="px-4 py-3">
+                            {ticket.status === "pending" ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => continuePayment(ticket.id)}
+                                  disabled={actingTicketId === ticket.id}
+                                >
+                                  Tiếp tục thanh toán
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => cancelTicket(ticket.id)}
+                                  disabled={actingTicketId === ticket.id}
+                                >
+                                  Hủy vé
+                                </Button>
+                              </div>
+                            ) : ticket.status === "cancelled" ? (
+                              <span className="text-xs text-muted-foreground">Đã hủy</span>
+                            ) : (
+                              <Button size="sm" variant="ghost" onClick={() => router.push(`/dat-ve/thanh-cong?id=${ticket.id}`)}>
+                                Xem chi tiết
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -319,11 +389,16 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         {qrByTicket[ticket.id] ? (
-                          <img
-                            src={`data:image/png;base64,${qrByTicket[ticket.id]}`}
-                            alt={`QR ${ticket.id}`}
-                            className="h-20 w-20 rounded-lg border bg-background p-1"
-                          />
+                          <div className="flex flex-col items-center gap-2">
+                            <img
+                              src={`data:image/png;base64,${qrByTicket[ticket.id]}`}
+                              alt={`QR ${ticket.id}`}
+                              className="h-20 w-20 rounded-lg border bg-background p-1"
+                            />
+                            <Button size="sm" variant="outline" onClick={() => downloadQrImage(ticket.id)}>
+                              Tải ảnh
+                            </Button>
+                          </div>
                         ) : (
                           <Button size="sm" variant="outline" onClick={() => loadQr(ticket.id)}>
                             Tải QR
