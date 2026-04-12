@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { Providers } from "@/components/providers/Providers";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { ChatboxWidget } from "@/components/chatbox/ChatboxWidget";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin", "vietnamese"],
@@ -39,6 +40,7 @@ export default function RootLayout({
               <PageTransition>{children}</PageTransition>
             </main>
             <Footer />
+            <ChatboxWidget />
           </div>
         </Providers>
       </body>

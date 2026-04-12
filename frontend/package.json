@@ -27,6 +27,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.0",
     "date-fns": "^4.1.0",
+    "groq-sdk": "^1.1.2",
     "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.542.0",
