@@ -51,3 +51,11 @@ class User(models.Model):
     @property
     def is_anonymous(self):
         return False
+
+    @property
+    def is_staff(self):
+        return bool(self.is_admin)
+
+    @property
+    def is_superuser(self):
+        return bool(self.is_admin)

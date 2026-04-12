@@ -191,6 +191,7 @@ CREATE TABLE tickets (
     from_station_id INT REFERENCES stations(id),
     to_station_id   INT REFERENCES stations(id),
     price_paid      DECIMAL(12, 2) NOT NULL,
+    usage_remaining INT,                          -- NULL = khong gioi han (ve ngay/tuan/thang), 1/2 cho ve luot
     purchase_note   TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()

@@ -8,6 +8,7 @@ from datetime import date, timedelta
 from django.utils import timezone
 from django.core.cache import cache
 from geopy.distance import geodesic
+from django.db import models
 
 from apps.metro.models import Station
 from apps.ticketing.models import Ticket, TicketType
@@ -55,7 +56,14 @@ class BookingService:
         return dist
 
     @staticmethod
-    def calculate_price(ticket_type: TicketType, from_st=None, to_st=None, date_of_birth: date | None = None, on_date: date | None = None) -> dict:
+    def calculate_price(
+        ticket_type: TicketType,
+        from_st=None,
+        to_st=None,
+        date_of_birth: date | None = None,
+        on_date: date | None = None,
+        is_round_trip: bool = False,
+    ) -> dict:
         """
         Calculate ticket price based on type, distance, and age-based passenger group.
         Returns: { 'base_price': decimal, 'discount_rate': decimal, 'total': decimal, 'passenger_group': str, 'age': int|None }
@@ -68,6 +76,8 @@ class BookingService:
             # Logic: 7,000 base + 1,000 per KM
             base_price = Decimal(7000) + Decimal(dist * 1000)
             base_price = base_price.quantize(Decimal('100')) # Round to nearest 100
+            if is_round_trip:
+                base_price = (base_price * Decimal("2")).quantize(Decimal("100"))
         
         passenger_group, discount_rate, age = BookingService.get_passenger_group(date_of_birth, on_date=on_date)
             
@@ -102,7 +112,16 @@ class BookingService:
         return base64.b64encode(buffered.getvalue()).decode()
 
     @classmethod
-    def create_ticket(cls, user, ticket_type, from_st=None, to_st=None, valid_from=None):
+    def create_ticket(
+        cls,
+        user,
+        ticket_type,
+        from_st=None,
+        to_st=None,
+        valid_from=None,
+        initial_status="active",
+        is_round_trip=False,
+    ):
         """Create a new ticket and generate its QR code."""
         if not valid_from:
             valid_from = timezone.now().date()
@@ -117,19 +136,34 @@ class BookingService:
             to_st,
             date_of_birth=getattr(user, "date_of_birth", None),
             on_date=valid_from,
+            is_round_trip=is_round_trip,
         )
         
+        usage_remaining = None
+        if ticket_type.type == "single":
+            usage_remaining = 2 if is_round_trip else 1
+
         ticket = Ticket.objects.create(
             user=user,
             ticket_type=ticket_type,
-            status='active',
+            status=initial_status,
             valid_from=valid_from,
             valid_until=valid_until,
             from_station=from_st,
             to_station=to_st,
             price_paid=price_data['total'],
+            usage_remaining=usage_remaining,
         )
         
         # After ticket is created, trigger QR generation (done via DB trigger usually, 
         # but we also need it for email)
         return ticket
+
+    @staticmethod
+    def expire_outdated_tickets():
+        today = timezone.now().date()
+        # Cap nhat ve het han khi het thoi gian hoac het luot su dung (0)
+        Ticket.objects.filter(
+            models.Q(valid_until__lt=today) | models.Q(usage_remaining=0),
+            status__in=["active", "used", "pending"],
+        ).update(status="expired")

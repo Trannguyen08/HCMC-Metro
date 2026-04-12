@@ -157,6 +157,7 @@ class AmenitySerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
+            "slug",
             "type",
             "address",
             "stationId",
@@ -205,6 +206,7 @@ class AdminAmenitySerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
+            "slug",
             "category",
             "address",
             "station",

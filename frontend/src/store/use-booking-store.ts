@@ -15,6 +15,7 @@ interface BookingState {
   fromStationId: number | null;
   toStationId: number | null;
   ticketTypeId: number | null;
+  isRoundTrip: boolean;
 
   ticketTypes: TicketType[];
 
@@ -30,6 +31,7 @@ interface BookingState {
   setFromStation: (id: number | null) => void;
   setToStation: (id: number | null) => void;
   setTicketType: (id: number | null) => void;
+  setIsRoundTrip: (value: boolean) => void;
 
   fetchInitialData: () => Promise<void>;
   calculatePrice: () => Promise<void>;
@@ -42,6 +44,7 @@ export const useBookingStore = create<BookingState>()(
       fromStationId: null,
       toStationId: null,
       ticketTypeId: 1,
+      isRoundTrip: false,
 
       ticketTypes: [],
       calculation: null,
@@ -55,7 +58,13 @@ export const useBookingStore = create<BookingState>()(
         get().calculatePrice();
       },
       setTicketType: (id) => {
-        set({ ticketTypeId: id });
+        const selectedType = get().ticketTypes.find((t) => t.id === id);
+        const shouldKeepRoundTrip = selectedType?.type === "single";
+        set({ ticketTypeId: id, isRoundTrip: shouldKeepRoundTrip ? get().isRoundTrip : false });
+        get().calculatePrice();
+      },
+      setIsRoundTrip: (value) => {
+        set({ isRoundTrip: value });
         get().calculatePrice();
       },
 
@@ -69,7 +78,7 @@ export const useBookingStore = create<BookingState>()(
       },
 
       calculatePrice: async () => {
-        const { fromStationId, toStationId, ticketTypeId, ticketTypes } = get();
+        const { fromStationId, toStationId, ticketTypeId, ticketTypes, isRoundTrip } = get();
         if (!ticketTypeId) return;
 
         const selectedType = ticketTypes.find((t) => t.id === ticketTypeId);
@@ -95,6 +104,7 @@ export const useBookingStore = create<BookingState>()(
             ticket_type_id: ticketTypeId,
             from_station_id: fromStationId,
             to_station_id: toStationId,
+            is_round_trip: isSingleTicket ? isRoundTrip : false,
           });
           set({ calculation: { ...res.data, loading: false } });
         } catch (err) {
@@ -108,6 +118,7 @@ export const useBookingStore = create<BookingState>()(
           fromStationId: null,
           toStationId: null,
           ticketTypeId: 1,
+          isRoundTrip: false,
           calculation: null,
         }),
     }),
@@ -118,6 +129,7 @@ export const useBookingStore = create<BookingState>()(
         fromStationId: state.fromStationId,
         toStationId: state.toStationId,
         ticketTypeId: state.ticketTypeId,
+        isRoundTrip: state.isRoundTrip,
       }),
     }
   )

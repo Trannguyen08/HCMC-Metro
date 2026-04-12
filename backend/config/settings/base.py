@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 import environ
 from datetime import timedelta
 
-load_dotenv()  
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 # BASE_DIR is expected to be c:\HCMC-Metro\backend (since settings is in config/settings/base.py)
@@ -14,9 +14,13 @@ env = environ.Env(
     DEBUG=(bool, False),
 )
 
-env_file = BASE_DIR / ".env"
-if env_file.exists():
-    env.read_env(env_file)
+env_files = [
+    BASE_DIR / ".env",
+    BASE_DIR.parent / ".env",
+]
+for env_file in env_files:
+    if env_file.exists():
+        env.read_env(env_file)
 
 SECRET_KEY = env("SECRET_KEY", default="change-me")
 
@@ -32,13 +36,14 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
-    
+
     # Project Apps
     "apps.users",
     "apps.metro",
     "apps.ticketing",
     "apps.payments",
     "apps.news",
+    "apps.chatbox",
 ]
 
 MIDDLEWARE = [
@@ -50,6 +55,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.chatbox.middleware.ChatboxGuardMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -189,3 +195,14 @@ else:
 CACHE_TTL_HOT = 60 * 5          # 5 min  — news list, categories (changes often)
 CACHE_TTL_WARM = 60 * 30        # 30 min — metro lines/stations (changes rarely)
 CACHE_TTL_COLD = 60 * 60 * 24  # 24 h   — static reference data
+
+# PayOS Settings
+PAYOS_CLIENT_ID = env("PAYOS_CLIENT_ID", default="")
+PAYOS_API_KEY = env("PAYOS_API_KEY", default="")
+PAYOS_CHECKSUM_KEY = env("PAYOS_CHECKSUM_KEY", default="")
+PAYOS_API_BASE = env("PAYOS_API_BASE", default="https://api-merchant.payos.vn")
+
+# Groq AI Settings (dùng cho Chatbox AI)
+GROQ_API_KEY = env("GROQ_API_KEY", default="")
+GROQ_MODEL = env("GROQ_MODEL", default="llama-3.3-70b-versatile")
+MAX_TOKENS = env.int("MAX_TOKENS", default=800)

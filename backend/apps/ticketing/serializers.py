@@ -48,6 +48,8 @@ class TicketTypeSerializer(serializers.ModelSerializer):
         fields = ["id", "type", "name", "duration_days", "price", "description"]
 
     def get_name(self, obj: TicketType) -> str:
+        if obj.type == "single":
+            return "Vé lượt"
         return fix_text(obj.name)
 
     def get_description(self, obj: TicketType) -> str:
@@ -61,7 +63,7 @@ class StationSummarySerializer(serializers.ModelSerializer):
 
 
 class TicketSerializer(serializers.ModelSerializer):
-    ticket_type_name = serializers.CharField(source="ticket_type.name", read_only=True)
+    ticket_type_name = serializers.SerializerMethodField()
     from_station_details = StationSummarySerializer(source="from_station", read_only=True)
     to_station_details = StationSummarySerializer(source="to_station", read_only=True)
     discount_applied = serializers.SerializerMethodField()
@@ -81,6 +83,7 @@ class TicketSerializer(serializers.ModelSerializer):
             "from_station_details",
             "to_station_details",
             "price_paid",
+            "usage_remaining",
             "discount_applied",
             "created_at",
         ]
@@ -92,11 +95,20 @@ class TicketSerializer(serializers.ModelSerializer):
         )
         return str(discount_rate)
 
+    def get_ticket_type_name(self, obj: Ticket) -> str:
+        ticket_type = getattr(obj, "ticket_type", None)
+        if not ticket_type:
+            return ""
+        if ticket_type.type == "single":
+            return "Vé lượt"
+        return fix_text(ticket_type.name)
+
 
 class BookingCalculateRequestSerializer(serializers.Serializer):
     ticket_type_id = serializers.IntegerField()
     from_station_id = serializers.IntegerField(required=False)
     to_station_id = serializers.IntegerField(required=False)
+    is_round_trip = serializers.BooleanField(required=False, default=False)
 
 
 class BookingCreateRequestSerializer(serializers.Serializer):
@@ -104,3 +116,9 @@ class BookingCreateRequestSerializer(serializers.Serializer):
     from_station_id = serializers.IntegerField(required=False)
     to_station_id = serializers.IntegerField(required=False)
     valid_from = serializers.DateField(required=False)
+    is_round_trip = serializers.BooleanField(required=False, default=False)
+
+
+class AdminTicketScanSerializer(serializers.Serializer):
+    qr_data = serializers.CharField(required=False, allow_blank=True)
+    ticket_id = serializers.UUIDField(required=False)

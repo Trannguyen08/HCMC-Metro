@@ -29,6 +29,7 @@ class Ticket(models.Model):
     from_station = models.ForeignKey(Station, on_delete=models.SET_NULL, null=True, related_name="tickets_from", db_column="from_station_id")
     to_station = models.ForeignKey(Station, on_delete=models.SET_NULL, null=True, related_name="tickets_to", db_column="to_station_id")
     price_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    usage_remaining = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

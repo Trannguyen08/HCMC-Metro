@@ -62,6 +62,7 @@ type AmenityCategory = Exclude<AmenityType, "all">;
 interface AdminAmenity {
   id: string;
   name: string;
+  slug: string;
   category: AmenityCategory;
   address: string;
   station_code: string;
@@ -336,7 +337,7 @@ export default function AdminAmenitiesPage() {
   const stationCoverageCount = new Set(amenities.map((item) => item.station_code)).size;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-[1280px] space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Quan ly Amenity</h2>
@@ -355,7 +356,7 @@ export default function AdminAmenitiesPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="shadow-sm">
+        <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Tong amenity</CardTitle>
             <Store className="h-4 w-4 text-metro-blue" />
@@ -366,7 +367,7 @@ export default function AdminAmenitiesPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Dang hien thi</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -377,7 +378,7 @@ export default function AdminAmenitiesPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Tam an</CardTitle>
             <XCircle className="h-4 w-4 text-rose-600" />
@@ -388,7 +389,7 @@ export default function AdminAmenitiesPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm">
+        <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Do phu nha ga</CardTitle>
             <MapPin className="h-4 w-4 text-orange-500" />
@@ -400,7 +401,7 @@ export default function AdminAmenitiesPage() {
         </Card>
       </div>
 
-      <Card className="shadow-sm">
+      <Card className="border-none shadow-md">
         <CardHeader className="pb-4">
           <CardTitle>Danh sach amenity</CardTitle>
         </CardHeader>
@@ -456,7 +457,7 @@ export default function AdminAmenitiesPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-sm">
+            <table className="w-full text-left text-sm">
               <thead className="border-b bg-muted/50 text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Amenity</th>
@@ -550,7 +551,7 @@ export default function AdminAmenitiesPage() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
                               <a
-                                href={`/tien-ich/${item.id}`}
+                                href={`/tien-ich/${item.id}-${item.slug}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="cursor-pointer"
