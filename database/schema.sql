@@ -137,6 +137,7 @@ CREATE TABLE trains (
     line_id         INT REFERENCES metro_lines(id) ON DELETE SET NULL,
     capacity        INT,
     status          VARCHAR(30) DEFAULT 'active', -- 'active', 'maintenance', 'out_of_service'
+    is_active       BOOLEAN DEFAULT TRUE,
     manufacture_year INT,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );

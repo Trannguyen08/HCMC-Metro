@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.metro.models import Amenity, AmenityType, Station
+from apps.metro.models import Amenity, AmenityType, Station, Train, MetroLine
 
 
 AMENITY_TYPE_ALIASES: dict[str, tuple[str, ...]] = {
@@ -229,3 +229,22 @@ class AdminAmenitySerializer(serializers.ModelSerializer):
 
     def get_category(self, obj: Amenity) -> str:
         return map_amenity_type(getattr(obj.amenity_type, "name", ""))
+
+class AdminStationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Station
+        fields = [
+            "id", "name", "code", "line", "address", 
+            "latitude", "longitude", "sequence_order", 
+            "is_active", "image_url", "description", "created_at"
+        ]
+        read_only_fields = ["id", "created_at"]
+
+class AdminTrainSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Train
+        fields = [
+            "id", "train_number", "line", "capacity", 
+            "status", "is_active", "manufacture_year", "created_at"
+        ]
+        read_only_fields = ["id", "created_at"]
