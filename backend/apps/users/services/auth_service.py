@@ -195,3 +195,70 @@ class AuthService:
             )
 
         return self.generate_tokens(user), self.serialize_user(user)
+
+    def initiate_forgot_password(self, email):
+        user = self.user_repo.get_by_email(email.lower())
+        if not user or not user.is_active:
+            raise ValueError("Tài khoản chưa được đăng ký hoặc đã bị khóa.")
+            
+        otp = f"{secrets.randbelow(1_000_000):06d}"
+        payload = {
+            "email": email.lower(),
+            "otp": otp,
+        }
+
+        subject = "Đổi mật khẩu HCMC Metro"
+        body = (
+            f"Xin chào {user.full_name},\n\n"
+            f"Mã OTP để khôi phục mật khẩu của bạn là: {otp}\n"
+            f"Mã có hiệu lực trong 2 phút.\n\n"
+            "Nếu bạn không yêu cầu chức năng này, vui lòng bỏ qua email."
+        )
+        try:
+            send_mail(
+                subject=subject,
+                message=body,
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception:
+            pass
+
+        token = signing.dumps(payload, salt="forgot-password-otp")
+        return {
+            "email": email,
+            "verification_token": token,
+        }
+
+    def verify_forgot_password_otp(self, token, otp_input, new_password):
+        try:
+            payload = signing.loads(token, salt="forgot-password-otp", max_age=120)
+        except signing.SignatureExpired:
+            raise ValueError("Mã OTP đã hết hạn. Vui lòng yêu cầu mã lại.")
+        except signing.BadSignature:
+            raise ValueError("Token không hợp lệ.")
+
+        if otp_input != payload.get("otp"):
+            raise ValueError("OTP không đúng.")
+
+        email = payload["email"]
+        user = self.user_repo.get_by_email(email)
+        if not user or not user.is_active:
+            raise ValueError("Người dùng không hợp lệ.")
+
+        new_password_hash = self.hash_password(new_password)
+        user.password_hash = new_password_hash
+        user.save(update_fields=['password_hash', 'updated_at'])
+
+        return self.generate_tokens(user), self.serialize_user(user)
+
+    def change_password(self, user, old_password, new_password):
+        if not user.password_hash:
+            raise ValueError("Bạn đang sử dụng đăng nhập Google, không có mật khẩu nào được thiết lập.")
+        if not self.verify_password(old_password, user.password_hash):
+            raise ValueError("Mật khẩu hiện tại không đúng.")
+            
+        new_password_hash = self.hash_password(new_password)
+        user.password_hash = new_password_hash
+        user.save(update_fields=['password_hash', 'updated_at'])

@@ -86,7 +86,7 @@ export function LoginForm() {
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label>Mat khau</Label>
-              <Link href="/#faq" className="text-xs text-muted-foreground hover:text-foreground">
+              <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
                 Quen mat khau?
               </Link>
             </div>

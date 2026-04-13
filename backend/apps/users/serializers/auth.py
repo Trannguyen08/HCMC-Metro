@@ -18,3 +18,15 @@ class LoginSerializer(serializers.Serializer):
 class GoogleLoginSerializer(serializers.Serializer):
     credential = serializers.CharField(required=False, allow_blank=True)
     access_token = serializers.CharField(required=False, allow_blank=True)
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class VerifyForgotPasswordSerializer(serializers.Serializer):
+    verification_token = serializers.CharField()
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(min_length=6, write_only=True)
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(min_length=6, write_only=True)
