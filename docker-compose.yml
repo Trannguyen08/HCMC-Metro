@@ -22,6 +22,20 @@ services:
     networks:
       - project-network
 
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: project_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - project-network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: project_pgadmin
@@ -68,6 +82,40 @@ services:
     networks:
       - project-network
 
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: project_celery_worker
+    command: celery -A config worker --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    networks:
+      - project-network
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: project_celery_beat
+    command: celery -A config beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    networks:
+      - project-network
+
 networks:
   project-network:
     driver: bridge
@@ -76,4 +124,6 @@ volumes:
   postgres-data:
     driver: local
   redis-data:
+    driver: local
+  rabbitmq-data:
     driver: local

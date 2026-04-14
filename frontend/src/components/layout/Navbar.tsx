@@ -28,14 +28,6 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useLanguage } from "@/lib/i18n";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const NAV_LINKS = [
-  { href: "/dat-ve", label: "Đặt vé" },
-  { href: "/lo-trinh", label: "Tra cứu Lộ trình" },
-  { href: "/tien-ich", label: "Tiện ích quanh Ga" },
-  { href: "/ban-do-so", label: "Bản đồ số" },
-  { href: "/tin-tuc", label: "Tin tức" }
-];
-
 export function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
@@ -192,7 +184,7 @@ export function Navbar() {
       >
         <div className="mx-auto max-w-6xl px-4 py-3">
           <div className="flex flex-col gap-1">
-            {NAV_LINKS.map((l) => (
+            {navLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
@@ -241,4 +233,3 @@ export function Navbar() {
     </header>
   );
 }
-

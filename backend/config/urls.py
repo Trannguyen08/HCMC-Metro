@@ -1,5 +1,10 @@
 from django.contrib import admin
 from django.urls import include, path
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView,
+)
 
 from apps.news.views import news as news_views
 from apps.metro.views import admin as metro_admin_views
@@ -7,7 +12,7 @@ from apps.metro.views import admin as metro_admin_views
 urlpatterns = [
     path("admin/", admin.site.urls),
 
-    # Combined Admin API Map (to match frontend expectations)
+    # Combined Admin API Map
     path("api/admin/news/", news_views.admin_news_list, name="admin_api_news_list"),
     path("api/admin/news/create/", news_views.admin_news_create, name="admin_api_news_create"),
     path("api/admin/news/<uuid:pk>/", news_views.admin_news_detail, name="admin_api_news_detail"),
@@ -31,4 +36,17 @@ urlpatterns = [
     path("api/chatbox/", include("apps.chatbox.urls")),
     path("api/", include("apps.metro.urls")),
     path("api/", include("core.urls")),
+
+    # OpenAPI schema and Swagger/Redoc UI
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "api/schema/swagger-ui/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="swagger-ui",
+    ),
+    path(
+        "api/schema/redoc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc",
+    ),
 ]

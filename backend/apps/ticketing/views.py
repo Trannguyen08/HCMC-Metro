@@ -17,6 +17,7 @@ from apps.ticketing.serializers import (
 )
 from apps.ticketing.services.booking_service import BookingService
 from apps.ticketing.services.email_service import TicketEmailService
+from apps.ticketing.tasks import send_ticket_email_task
 from apps.users.models import UserCategory
 from core.permissions import IsAdminUser
 
@@ -135,7 +136,7 @@ class BookingViewSet(viewsets.GenericViewSet):
             )
 
             try:
-                TicketEmailService.send_ticket_email(ticket)
+                send_ticket_email_task.delay(str(ticket.id))
             except Exception:
                 pass
 

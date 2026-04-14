@@ -13,6 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.users.models.oauth import OAuthAccount
 from apps.users.repositories.user_repository import UserRepository
+from apps.users.tasks import send_otp_email_task
 
 
 class AuthService:
@@ -46,20 +47,7 @@ class AuthService:
         }
 
     def send_register_otp(self, full_name, email, otp):
-        subject = "Ma OTP xac thuc dang ky HCMC Metro"
-        body = (
-            f"Xin chao {full_name},\n\n"
-            f"Ma OTP xac thuc email cua ban la: {otp}\n"
-            f"Ma co hieu luc trong 10 phut.\n\n"
-            "Neu ban khong yeu cau dang ky, hay bo qua email nay."
-        )
-        send_mail(
-            subject=subject,
-            message=body,
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-            recipient_list=[email],
-            fail_silently=False,
-        )
+        send_otp_email_task.delay(full_name, email, otp, email_type="registration")
 
     def hash_password(self, password: str) -> str:
         salt = os.urandom(16).hex()
@@ -259,13 +247,7 @@ class AuthService:
             "Nếu bạn không yêu cầu chức năng này, vui lòng bỏ qua email."
         )
         try:
-            send_mail(
-                subject=subject,
-                message=body,
-                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-                recipient_list=[email],
-                fail_silently=False,
-            )
+            send_otp_email_task.delay(user.full_name, email, otp, email_type="forgot_password")
         except Exception:
             pass
 
