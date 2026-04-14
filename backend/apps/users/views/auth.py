@@ -69,10 +69,15 @@ def login(request):
         return Response({"detail": "Lỗi xác thực."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        tokens, user_data = auth_service.login_with_password(
+        result = auth_service.login_with_password(
             identifier=serializer.validated_data["identifier"],
             password=serializer.validated_data["password"],
         )
+        
+        if isinstance(result, dict) and result.get("requires_email_verification"):
+            return Response(result, status=status.HTTP_200_OK)
+            
+        tokens, user_data = result
         return Response({**tokens, "user": user_data})
     except ValueError as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

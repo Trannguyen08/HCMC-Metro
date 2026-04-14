@@ -44,6 +44,12 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await authService.login(input);
+          
+          if (data.requires_email_verification) {
+            set({ isLoading: false });
+            return data as any;
+          }
+
           localStorage.setItem("metro.access", data.access);
           localStorage.setItem("metro.refresh", data.refresh);
           set({ user: data.user, isAuthenticated: true, isLoading: false });

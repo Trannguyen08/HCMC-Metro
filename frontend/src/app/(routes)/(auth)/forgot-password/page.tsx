@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrainFront, Eye, EyeOff, Loader2, ArrowLeft } from "lucide-react";
+import { TrainFront, Eye, EyeOff, Loader2, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/use-auth-store";
@@ -19,12 +19,15 @@ export default function ForgotPasswordPage() {
   const [token, setToken] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [otpVerified, setOtpVerified] = useState(false);
 
-  // Timer state
-  const [timeLeft, setTimeLeft] = useState(120);
+  // Timer state (3 minutes = 180s)
+  const [timeLeft, setTimeLeft] = useState(180);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -46,7 +49,8 @@ export default function ForgotPasswordPage() {
       const res = await api.post("/auth/forgot-password/", { email });
       setToken(res.data.verification_token);
       setStep(2);
-      setTimeLeft(120);
+      setTimeLeft(180);
+      setOtpVerified(false);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Email không tìm thấy trong hệ thống.");
     } finally {
@@ -58,6 +62,10 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     if (!otp || newPassword.length < 6) {
       setError("Vui lòng điền đủ mã OTP và mật khẩu ít nhất 6 ký tự.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Mật khẩu nhập lại không khớp.");
       return;
     }
     setLoading(true);
@@ -151,36 +159,69 @@ export default function ForgotPasswordPage() {
                 <Input
                   value={otp}
                   onChange={(e) => {
-                    setOtp(e.target.value);
-                    if (e.target.value.length === 6) setStep(3);
+                    const value = e.target.value.replace(/\D/g, "");
+                    setOtp(value);
+                    if (value.length === 6) {
+                      setStep(3);
+                      setOtpVerified(true);
+                    } else {
+                      setOtpVerified(false);
+                    }
                   }}
                   maxLength={6}
                   placeholder="------"
                   className="text-center tracking-widest font-bold text-lg"
                   autoFocus
                 />
+                {otpVerified && (
+                  <div className="flex items-center justify-center gap-1.5 mt-1 text-xs font-medium text-emerald-600 animate-in fade-in slide-in-from-top-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    <span>Mã OTP hợp lệ</span>
+                  </div>
+                )}
               </div>
 
               {step === 3 && (
-                <div className="space-y-2">
-                  <Label>Mật khẩu mới</Label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Ít nhất 6 ký tự"
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+                <>
+                  <div className="space-y-2">
+                    <Label>Mật khẩu mới</Label>
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Ít nhất 6 ký tự"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+
+                  <div className="space-y-2">
+                    <Label>Nhập lại mật khẩu</Label>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Nhập lại mật khẩu mới"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
 
               {step === 3 ? (
