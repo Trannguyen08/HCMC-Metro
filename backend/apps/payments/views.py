@@ -15,6 +15,7 @@ from apps.payments.serializers import (
     PayOSVerifySerializer,
 )
 from apps.payments.services.payos_service import PayOSService
+from apps.payments.tasks import process_payment_status_update_task
 from apps.ticketing.models import Ticket, TicketType
 from apps.ticketing.services.booking_service import BookingService
 from apps.ticketing.services.email_service import TicketEmailService
@@ -173,58 +174,41 @@ class PayOSVerifyReturnAPIView(APIView):
         if not order_code:
             return Response({"success": False, "detail": "Thieu orderCode tu PayOS."}, status=status.HTTP_400_BAD_REQUEST)
 
-        with transaction.atomic():
-            # Su dung select_for_update de tranh race condition dan den gui mail 2 lan
-            payment = Payment.objects.select_for_update().select_related("ticket", "user").filter(transaction_ref=str(order_code)).first()
-            if not payment:
-                return Response({"success": False, "detail": "Khong tim thay giao dich tuong ung."}, status=status.HTTP_404_NOT_FOUND)
-
-            if payment.status == "success":
-                return Response(
-                    {"success": True, "ticket_id": str(payment.ticket_id), "detail": "Giao dich da duoc xac nhan truoc do."},
-                    status=status.HTTP_200_OK,
-                )
-
-            status_from_gateway = payload.get("status")
-            if not status_from_gateway:
-                try:
-                    status_from_gateway = PayOSService.get_payment_status(order_code=order_code)
-                except Exception:
-                    status_from_gateway = None
-
-            is_success = PayOSService.is_success_status(status_from_gateway)
-
-            if is_success:
-                payment.status = "success"
-                payment.paid_at = timezone.now()
-                payment.save(update_fields=["status", "paid_at"])
-
-                ticket = payment.ticket
-                ticket.status = "active"
-                ticket.save(update_fields=["status", "updated_at"])
-
-                try:
-                    TicketEmailService.send_ticket_email(ticket)
-                except Exception:
-                    pass
-
-                return Response(
-                    {"success": True, "ticket_id": str(ticket.id), "detail": "Thanh toan thanh cong."},
-                    status=status.HTTP_200_OK,
-                )
-
-            payment.status = "failed"
-            payment.save(update_fields=["status"])
+        # Trigger background processing
+        process_payment_status_update_task.delay(order_code, payload.get("status"))
 
         return Response(
             {
-                "success": False,
-                "ticket_id": str(payment.ticket_id),
-                "detail": "Thanh toan that bai hoac bi huy. Ve duoc giu o trang thai pending de thanh toan lai.",
-                "gateway_status": status_from_gateway,
+                "success": True, 
+                "detail": "Yeu cau xac thuc dang duoc xu ly ngam.",
+                "orderCode": order_code
             },
             status=status.HTTP_200_OK,
         )
+
+
+class PayOSWebhookAPIView(APIView):
+    """
+    Handles POST notifications from PayOS.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        try:
+            payos_sdk = PayOSService.get_sdk_instance()
+            # verify the webhook signature using the raw body
+            webhook_data = payos_sdk.verifyPaymentWebhookData(request.data)
+            
+            order_code = webhook_data.get("orderCode")
+            payment_status = webhook_data.get("status")
+
+            if order_code:
+                process_payment_status_update_task.delay(order_code, payment_status)
+                return Response({"message": "Webhook received"}, status=status.HTTP_200_OK)
+            
+            return Response({"message": "Invalid data"}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PayOSReturnRedirectAPIView(APIView):

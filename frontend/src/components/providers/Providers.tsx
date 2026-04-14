@@ -4,6 +4,8 @@ import * as React from "react";
 import { ThemeProvider } from "next-themes";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
+import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
+
 import { LanguageProvider } from "@/lib/i18n";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -14,6 +16,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
         <LanguageProvider>
           {children}
+          <ProgressBar
+            height="3px"
+            color="#2563eb"
+            options={{ showSpinner: false }}
+            shallowRouting
+          />
         </LanguageProvider>
       </ThemeProvider>
     </GoogleOAuthProvider>

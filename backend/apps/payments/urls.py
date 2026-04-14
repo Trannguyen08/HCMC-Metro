@@ -14,4 +14,5 @@ urlpatterns = [
     path("payos/return/", PayOSReturnRedirectAPIView.as_view(), name="payos-return-redirect"),
     path("payos/cancel/", PayOSCancelRedirectAPIView.as_view(), name="payos-cancel-redirect"),
     path("payos/verify-return/", PayOSVerifyReturnAPIView.as_view(), name="payos-verify-return"),
+    path("payos/webhook/", PayOSWebhookAPIView.as_view(), name="payos-webhook"),
 ]

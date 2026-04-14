@@ -4,11 +4,24 @@ import hashlib
 from decimal import Decimal
 
 import requests
+from payos import PayOS
 from django.conf import settings
 
 
 class PayOSService:
     SUCCESS_STATUSES = {"PAID", "SUCCESSFUL", "COMPLETED"}
+
+    _instance = None
+
+    @classmethod
+    def get_sdk_instance(cls) -> PayOS:
+        if cls._instance is None:
+            cls._instance = PayOS(
+                client_id=settings.PAYOS_CLIENT_ID,
+                api_key=settings.PAYOS_API_KEY,
+                checksum_key=settings.PAYOS_CHECKSUM_KEY,
+            )
+        return cls._instance
 
     @staticmethod
     def generate_order_code() -> int:
