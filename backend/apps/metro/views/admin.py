@@ -4,11 +4,13 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from core.permissions import IsAdminUser
-from apps.metro.models import Amenity, AmenityType
+from apps.metro.models import Amenity, AmenityType, Station, Train
 from apps.metro.serializers import (
     AdminAmenitySerializer,
     AmenityTypeOptionSerializer,
     AMENITY_TYPE_ALIASES,
+    AdminStationSerializer,
+    AdminTrainSerializer,
 )
 from apps.metro.services.metro_service import MetroService
 
@@ -104,4 +106,72 @@ def admin_amenity_detail(request, pk):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     amenity.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAdminUser])
+def admin_station_list(request):
+    if request.method == "GET":
+        stations = Station.objects.all().order_by("sequence_order", "id")
+        serializer = AdminStationSerializer(stations, many=True)
+        return Response(serializer.data)
+    
+    if request.method == "POST":
+        serializer = AdminStationSerializer(data=request.data)
+        if serializer.is_valid():
+            station = serializer.save()
+            return Response(AdminStationSerializer(station).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["GET", "PUT", "DELETE"])
+@permission_classes([IsAdminUser])
+def admin_station_detail(request, pk):
+    station = get_object_or_404(Station, pk=pk)
+
+    if request.method == "GET":
+        return Response(AdminStationSerializer(station).data)
+
+    if request.method == "PUT":
+        serializer = AdminStationSerializer(station, data=request.data, partial=True)
+        if serializer.is_valid():
+            station = serializer.save()
+            return Response(AdminStationSerializer(station).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    station.is_active = False
+    station.save(update_fields=["is_active"])
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAdminUser])
+def admin_train_list(request):
+    if request.method == "GET":
+        trains = Train.objects.all().order_by("id")
+        serializer = AdminTrainSerializer(trains, many=True)
+        return Response(serializer.data)
+    
+    if request.method == "POST":
+        serializer = AdminTrainSerializer(data=request.data)
+        if serializer.is_valid():
+            train = serializer.save()
+            return Response(AdminTrainSerializer(train).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["GET", "PUT", "DELETE"])
+@permission_classes([IsAdminUser])
+def admin_train_detail(request, pk):
+    train = get_object_or_404(Train, pk=pk)
+
+    if request.method == "GET":
+        return Response(AdminTrainSerializer(train).data)
+
+    if request.method == "PUT":
+        serializer = AdminTrainSerializer(train, data=request.data, partial=True)
+        if serializer.is_valid():
+            train = serializer.save()
+            return Response(AdminTrainSerializer(train).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    train.is_active = False
+    train.save(update_fields=["is_active"])
     return Response(status=status.HTTP_204_NO_CONTENT)

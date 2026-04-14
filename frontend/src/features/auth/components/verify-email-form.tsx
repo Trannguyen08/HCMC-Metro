@@ -21,10 +21,18 @@ export function VerifyEmailForm() {
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
-    const storedEmail = sessionStorage.getItem("metro.pendingEmail") || "";
-    const storedToken = sessionStorage.getItem("metro.pendingVerificationToken") || "";
+    
+    // Check URL search params first (for login redirect case)
+    const searchParams = new URLSearchParams(window.location.search);
+    const queryEmail = searchParams.get("email");
+    const queryToken = searchParams.get("token");
+
+    const storedEmail = queryEmail || sessionStorage.getItem("metro.pendingEmail") || "";
+    const storedToken = queryToken || sessionStorage.getItem("metro.pendingVerificationToken") || "";
+    
     setEmail(storedEmail);
     setToken(storedToken);
+    
     if (!storedEmail || !storedToken) {
       router.replace("/register");
     }

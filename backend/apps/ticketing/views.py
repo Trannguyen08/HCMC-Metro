@@ -180,7 +180,7 @@ class MyTicketViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({"detail": "Da huy ve thanh cong.", "ticket_id": str(ticket.id)})
 
 
-class AdminTicketViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminTicketViewSet(viewsets.ModelViewSet):
     """Admin view for all tickets."""
 
     queryset = Ticket.objects.all().order_by("-created_at")
@@ -283,3 +283,10 @@ class AdminTicketViewSet(viewsets.ReadOnlyModelViewSet):
         ticket = self.get_object()
         qr_base64 = BookingService.generate_qr_base64(ticket)
         return Response({"qr_base64": qr_base64})
+
+    def destroy(self, request, *args, **kwargs):
+        ticket = self.get_object()
+        ticket.status = "cancelled"
+        ticket.save(update_fields=["status", "updated_at"])
+        Payment.objects.filter(ticket=ticket, status="pending").update(status="failed")
+        return Response(status=status.HTTP_204_NO_CONTENT)

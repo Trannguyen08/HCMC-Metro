@@ -1,6 +1,7 @@
 import hashlib
 import os
 import secrets
+from datetime import date
 
 import requests
 from django.conf import settings
@@ -29,12 +30,16 @@ class AuthService:
         }
 
     def serialize_user(self, user) -> dict:
+        dob = user.date_of_birth
+        # Handle cases where dob might be a string (from creation) or a date object (from DB)
+        dob_formatted = dob.isoformat() if hasattr(dob, 'isoformat') else dob
+        
         return {
             "id": str(user.id),
             "full_name": user.full_name,
             "email": user.email,
             "phone": user.phone or "",
-            "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+            "date_of_birth": dob_formatted,
             "avatar_url": user.avatar_url or "",
             "email_verified": user.email_verified,
             "is_admin": user.is_admin,
@@ -98,7 +103,7 @@ class AuthService:
 
     def verify_registration_otp(self, token, otp_input):
         try:
-            payload = signing.loads(token, salt="register-otp", max_age=600)
+            payload = signing.loads(token, salt="register-otp", max_age=300)
         except signing.SignatureExpired:
             raise ValueError("OTP da het han. Vui long dang ky lai.")
         except signing.BadSignature:
@@ -108,18 +113,34 @@ class AuthService:
             raise ValueError("OTP khong dung.")
 
         email = payload["email"]
-        if self.user_repo.get_by_email(email.lower()):
-            raise ValueError("Email nay da duoc su dung.")
+        existing_user = self.user_repo.get_by_email(email.lower())
 
-        user = self.user_repo.create(
-            full_name=payload["full_name"],
-            email=email,
-            phone=payload.get("phone", ""),
-            date_of_birth=payload.get("date_of_birth"),
-            password_hash=payload["password_hash"],
-            is_active=True,
-            email_verified=True,
-        )
+        # Ensure date_of_birth is a date object for the repository create call
+        dob_raw = payload.get("date_of_birth")
+        dob = None
+        if dob_raw:
+            try:
+                dob = date.fromisoformat(dob_raw)
+            except (ValueError, TypeError):
+                dob = None
+
+        if existing_user:
+            if existing_user.email_verified:
+                raise ValueError("Email nay da duoc xac thuc.")
+            
+            existing_user.email_verified = True
+            existing_user.save(update_fields=['email_verified', 'updated_at'])
+            user = existing_user
+        else:
+            user = self.user_repo.create(
+                full_name=payload["full_name"],
+                email=email,
+                phone=payload.get("phone", ""),
+                date_of_birth=dob,
+                password_hash=payload["password_hash"],
+                is_active=True,
+                email_verified=True,
+            )
         return self.generate_tokens(user), self.serialize_user(user)
 
     def login_with_password(self, identifier, password):
@@ -139,6 +160,29 @@ class AuthService:
             raise ValueError("Tai khoan nay dang nhap bang Google. Vui long dung nut Google.")
         if not self.verify_password(password, user.password_hash):
             raise ValueError("Mat khau khong dung.")
+
+        if not user.email_verified:
+            # Re-initiate verification flow for existing user
+            otp = f"{secrets.randbelow(1_000_000):06d}"
+            payload = {
+                "full_name": user.full_name,
+                "email": user.email,
+                "phone": user.phone or "",
+                "password_hash": user.password_hash,
+                "otp": otp,
+                "is_existing_user": True
+            }
+            try:
+                self.send_register_otp(user.full_name, user.email, otp)
+            except Exception:
+                pass
+
+            token = signing.dumps(payload, salt="register-otp")
+            return {
+                "requires_email_verification": True,
+                "email": user.email,
+                "verification_token": token,
+            }, None
 
         return self.generate_tokens(user), self.serialize_user(user)
 
@@ -195,3 +239,70 @@ class AuthService:
             )
 
         return self.generate_tokens(user), self.serialize_user(user)
+
+    def initiate_forgot_password(self, email):
+        user = self.user_repo.get_by_email(email.lower())
+        if not user or not user.is_active:
+            raise ValueError("Tài khoản chưa được đăng ký hoặc đã bị khóa.")
+            
+        otp = f"{secrets.randbelow(1_000_000):06d}"
+        payload = {
+            "email": email.lower(),
+            "otp": otp,
+        }
+
+        subject = "Đổi mật khẩu HCMC Metro"
+        body = (
+            f"Xin chào {user.full_name},\n\n"
+            f"Mã OTP để khôi phục mật khẩu của bạn là: {otp}\n"
+            f"Mã có hiệu lực trong 3 phút.\n\n"
+            "Nếu bạn không yêu cầu chức năng này, vui lòng bỏ qua email."
+        )
+        try:
+            send_mail(
+                subject=subject,
+                message=body,
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception:
+            pass
+
+        token = signing.dumps(payload, salt="forgot-password-otp")
+        return {
+            "email": email,
+            "verification_token": token,
+        }
+
+    def verify_forgot_password_otp(self, token, otp_input, new_password):
+        try:
+            payload = signing.loads(token, salt="forgot-password-otp", max_age=180)
+        except signing.SignatureExpired:
+            raise ValueError("Mã OTP đã hết hạn. Vui lòng yêu cầu mã lại.")
+        except signing.BadSignature:
+            raise ValueError("Token không hợp lệ.")
+
+        if otp_input != payload.get("otp"):
+            raise ValueError("OTP không đúng.")
+
+        email = payload["email"]
+        user = self.user_repo.get_by_email(email)
+        if not user or not user.is_active:
+            raise ValueError("Người dùng không hợp lệ.")
+
+        new_password_hash = self.hash_password(new_password)
+        user.password_hash = new_password_hash
+        user.save(update_fields=['password_hash', 'updated_at'])
+
+        return self.generate_tokens(user), self.serialize_user(user)
+
+    def change_password(self, user, old_password, new_password):
+        if not user.password_hash:
+            raise ValueError("Bạn đang sử dụng đăng nhập Google, không có mật khẩu nào được thiết lập.")
+        if not self.verify_password(old_password, user.password_hash):
+            raise ValueError("Mật khẩu hiện tại không đúng.")
+            
+        new_password_hash = self.hash_password(new_password)
+        user.password_hash = new_password_hash
+        user.save(update_fields=['password_hash', 'updated_at'])

@@ -28,7 +28,16 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      const user = await login({ identifier, password });
+      const result = await login({ identifier, password });
+      
+      // Handle unverified user redirect
+      if ((result as any).requires_email_verification) {
+        const data = result as any;
+        router.push(`/verify-email?email=${encodeURIComponent(data.email)}&token=${data.verification_token}`);
+        return;
+      }
+
+      const user = result as AuthUser;
       const pendingBooking = useAuthStore.getState().pendingBooking;
       router.replace(getPostAuthRedirect(user, pendingBooking));
     } catch {
@@ -86,7 +95,7 @@ export function LoginForm() {
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label>Mat khau</Label>
-              <Link href="/#faq" className="text-xs text-muted-foreground hover:text-foreground">
+              <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
                 Quen mat khau?
               </Link>
             </div>

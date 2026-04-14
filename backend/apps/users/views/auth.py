@@ -1,4 +1,4 @@
-﻿from rest_framework import status
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -10,6 +10,9 @@ from apps.users.serializers.auth import (
     LoginSerializer,
     RegisterSerializer,
     VerifyOTPSerializer,
+    ForgotPasswordSerializer,
+    VerifyForgotPasswordSerializer,
+    ChangePasswordSerializer,
 )
 from apps.users.services.auth_service import AuthService
 from infrastructure.rate_limit import rate_limit
@@ -66,10 +69,15 @@ def login(request):
         return Response({"detail": "Lỗi xác thực."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        tokens, user_data = auth_service.login_with_password(
+        result = auth_service.login_with_password(
             identifier=serializer.validated_data["identifier"],
             password=serializer.validated_data["password"],
         )
+        
+        if isinstance(result, dict) and result.get("requires_email_verification"):
+            return Response(result, status=status.HTTP_200_OK)
+            
+        tokens, user_data = result
         return Response({**tokens, "user": user_data})
     except ValueError as e:
         return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -115,3 +123,52 @@ def me(request):
         return Response({"detail": "Tài khoản không tồn tại."}, status=status.HTTP_404_NOT_FOUND)
 
     return Response(auth_service.serialize_user(user))
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@rate_limit(limit=3, window_seconds=60)
+def forgot_password(request):
+    serializer = ForgotPasswordSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        result = auth_service.initiate_forgot_password(serializer.validated_data["email"])
+        return Response(result, status=status.HTTP_200_OK)
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@rate_limit(limit=10, window_seconds=60)
+def verify_forgot_password(request):
+    serializer = VerifyForgotPasswordSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        tokens, user_data = auth_service.verify_forgot_password_otp(
+            token=serializer.validated_data["verification_token"],
+            otp_input=serializer.validated_data["otp"].strip(),
+            new_password=serializer.validated_data["new_password"]
+        )
+        return Response({**tokens, "user": user_data})
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    serializer = ChangePasswordSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        auth_service.change_password(
+            user=request.user,
+            old_password=serializer.validated_data["old_password"],
+            new_password=serializer.validated_data["new_password"]
+        )
+        return Response({"detail": "Đổi mật khẩu thành công."})
+    except ValueError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

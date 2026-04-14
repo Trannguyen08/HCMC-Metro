@@ -94,6 +94,20 @@ export default function AdminTicketsPage() {
     }
   };
 
+  const handleCancelTicket = async (ticketId: string) => {
+    if (!confirm("Ban co chac chan muon xoa mem (huy) ve nay? Hanh dong nay se chuyen trang thai ve ve 'cancelled'.")) return;
+    try {
+      const token = localStorage.getItem("metro.access");
+      await axios.delete(`${API_BASE}/ticketing/admin/bookings/${ticketId}/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      fetchTickets();
+    } catch (err) {
+      console.error("Failed to cancel ticket", err);
+      alert("Huy ve that bai.");
+    }
+  };
+
   const handleScanTicket = async (rawValue?: string) => {
     const scanValue = (rawValue ?? scanInput).trim();
     const parsedTicketId = parseTicketIdFromRaw(scanValue);
@@ -423,29 +437,34 @@ export default function AdminTicketsPage() {
                       <td className="p-4 align-middle text-center">{ticket.usage_remaining === null || ticket.usage_remaining === undefined ? "Vo han" : ticket.usage_remaining}</td>
                       <td className="p-4 align-middle text-right text-xs text-muted-foreground">{new Date(ticket.created_at).toLocaleString("vi-VN")}</td>
                       <td className="p-4 align-middle text-right">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => handleViewQR(ticket.id)}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>QR ve #{ticket.id.slice(0, 8)}</DialogTitle>
-                            </DialogHeader>
-                            <div className="flex flex-col items-center justify-center gap-4 p-6">
-                              {selectedQR ? (
-                                <img src={`data:image/png;base64,${selectedQR.base64}`} alt="QR" className="h-64 w-64 rounded-xl border bg-white p-2 shadow-sm" />
-                              ) : (
-                                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                              )}
-                              <div className="text-center">
-                                <div className="text-lg font-bold">{ticket.ticket_type_name}</div>
-                                <div className="text-sm text-muted-foreground">ID: {ticket.id}</div>
+                        <div className="flex gap-1 justify-end">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => handleViewQR(ticket.id)} title="Xem QR">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                              <DialogHeader>
+                                <DialogTitle>QR ve #{ticket.id.slice(0, 8)}</DialogTitle>
+                              </DialogHeader>
+                              <div className="flex flex-col items-center justify-center gap-4 p-6">
+                                {selectedQR ? (
+                                  <img src={`data:image/png;base64,${selectedQR.base64}`} alt="QR" className="h-64 w-64 rounded-xl border bg-white p-2 shadow-sm" />
+                                ) : (
+                                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                )}
+                                <div className="text-center">
+                                  <div className="text-lg font-bold">{ticket.ticket_type_name}</div>
+                                  <div className="text-sm text-muted-foreground">ID: {ticket.id}</div>
+                                </div>
                               </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
+                            </DialogContent>
+                          </Dialog>
+                          <Button variant="ghost" size="icon" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleCancelTicket(ticket.id)} disabled={ticket.status === "cancelled"} title="Xoa Mềm (Hủy Vé)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
