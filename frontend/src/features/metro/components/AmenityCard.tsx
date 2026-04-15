@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import Link from "next/link";
 import { ArrowUpRight, Clock3, MapPin, Navigation, Star, TrainFront } from "lucide-react";
 
@@ -32,7 +32,7 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ amenity, onClick }) =>
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,#dbeafe,transparent_60%),linear-gradient(180deg,#e2e8f0_0%,#cbd5e1_100%)] px-6 text-center text-sm font-medium text-slate-500">
-            Hinh anh dang duoc cap nhat
+            Hình ảnh đang được cập nhật
           </div>
         )}
 
@@ -73,7 +73,7 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ amenity, onClick }) =>
 
           <div className="flex items-start gap-2 text-sm leading-6 text-slate-500">
             <MapPin className="mt-1 h-4 w-4 flex-shrink-0 text-slate-400" />
-            <span className="line-clamp-2">{amenity.address || "Dang cap nhat dia chi"}</span>
+            <span className="line-clamp-2">{amenity.address || "Đang cập nhật địa chỉ"}</span>
           </div>
         </div>
 
@@ -81,7 +81,7 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ amenity, onClick }) =>
           <div className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2">
               <Navigation className="h-4 w-4 text-[#0055A5]" />
-              Khoang cach
+              Khoảng cách
             </span>
             <span className="font-medium text-slate-900">{formatDistance(amenity.distanceMeters)}</span>
           </div>
@@ -89,21 +89,23 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ amenity, onClick }) =>
           <div className="flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2">
               <Clock3 className="h-4 w-4 text-[#00A86B]" />
-              Gio mo cua
+              Giờ mở cửa
             </span>
             <span className="line-clamp-1 text-right font-medium text-slate-900">
-              {amenity.openingHours || "Dang cap nhat"}
+              {amenity.openingHours || "Đang cập nhật"}
             </span>
           </div>
         </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
-          <span className="font-medium text-slate-900">Xem chi tiet</span>
+          <span className="font-medium text-slate-900">Xem chi tiết</span>
           <span className="text-slate-400 transition-colors group-hover:text-[#0055A5]">
-            Phu hop khi di metro
+            Phù hợp khi đi metro
           </span>
         </div>
       </div>
     </Link>
   );
 };
+
+

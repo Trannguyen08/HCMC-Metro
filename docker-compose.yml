@@ -61,8 +61,12 @@ services:
       - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-postgres}
     depends_on:
       - db
+      - redis
+      - rabbitmq
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app
     networks:
       - project-network
 
@@ -79,6 +83,10 @@ services:
       - backend
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     networks:
       - project-network
 
@@ -96,6 +104,8 @@ services:
       - db
       - redis
       - rabbitmq
+    volumes:
+      - ./backend:/app
     networks:
       - project-network
 
@@ -113,6 +123,8 @@ services:
       - db
       - redis
       - rabbitmq
+    volumes:
+      - ./backend:/app
     networks:
       - project-network
 

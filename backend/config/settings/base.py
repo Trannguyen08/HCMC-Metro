@@ -11,8 +11,10 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env(
-    DEBUG=(bool, False),
+    DEBUG=(bool, True),
 )
+DEBUG = True
+APPEND_SLASH = False
 
 env_files = [
     BASE_DIR / ".env",

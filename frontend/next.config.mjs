@@ -1,8 +1,9 @@
 /** @type {import('next').NextConfig} */
-const backendProxyTarget = process.env.BACKEND_PROXY_TARGET || "http://127.0.0.1:8000";
+
 
 const nextConfig = {
   reactStrictMode: true,
+  trailingSlash: true,
   images: {
     remotePatterns: [
       {
@@ -20,7 +21,12 @@ const nextConfig = {
     ],
   },
   async rewrites() {
+    const backendProxyTarget = process.env.BACKEND_PROXY_TARGET || process.env.BACKEND_URL || "http://backend:8000";
     return [
+      {
+        source: "/api/:path*",
+        destination: `${backendProxyTarget}/api/:path*`,
+      },
       {
         source: "/backend-api/:path*",
         destination: `${backendProxyTarget}/api/:path*`,

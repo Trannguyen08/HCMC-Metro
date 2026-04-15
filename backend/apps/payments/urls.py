@@ -6,6 +6,7 @@ from apps.payments.views import (
     PayOSCreatePaymentAPIView,
     PayOSReturnRedirectAPIView,
     PayOSVerifyReturnAPIView,
+    PayOSWebhookAPIView,
 )
 
 urlpatterns = [
