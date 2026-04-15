@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -63,17 +63,17 @@ function EmptyState({
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-500">
         <Compass className="h-7 w-7" />
       </div>
-      <h3 className="mt-5 text-2xl font-semibold text-slate-900">Chua tim thay tien ich phu hop</h3>
+      <h3 className="mt-5 text-2xl font-semibold text-slate-900">Chưa tìm thấy tiện ích phù hợp</h3>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">
-        Thu doi ga, loai tien ich hoac tu khoa tim kiem. He thong se hien thi danh sach moi ngay khi co ket qua phu hop.
+        Thử đổi ga, loại tiện ích hoặc từ khóa tìm kiếm. Hệ thống sẽ hiển thị danh sách mới ngay khi có kết quả phù hợp.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Button onClick={onReset} className="rounded-full px-5">
-          Xoa bo loc
+          Xóa bộ lọc
         </Button>
         {type !== "all" ? (
           <Button variant="outline" onClick={() => onReset()} className="rounded-full px-5">
-            Quay lai tat ca nhom
+            Quay lại tất cả nhóm
           </Button>
         ) : null}
       </div>
@@ -104,28 +104,28 @@ const AmenitiesPage: React.FC = () => {
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-[#0055A5]/15 bg-[#0055A5]/8 px-4 py-2 text-sm font-medium text-[#0055A5]">
                 <Sparkles className="h-4 w-4" />
-                Tien ich quanh ga Metro
+                Tiện ích quanh ga Metro
               </div>
 
               <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
-                Tim diem dung phu hop truoc va sau moi chang Metro.
+                Tìm điểm dừng phù hợp trước và sau mỗi chặng Metro.
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                Tu ca phe, nha hang den mua sam va dich vu thiet yeu, ban co the loc nhanh theo ga de len hanh trinh gon hon va de quan sat hon.
+                Từ cà phê, nhà hàng đến mua sắm và dịch vụ thiết yếu, bạn có thể lọc nhanh theo ga để lên hành trình gọn hơn và dễ quan sát hơn.
               </p>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Button asChild className="rounded-full px-5">
                   <Link href="/ban-do-so">
-                    Kham pha ban do so
+                    Khám phá bản đồ số
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-full px-5">
                   <Link href="/lo-trinh">
                     <TrainFront className="mr-2 h-4 w-4" />
-                    Ket hop voi lo trinh
+                    Kết hợp với lộ trình
                   </Link>
                 </Button>
               </div>
@@ -133,24 +133,24 @@ const AmenitiesPage: React.FC = () => {
 
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
               <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/90 p-5">
-                <p className="text-sm font-medium text-slate-500">Trang thai hien tai</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{loading ? "Dang tai..." : `${total} diem`}</p>
+                <p className="text-sm font-medium text-slate-500">Trạng thái hiện tại</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{loading ? "Đang tải..." : `${total} điểm`}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Danh sach duoc cap nhat theo bo loc ban dang chon.
+                  Danh sách được cập nhật theo bộ lọc bạn đang chọn.
                 </p>
               </div>
               <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/90 p-5">
-                <p className="text-sm font-medium text-slate-500">Phu ga Metro</p>
+                <p className="text-sm font-medium text-slate-500">Phủ ga Metro</p>
                 <p className="mt-2 text-2xl font-semibold text-slate-950">{stations.length} ga</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Nhanh tay loc theo khu vuc de thu hep lua chon.
+                  Nhanh tay lọc theo khu vực để thu hẹp lựa chọn.
                 </p>
               </div>
               <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/90 p-5">
-                <p className="text-sm font-medium text-slate-500">Danh muc</p>
-                <p className="mt-2 text-2xl font-semibold text-slate-950">{CATEGORY_COUNT} nhom</p>
+                <p className="text-sm font-medium text-slate-500">Danh mục</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-950">{CATEGORY_COUNT} nhóm</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Du lich, an uong, mua sam va cac dich vu co ban.
+                  Du lịch, ăn uống, mua sắm và các dịch vụ cơ bản.
                 </p>
               </div>
             </div>
@@ -169,21 +169,21 @@ const AmenitiesPage: React.FC = () => {
 
         <section className="grid gap-4 md:grid-cols-3">
           <StatCard
-            label="Ket qua dang hien thi"
+            label="Kết quả đang hiển thị"
             value={loading ? "--" : amenities.length.toString()}
-            hint="So luong the dang hien tren man hinh theo bo loc hien tai."
+            hint="Số lượng thẻ đang hiện trên màn hình theo bộ lọc hiện tại."
             accentClass="bg-[#0055A5]"
           />
           <StatCard
-            label="Tong diem phu hop"
+            label="Tổng điểm phù hợp"
             value={loading ? "--" : total.toString()}
-            hint="Tong ket qua tim duoc tren toan bo he thong cho lua chon hien tai."
+            hint="Tổng kết quả tìm được trên toàn bộ hệ thống cho lựa chọn hiện tại."
             accentClass="bg-[#00A86B]"
           />
           <StatCard
-            label="Che do duyet"
-            value={filters.stationId ? "Theo ga" : "Toan mang"}
-            hint="Ban co the chuyen nhanh giua xem tong hop va xem theo tung nha ga."
+            label="Chế độ duyệt"
+            value={filters.stationId ? "Theo ga" : "Toàn mạng"}
+            hint="Bạn có thể chuyển nhanh giữa xem tổng hợp và xem theo từng nhà ga."
             accentClass="bg-amber-400"
           />
         </section>
@@ -191,14 +191,14 @@ const AmenitiesPage: React.FC = () => {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Danh sach tien ich</h2>
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Danh sách tiện ích</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Anh trong moi the duoc giu cung mot ti le de danh sach gon va de quet hon.
+                Ảnh trong mỗi thẻ được giữ cùng một tỉ lệ để danh sách gọn và dễ quét hơn.
               </p>
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
               <Store className="h-4 w-4 text-[#0055A5]" />
-              {loading ? "Dang tai du lieu..." : `${amenities.length} / ${total || amenities.length} ket qua`}
+              {loading ? "Đang tải dữ liệu..." : `${amenities.length} / ${total || amenities.length} kết quả`}
             </div>
           </div>
 
@@ -221,17 +221,17 @@ const AmenitiesPage: React.FC = () => {
           <Card className="rounded-[30px] border-slate-200/80 shadow-[0_18px_50px_rgba(15,23,42,0.05)]">
             <CardContent className="flex h-full flex-col justify-between gap-5 p-6">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-500">Goi y su dung</p>
+                <p className="text-sm font-medium text-slate-500">Gợi ý sử dụng</p>
                 <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
-                  Loc theo ga truoc, sau do thu hep theo nhu cau.
+                  Lọc theo ga trước, sau đó thu hẹp theo nhu cầu.
                 </h3>
                 <p className="text-sm leading-7 text-slate-600">
-                  Cach nay giup danh sach gon hon va de tim cac diem dung chan thuc su co ich trong hanh trinh cua ban.
+                  Cách này giúp danh sách gọn hơn và dễ tìm các điểm dừng chân thực sự có ích trong hành trình của bạn.
                 </p>
               </div>
               <div className="inline-flex items-center gap-2 text-sm font-medium text-[#0055A5]">
                 <Map className="h-4 w-4" />
-                Ban co the tiep tuc doi bo loc o phia tren bat cu luc nao.
+                Bạn có thể tiếp tục đổi bộ lọc ở phía trên bất cứ lúc nào.
               </div>
             </CardContent>
           </Card>
@@ -239,15 +239,15 @@ const AmenitiesPage: React.FC = () => {
           <Card className="rounded-[30px] border-slate-200/80 bg-slate-950 text-white shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
             <CardContent className="flex h-full flex-col justify-between gap-5 p-6">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-white/70">Trai nghiem tot hon</p>
-                <h3 className="text-2xl font-semibold tracking-tight">Anh card dong deu, noi dung de quet, bo loc de dung.</h3>
+                <p className="text-sm font-medium text-white/70">Trải nghiệm tốt hơn</p>
+                <h3 className="text-2xl font-semibold tracking-tight">Ảnh card đồng đều, nội dung dễ quét, bộ lọc dễ dùng.</h3>
                 <p className="text-sm leading-7 text-white/75">
-                  Giao dien moi uu tien tinh ro rang va giu nhip thi giac on dinh tren desktop lan mobile.
+                  Giao diện mới ưu tiên tính rõ ràng và giữ nhịp thị giác ổn định trên desktop lẫn mobile.
                 </p>
               </div>
               <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
                 <ArrowRight className="h-4 w-4" />
-                Mo tung the de xem thong tin chi tiet va chi duong.
+                Mở từng thẻ để xem thông tin chi tiết và chỉ đường.
               </div>
             </CardContent>
           </Card>
@@ -258,3 +258,5 @@ const AmenitiesPage: React.FC = () => {
 };
 
 export default AmenitiesPage;
+
+

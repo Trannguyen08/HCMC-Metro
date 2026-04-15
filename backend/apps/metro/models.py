@@ -17,7 +17,7 @@ class MetroLine(models.Model):
 
     class Meta:
         db_table = "metro_lines"
-        managed = False
+        managed = True
 
 
 class Station(models.Model):
@@ -42,7 +42,7 @@ class Station(models.Model):
 
     class Meta:
         db_table = "stations"
-        managed = False
+        managed = True
 
 
 class Train(models.Model):
@@ -52,11 +52,25 @@ class Train(models.Model):
     status = models.CharField(max_length=30, default="active")
     manufacture_year = models.IntegerField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    direction = models.CharField(
+        max_length=20, 
+        choices=[("outbound", "Lượt đi"), ("inbound", "Lượt về")], 
+        default="outbound"
+    )
+    is_simulated = models.BooleanField(default=True)
+    current_station = models.ForeignKey(
+        Station, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name="current_trains",
+        db_column="current_station_id"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = "trains"
-        managed = False
+        managed = True
 
 
 class AmenityCategory(models.Model):
@@ -70,7 +84,7 @@ class AmenityCategory(models.Model):
 
     class Meta:
         db_table = "amenity_categories"
-        managed = False
+        managed = True
 
 
 class AmenityType(models.Model):
@@ -80,7 +94,7 @@ class AmenityType(models.Model):
 
     class Meta:
         db_table = "amenity_types"
-        managed = False
+        managed = True
 
 
 class Amenity(models.Model):
@@ -127,7 +141,7 @@ class Amenity(models.Model):
 
     class Meta:
         db_table = "amenities"
-        managed = False
+        managed = True
 
 
 class BusStopCache(models.Model):
@@ -150,4 +164,4 @@ class BusStopCache(models.Model):
 
     class Meta:
         db_table = "bus_stop_cache"
-        managed = False
+        managed = True

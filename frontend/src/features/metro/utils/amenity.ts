@@ -1,8 +1,8 @@
-import { Amenity } from '@/types/amenity';
+﻿import { Amenity } from '@/types/amenity';
 
 export function formatDistance(distanceMeters?: number) {
   if (!distanceMeters) {
-    return 'ngay gan ga';
+    return 'ngay gần ga';
   }
 
   if (distanceMeters >= 1000) {
@@ -26,7 +26,7 @@ export function buildAmenityDetail(amenity: Amenity): Amenity {
     overview:
       amenity.overview ||
       amenity.description ||
-      `${amenity.name} la diem dung chan noi bat gan ${amenity.stationName}, phu hop de ghe tham khi di metro.`,
+      `${amenity.name} là điểm dừng chân nổi bật gần ${amenity.stationName}, phù hợp để ghé thăm khi đi metro.`,
     featuredImages:
       amenity.featuredImages && amenity.featuredImages.length > 0
         ? amenity.featuredImages
@@ -36,3 +36,5 @@ export function buildAmenityDetail(amenity: Amenity): Amenity {
       `https://www.google.com/maps?q=${encodeURIComponent(amenity.address || amenity.name)}&output=embed`,
   };
 }
+
+

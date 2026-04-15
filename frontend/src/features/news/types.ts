@@ -1,10 +1,11 @@
 export interface News {
-  id: string;
+  id: string | number;
   category_name: string;
   category?: number;
   title: string;
   summary: string;
-  thumbnail_url: string;
+  thumbnail_url?: string;
+  image_url?: string;
   slug: string;
   published_at: string;
   created_at: string;

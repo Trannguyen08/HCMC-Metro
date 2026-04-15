@@ -1,0 +1,19 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="metro-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0055A5" />
+      <stop offset="100%" stop-color="#0077CC" />
+    </linearGradient>
+  </defs>
+  <rect width="40" height="40" rx="10" fill="url(#metro-gradient)" />
+  <g transform="translate(10, 10) scale(0.83)">
+    <!-- Lucide TrainFront path simplified -->
+    <path d="M8 31V25" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M16 31V25" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 20V3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 3L4 11V21C4 23.2091 5.79086 25 8 25H16C18.2091 25 20 23.2091 20 21V11L12 3Z" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M4 11H20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8 15H8.01" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M16 15H16.01" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

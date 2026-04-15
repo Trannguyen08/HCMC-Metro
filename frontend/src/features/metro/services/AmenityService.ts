@@ -1,4 +1,4 @@
-// src/features/metro/services/amenityService.ts
+﻿// src/features/metro/services/amenityService.ts
 
 import api from '@/services/api-client';
 import { Amenity, AmenitiesResponse, MetroStation, AmenityFilters } from '../../../types/amenity';
@@ -17,7 +17,7 @@ export async function fetchStations(): Promise<MetroStation[]> {
     return [];
   } catch {
     if (USE_MOCK_FALLBACK) return MOCK_STATIONS;
-    throw new Error('Khong the tai danh sach ga.');
+    throw new Error('Không thể tải danh sách ga.');
   }
 }
 
@@ -47,7 +47,7 @@ export async function fetchAmenities(
     if (USE_MOCK_FALLBACK) {
       return getMockAmenities(filters);
     }
-    throw new Error('Khong the tai danh sach tien ich.');
+    throw new Error('Không thể tải danh sách tiện ích.');
   }
 }
 
@@ -68,7 +68,7 @@ export async function fetchAmenityDetail(id: string): Promise<Amenity | null> {
     if (USE_MOCK_FALLBACK) {
       return getMockAmenityDetail(id);
     }
-    throw new Error('Khong the tai chi tiet tien ich.');
+    throw new Error('Không thể tải chi tiết tiện ích.');
   }
 }
 
@@ -99,3 +99,5 @@ function getMockAmenityDetail(id: string): Amenity | null {
   const amenity = MOCK_AMENITIES.find((item) => item.id === id);
   return amenity ? buildAmenityDetail(amenity) : null;
 }
+
+

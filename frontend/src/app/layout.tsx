@@ -22,7 +22,10 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Metro HCM | Đặt vé & Tra cứu",
-  description: "Hệ thống đặt vé Metro HCM (mock frontend)"
+  description: "Hệ thống đặt vé Metro HCM (mock frontend)",
+  icons: {
+    icon: "/favicon.svg"
+  }
 };
 
 export default function RootLayout({

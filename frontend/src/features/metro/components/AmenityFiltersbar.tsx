@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ interface AmenityFiltersBarProps {
 }
 
 const TYPE_OPTIONS: Array<{ value: AmenityType; label: string }> = [
-  { value: "all", label: "Tat ca" },
+  { value: "all", label: "Tất cả" },
   { value: "cafe", label: TYPE_LABELS.cafe },
   { value: "restaurant", label: TYPE_LABELS.restaurant },
   { value: "shopping", label: TYPE_LABELS.shopping },
@@ -53,7 +53,7 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
             <Input
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Tim ten quan, dich vu hoac dia chi..."
+              placeholder="Tìm tên quán, dịch vụ hoặc địa chỉ..."
               className="h-12 rounded-2xl border-slate-200 bg-slate-50/80 pl-11 pr-11 shadow-none focus-visible:ring-[#0055A5]/20"
             />
             {search ? (
@@ -61,7 +61,7 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
                 type="button"
                 onClick={() => onSearchChange("")}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700"
-                aria-label="Xoa tu khoa tim kiem"
+                aria-label="Xóa từ khóa tìm kiếm"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -73,11 +73,11 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
               <SelectTrigger className="h-12 rounded-2xl border-slate-200 bg-slate-50/80 shadow-none">
                 <div className="flex items-center gap-2 text-slate-700">
                   <MapPin className="h-4 w-4 text-[#0055A5]" />
-                  <SelectValue placeholder="Tat ca nha ga" />
+                  <SelectValue placeholder="Tất cả nhà ga" />
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tat ca nha ga</SelectItem>
+                <SelectItem value="all">Tất cả nhà ga</SelectItem>
                 {stations.map((station) => (
                   <SelectItem key={station.id} value={station.id}>
                     {station.name}
@@ -97,11 +97,11 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
                 }}
                 className="h-12 rounded-2xl border-slate-200 px-4"
               >
-                Dat lai
+                Đặt lại
               </Button>
             ) : (
               <div className="hidden h-12 items-center rounded-2xl border border-dashed border-slate-200 px-4 text-sm text-slate-400 lg:flex">
-                Bo loc sach
+                Bộ lọc sạch
               </div>
             )}
           </div>
@@ -110,7 +110,7 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="inline-flex items-center gap-2 text-sm font-medium text-slate-500">
             <SlidersHorizontal className="h-4 w-4" />
-            Loai tien ich
+            Loại tiện ích
           </div>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {TYPE_OPTIONS.map((option) => {
@@ -137,3 +137,5 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
     </div>
   );
 };
+
+

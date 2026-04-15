@@ -101,8 +101,26 @@ export function Navbar() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="vi">VN</SelectItem>
-                <SelectItem value="en">EN</SelectItem>
+                <SelectItem value="vi">
+                  <span className="flex items-center gap-2">
+                    <img 
+                      src="https://flagcdn.com/w40/vn.png" 
+                      alt="Vietnam Flag" 
+                      className="w-5 h-auto"
+                    />
+                    <span>VN</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="en">
+                  <span className="flex items-center gap-2">
+                    <img 
+                      src="https://flagcdn.com/w40/gb.png" 
+                      alt="UK Flag" 
+                      className="w-5 h-auto"
+                    />
+                    <span>EN</span>
+                  </span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

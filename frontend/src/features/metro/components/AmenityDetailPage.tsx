@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -86,14 +86,14 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
         if (!active) return;
 
         if (!response) {
-          setError("Khong tim thay tien ich.");
+          setError("Không tìm thấy tiện ích.");
           return;
         }
 
         setAmenity(response);
       } catch (err) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : "Khong the tai chi tiet tien ich.");
+        setError(err instanceof Error ? err.message : "Không thể tải chi tiết tiện ích.");
       } finally {
         if (active) {
           setLoading(false);
@@ -130,11 +130,11 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
     return (
       <div className="min-h-screen bg-slate-50 px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl rounded-[28px] border border-rose-100 bg-white p-8 text-center shadow-sm">
-          <p className="text-lg font-semibold text-slate-900">{error || "Khong tim thay tien ich."}</p>
+          <p className="text-lg font-semibold text-slate-900">{error || "Không tìm thấy tiện ích."}</p>
           <Button asChild className="mt-6 rounded-full px-5">
             <Link href="/tien-ich">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Quay lai danh sach
+              Quay lại danh sách
             </Link>
           </Button>
         </div>
@@ -151,7 +151,7 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
         <Button asChild variant="outline" className="mb-5 rounded-full border-slate-200 bg-white/90 px-4 shadow-sm">
           <Link href="/tien-ich">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lai tien ich
+            Quay lại tiện ích
           </Link>
         </Button>
 
@@ -190,15 +190,15 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="rounded-[24px] border border-white/12 bg-white/8 p-4 backdrop-blur">
-                    <p className="text-sm text-white/65">Loai</p>
+                    <p className="text-sm text-white/65">Loại</p>
                     <p className="mt-2 text-lg font-semibold">{TYPE_LABELS[amenity.type]}</p>
                   </div>
                   <div className="rounded-[24px] border border-white/12 bg-white/8 p-4 backdrop-blur">
-                    <p className="text-sm text-white/65">Ket noi Metro</p>
+                    <p className="text-sm text-white/65">Kết nối Metro</p>
                     <p className="mt-2 text-lg font-semibold">{amenity.stationName}</p>
                   </div>
                   <div className="rounded-[24px] border border-white/12 bg-white/8 p-4 backdrop-blur">
-                    <p className="text-sm text-white/65">Khoang cach</p>
+                    <p className="text-sm text-white/65">Khoảng cách</p>
                     <p className="mt-2 text-lg font-semibold">{formatDistance(amenity.distanceMeters)}</p>
                   </div>
                 </div>
@@ -217,7 +217,7 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center bg-slate-100 text-sm font-medium text-slate-500">
-                    Hinh anh dang duoc cap nhat
+                    Hình ảnh đang được cập nhật
                   </div>
                 )}
               </div>
@@ -227,55 +227,55 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <SectionCard
-            title="Tong quan dia diem"
-            description="Thong tin nhanh giup ban danh gia xem diem dung nay co phu hop voi chang di Metro sap toi hay khong."
+            title="Tổng quan địa điểm"
+            description="Thông tin nhanh giúp bạn đánh giá xem điểm dừng này có phù hợp với chặng đi Metro sắp tới hay không."
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <InfoRow
                 icon={<MapPinned className="h-5 w-5" />}
-                label="Dia chi"
-                value={amenity.address || "Dang cap nhat"}
+                label="Địa chỉ"
+                value={amenity.address || "Đang cập nhật"}
               />
               <InfoRow
                 icon={<Clock3 className="h-5 w-5" />}
-                label="Gio hoat dong"
-                value={amenity.openingHours || "Dang cap nhat"}
+                label="Giờ hoạt động"
+                value={amenity.openingHours || "Đang cập nhật"}
               />
               <InfoRow
                 icon={<TrainFront className="h-5 w-5" />}
-                label="Ga lien quan"
+                label="Ga liên quan"
                 value={amenity.stationName}
               />
               <InfoRow
                 icon={<Store className="h-5 w-5" />}
-                label="Loai tien ich"
+                label="Loại tiện ích"
                 value={TYPE_LABELS[amenity.type]}
               />
               {amenity.phone ? (
                 <InfoRow
                   icon={<Phone className="h-5 w-5" />}
-                  label="So dien thoai"
+                  label="Số điện thoại"
                   value={amenity.phone}
                 />
               ) : null}
               <InfoRow
                 icon={<Navigation className="h-5 w-5" />}
-                label="Di chuyen tu ga"
+                label="Di chuyển từ ga"
                 value={formatDistance(amenity.distanceMeters)}
               />
             </div>
           </SectionCard>
 
           <SectionCard
-            title="Hanh dong nhanh"
-            description="Mo ban do, website hoac kiem tra thong tin lien he ngay tu trang chi tiet."
+            title="Hành động nhanh"
+            description="Mở bản đồ, website hoặc kiểm tra thông tin liên hệ ngay từ trang chi tiết."
           >
             <div className="flex flex-col gap-3">
               <Button asChild className="justify-between rounded-2xl px-5 py-6 text-left">
                 <a href={mapsUrl} target="_blank" rel="noreferrer">
                   <span className="inline-flex items-center gap-2">
                     <Navigation className="h-4 w-4" />
-                    Chi duong voi Google Maps
+                    Chỉ đường với Google Maps
                   </span>
                   <ArrowUpRight className="h-4 w-4" />
                 </a>
@@ -286,7 +286,7 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
                   <a href={amenity.website} target="_blank" rel="noreferrer">
                     <span className="inline-flex items-center gap-2">
                       <ExternalLink className="h-4 w-4" />
-                      Truy cap website
+                      Truy cập website
                     </span>
                     <ArrowUpRight className="h-4 w-4" />
                   </a>
@@ -302,8 +302,8 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
 
         <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_380px]">
           <SectionCard
-            title="Bo suu tap hinh anh"
-            description="Cac hinh anh duoc dat trong khung co ti le co dinh de bo cuc on dinh va de xem hon."
+            title="Bộ sưu tập hình ảnh"
+            description="Các hình ảnh được đặt trong khung có tỉ lệ cố định để bố cục ổn định và dễ xem hơn."
           >
             <div className="grid gap-4 md:grid-cols-3">
               {amenity.featuredImages?.map((image, index) => (
@@ -324,20 +324,20 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
           </SectionCard>
 
           <SectionCard
-            title="Tom tat nhanh"
-            description="Phu hop cho nguoi dung muon ra quyet dinh nhanh truoc khi roi ga."
+            title="Tóm tắt nhanh"
+            description="Phù hợp cho người dùng muốn ra quyết định nhanh trước khi rời ga."
           >
             <div className="space-y-4">
               <div className="rounded-[24px] bg-[#0055A5] px-5 py-4 text-white">
-                <p className="text-sm text-white/75">Goi y</p>
-                <p className="mt-2 text-lg font-semibold">Diem dung nay phu hop cho mot chang ghe nhanh quanh ga.</p>
+                <p className="text-sm text-white/75">Gợi ý</p>
+                <p className="mt-2 text-lg font-semibold">Điểm dừng này phù hợp cho một chặng ghé nhanh quanh ga.</p>
               </div>
               <div className="rounded-[24px] bg-slate-50 px-5 py-4 text-sm leading-7 text-slate-600">
-                Neu ban dang di Metro va can mot diem nghi chan, an uong hoac xu ly cong viec nhanh, day la lua chon de xem tiep.
+                Nếu bạn đang đi Metro và cần một điểm nghỉ chân, ăn uống hoặc xử lý công việc nhanh, đây là lựa chọn để xem tiếp.
               </div>
               <div className="inline-flex items-center gap-2 text-sm font-medium text-[#0055A5]">
                 <ImageIcon className="h-4 w-4" />
-                Anh va noi dung hien tai duoc toi uu de xem tot tren desktop va mobile.
+                Ảnh và nội dung hiện tại được tối ưu để xem tốt trên desktop và mobile.
               </div>
             </div>
           </SectionCard>
@@ -345,8 +345,8 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
 
         <section className="mt-6">
           <SectionCard
-            title="Ban do 360 do"
-            description="Khung ban do duoi day giup nguoi dung dinh huong nhanh khu vuc xung quanh tien ich."
+            title="Bản đồ 360 độ"
+            description="Khung bản đồ dưới đây giúp người dùng định hướng nhanh khu vực xung quanh tiện ích."
           >
             <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-slate-100">
               <div className="aspect-[16/9] w-full">
@@ -366,3 +366,5 @@ export default function AmenityDetailPage({ amenityId }: AmenityDetailPageProps)
     </div>
   );
 }
+
+

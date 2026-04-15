@@ -12,20 +12,17 @@ export function PageTransition({
   children: React.ReactNode;
   className?: string;
 }) {
-  const pathname = usePathname();
-  const [visible, setVisible] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
-    setVisible(false);
-    const t = window.setTimeout(() => setVisible(true), 10);
-    return () => window.clearTimeout(t);
-  }, [pathname]);
+    setMounted(true);
+  }, []);
 
   return (
     <div
       className={cn(
-        "transition-opacity duration-300 ease-smooth",
-        visible ? "opacity-100" : "opacity-0",
+        "transition-opacity duration-500 ease-out",
+        mounted ? "opacity-100" : "opacity-0",
         className
       )}
     >
