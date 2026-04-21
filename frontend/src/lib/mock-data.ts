@@ -83,95 +83,200 @@ export function mockRouteResults(fromId: number, toId: number): RouteResult[] {
 
 export type AmenityCategory =
   | "Tất cả"
-  | "Y tế"
-  | "Giáo dục"
-  | "Ăn uống"
+  | "Cà phê"
+  | "Nhà hàng"
   | "Mua sắm"
-  | "Ngân hàng"
-  | "Bãi xe";
+  | "Khách sạn"
+  | "Dịch vụ";
 
 export type Amenity = {
   id: string;
   stationId: number;
+  nearestStation: string;
   category: Exclude<AmenityCategory, "Tất cả">;
   name: string;
   address: string;
-  distanceKm: number;
+  distanceM: number; // metres
   rating: number; // 0-5
+  imageUrl: string;
 };
 
 export const AMENITIES: Amenity[] = [
   {
     id: "am_001",
     stationId: 1,
-    category: "Ăn uống",
-    name: "Phố ẩm thực Đồng Khởi (mock)",
-    address: "Q.1, TP.HCM",
-    distanceKm: 0.6,
-    rating: 4.6
+    nearestStation: "Ga Bến Thành",
+    category: "Dịch vụ",
+    name: "Chợ Bến Thành",
+    address: "Lê Lợi, P. Bến Thành, Q.1, TP.HCM",
+    distanceM: 80,
+    rating: 4.7,
+    imageUrl: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "am_002",
     stationId: 1,
-    category: "Ngân hàng",
-    name: "ATM Metro Central",
-    address: "Bến Thành, Q.1, TP.HCM",
-    distanceKm: 0.2,
-    rating: 4.2
+    nearestStation: "Ga Bến Thành",
+    category: "Khách sạn",
+    name: "New World Saigon Hotel",
+    address: "76 Lê Lai, P. Bến Thành, Q.1, TP.HCM",
+    distanceM: 250,
+    rating: 4.8,
+    imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "am_003",
-    stationId: 6,
-    category: "Mua sắm",
-    name: "Trung tâm mua sắm Thảo Điền (mock)",
-    address: "TP. Thủ Đức, TP.HCM",
-    distanceKm: 0.9,
-    rating: 4.4
+    stationId: 2,
+    nearestStation: "Ga Nhà hát Thành phố",
+    category: "Dịch vụ",
+    name: "Nhà hát Thành phố",
+    address: "7 Công Trường Lam Sơn, Q.1, TP.HCM",
+    distanceM: 50,
+    rating: 4.9,
+    imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "am_004",
-    stationId: 10,
-    category: "Y tế",
-    name: "Phòng khám Bình Thái (mock)",
-    address: "TP. Thủ Đức, TP.HCM",
-    distanceKm: 1.1,
-    rating: 4.1
+    stationId: 1,
+    nearestStation: "Ga Bến Thành",
+    category: "Cà phê",
+    name: "The Coffee House – Bến Thành",
+    address: "86 Nam Kỳ Khởi Nghĩa, Q.1, TP.HCM",
+    distanceM: 180,
+    rating: 4.5,
+    imageUrl: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "am_005",
-    stationId: 11,
-    category: "Giáo dục",
-    name: "Trung tâm học tập Thủ Đức (mock)",
-    address: "TP. Thủ Đức, TP.HCM",
-    distanceKm: 0.8,
-    rating: 4.0
+    stationId: 1,
+    nearestStation: "Ga Bến Thành",
+    category: "Nhà hàng",
+    name: "Nhà hàng Ngon",
+    address: "160 Pasteur, P. Bến Nghé, Q.1, TP.HCM",
+    distanceM: 350,
+    rating: 4.6,
+    imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "am_006",
-    stationId: 14,
-    category: "Bãi xe",
-    name: "Bãi gửi xe Suối Tiên (mock)",
-    address: "Suối Tiên, TP. Thủ Đức, TP.HCM",
-    distanceKm: 0.3,
-    rating: 4.3
+    stationId: 1,
+    nearestStation: "Ga Bến Thành",
+    category: "Mua sắm",
+    name: "Vincom Center Bến Thành",
+    address: "72 Lê Thánh Tôn, P. Bến Nghé, Q.1, TP.HCM",
+    distanceM: 400,
+    rating: 4.4,
+    imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "am_007",
     stationId: 3,
-    category: "Ăn uống",
-    name: "Cà phê Ba Son (mock)",
-    address: "Q.1, TP.HCM",
-    distanceKm: 0.4,
-    rating: 4.5
+    nearestStation: "Ga Ba Son",
+    category: "Cà phê",
+    name: "Starbucks Ba Son",
+    address: "2 Đường Tôn Đức Thắng, Q.1, TP.HCM",
+    distanceM: 120,
+    rating: 4.3,
+    imageUrl: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80"
   },
   {
     id: "am_008",
-    stationId: 2,
+    stationId: 3,
+    nearestStation: "Ga Ba Son",
+    category: "Khách sạn",
+    name: "Park Hyatt Saigon",
+    address: "2 Công Trường Lam Sơn, Q.1, TP.HCM",
+    distanceM: 200,
+    rating: 4.9,
+    imageUrl: "https://images.unsplash.com/photo-1551882547-ff40c63fe2e4?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "am_009",
+    stationId: 6,
+    nearestStation: "Ga Thảo Điền",
+    category: "Nhà hàng",
+    name: "Hoàng Yến Restaurant",
+    address: "7 Nguyễn Thị Minh Khai, TP. Thủ Đức, TP.HCM",
+    distanceM: 300,
+    rating: 4.5,
+    imageUrl: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "am_010",
+    stationId: 6,
+    nearestStation: "Ga Thảo Điền",
     category: "Mua sắm",
-    name: "Nhà hát TP Souvenir (mock)",
-    address: "Q.1, TP.HCM",
-    distanceKm: 0.5,
-    rating: 4.1
+    name: "Thảo Điền Pearl Mall",
+    address: "12 Xa Lộ Hà Nội, TP. Thủ Đức, TP.HCM",
+    distanceM: 450,
+    rating: 4.2,
+    imageUrl: "https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "am_011",
+    stationId: 7,
+    nearestStation: "Ga An Phú",
+    category: "Cà phê",
+    name: "Highlands Coffee An Phú",
+    address: "101 An Phú, TP. Thủ Đức, TP.HCM",
+    distanceM: 160,
+    rating: 4.4,
+    imageUrl: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "am_012",
+    stationId: 11,
+    nearestStation: "Ga Thủ Đức",
+    category: "Dịch vụ",
+    name: "Trung tâm hành chính Thủ Đức",
+    address: "1 Võ Văn Ngân, TP. Thủ Đức, TP.HCM",
+    distanceM: 500,
+    rating: 3.9,
+    imageUrl: "https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "am_013",
+    stationId: 11,
+    nearestStation: "Ga Thủ Đức",
+    category: "Nhà hàng",
+    name: "Quán Bình Dân Thủ Đức",
+    address: "25 Kha Vạn Cân, TP. Thủ Đức, TP.HCM",
+    distanceM: 200,
+    rating: 4.3,
+    imageUrl: "https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "am_014",
+    stationId: 13,
+    nearestStation: "Ga Đại học QG",
+    category: "Cà phê",
+    name: "Cafe Sân Vườn ĐHQG",
+    address: "Khu phố 6, P. Linh Trung, TP. Thủ Đức, TP.HCM",
+    distanceM: 90,
+    rating: 4.6,
+    imageUrl: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "am_015",
+    stationId: 14,
+    nearestStation: "Ga Suối Tiên",
+    category: "Mua sắm",
+    name: "Gigamall Thủ Đức",
+    address: "240 Phạm Văn Đồng, TP. Thủ Đức, TP.HCM",
+    distanceM: 600,
+    rating: 4.5,
+    imageUrl: "https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=800&q=80"
+  },
+  {
+    id: "am_016",
+    stationId: 14,
+    nearestStation: "Ga Suối Tiên",
+    category: "Khách sạn",
+    name: "Mường Thanh Luxury Sài Gòn",
+    address: "Xa lộ Hà Nội, TP. Thủ Đức, TP.HCM",
+    distanceM: 800,
+    rating: 4.3,
+    imageUrl: "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&w=800&q=80"
   }
 ];
 

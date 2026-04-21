@@ -8,3 +8,23 @@ djangorestframework-simplejwt==5.3.1
 google-auth==2.29.0
 requests==2.31.0
 python-dotenv==1.0.1
+cloudinary==1.38.0
+
+# Redis integration
+django-redis==5.4.0
+redis==5.0.8
+
+# Ticketing features
+qrcode[pil]==7.4.2
+geopy==2.4.1
+
+# Task Queue
+celery==5.3.6
+django-celery-results==2.5.1
+django-celery-beat==2.7.0
+
+# API Documentation
+drf-spectacular==0.27.1
+payos==1.1.0
+
+

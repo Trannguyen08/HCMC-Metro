@@ -4,8 +4,7 @@ import * as React from "react";
 import { ThemeProvider } from "next-themes";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
-import { AuthProvider } from "@/lib/auth";
-import { LanguageProvider } from "@/lib/i18n";
+import { AppProgressBar as ProgressBar } from "next-nprogress-bar";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
@@ -13,9 +12,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <GoogleOAuthProvider clientId={clientId}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <LanguageProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </LanguageProvider>
+        {children}
+        <ProgressBar
+          height="3px"
+          color="#2563eb"
+          options={{ showSpinner: false }}
+          shallowRouting
+        />
       </ThemeProvider>
     </GoogleOAuthProvider>
   );

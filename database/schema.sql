@@ -19,10 +19,35 @@ CREATE TABLE users (
     date_of_birth   DATE,
     avatar_url      TEXT,
     is_active       BOOLEAN DEFAULT TRUE,
+    is_admin        BOOLEAN DEFAULT FALSE,
     email_verified  BOOLEAN DEFAULT FALSE,
+    category_id     INT DEFAULT 1, -- Defaults to Regular
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================================
+-- 1.1 USER CATEGORIES (ĐỐI TƯỢNG GIẢM GIÁ)
+-- ============================================================
+
+CREATE TABLE user_categories (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL, -- 'Sinh viên', 'Trẻ em', 'Người cao tuổi', 'Phổ thông'
+    slug            VARCHAR(50) UNIQUE NOT NULL,
+    discount_rate   DECIMAL(3, 2) DEFAULT 0.00, -- 0.50 = 50% off
+    description     TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert default categories
+INSERT INTO user_categories (name, slug, discount_rate) VALUES
+    ('Phổ thông',      'regular',  0.00),
+    ('Sinh viên',      'student',  0.50),
+    ('Trẻ em',         'child',    0.50),
+    ('Người cao tuổi', 'elderly',  0.50);
+
+-- Link users to categories
+ALTER TABLE users ADD CONSTRAINT fk_user_category FOREIGN KEY (category_id) REFERENCES user_categories(id);
 
 -- Đăng nhập với Google (OAuth)
 CREATE TABLE oauth_accounts (
@@ -55,8 +80,7 @@ CREATE TABLE user_sessions (
 CREATE TABLE news_categories (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,       -- 'Thông báo', 'Sự kiện', 'Khuyến mãi', ...
-    slug            VARCHAR(100) UNIQUE NOT NULL,
-    description     TEXT,
+    name_en         VARCHAR(100),
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -64,7 +88,9 @@ CREATE TABLE news (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     category_id     INT REFERENCES news_categories(id) ON DELETE SET NULL,
     title           VARCHAR(500) NOT NULL,
+    title_en        VARCHAR(500),
     summary         TEXT,                        -- Nội dung ngắn gọn
+    summary_en      TEXT,
     thumbnail_url   TEXT,                        -- Ảnh đại diện
     external_link   TEXT,                        -- Link bài đăng gốc (nếu có)
     slug            VARCHAR(500) UNIQUE,
@@ -82,9 +108,15 @@ CREATE TABLE news (
 CREATE TABLE metro_lines (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,       -- 'Tuyến 1', 'Tuyến 2', ...
+    name_en         VARCHAR(100),
     code            VARCHAR(20) UNIQUE NOT NULL, -- 'L1', 'L2'
     color           VARCHAR(10),                 -- Hex color: '#FF0000'
+    color_hex       VARCHAR(10) DEFAULT '#0066CC',
+    stroke_weight   INT DEFAULT 4,
+    geojson_coordinates JSONB,
+    status          VARCHAR(30) DEFAULT 'active',
     description     TEXT,
+    description_en  TEXT,
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -92,15 +124,18 @@ CREATE TABLE metro_lines (
 CREATE TABLE stations (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(255) NOT NULL,
+    name_en         VARCHAR(255),
     code            VARCHAR(20) UNIQUE NOT NULL, -- 'BT', 'TP', 'SG', ...
     line_id         INT REFERENCES metro_lines(id) ON DELETE SET NULL,
     address         VARCHAR(500),
+    address_en      VARCHAR(500),
     latitude        DECIMAL(10, 8),
     longitude       DECIMAL(11, 8),
     sequence_order  INT,                         -- Thứ tự trên tuyến
     is_active       BOOLEAN DEFAULT TRUE,
     image_url       TEXT,
     description     TEXT,
+    description_en  TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -110,6 +145,7 @@ CREATE TABLE trains (
     line_id         INT REFERENCES metro_lines(id) ON DELETE SET NULL,
     capacity        INT,
     status          VARCHAR(30) DEFAULT 'active', -- 'active', 'maintenance', 'out_of_service'
+    is_active       BOOLEAN DEFAULT TRUE,
     manufacture_year INT,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -130,22 +166,25 @@ CREATE TABLE train_schedules (
 -- 4. VÉ & ĐẶT VÉ
 -- ============================================================
 
-CREATE TYPE ticket_type AS ENUM ('single_day', 'three_day', 'weekly', 'monthly');
-CREATE TYPE ticket_status AS ENUM ('active', 'expired', 'cancelled', 'pending');
+CREATE TYPE ticket_type AS ENUM ('single', 'single_day', 'three_day', 'weekly', 'monthly');
+CREATE TYPE ticket_status AS ENUM ('active', 'expired', 'cancelled', 'pending', 'used');
 
 CREATE TABLE ticket_types (
     id              SERIAL PRIMARY KEY,
     type            ticket_type NOT NULL,
     name            VARCHAR(100) NOT NULL,       -- 'Vé ngày', 'Vé 3 ngày', 'Vé tuần', 'Vé tháng'
+    name_en         VARCHAR(100),
     duration_days   INT NOT NULL,                -- 1, 3, 7, 30
     price           DECIMAL(12, 2) NOT NULL,
     description     TEXT,
+    description_en  TEXT,
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Insert mặc định các loại vé
 INSERT INTO ticket_types (type, name, duration_days, price) VALUES
+    ('single',      'Vé lượt',    0,  7000), -- Base price for single trip
     ('single_day',  'Vé ngày',   1,  40000),
     ('three_day',   'Vé 3 ngày', 3,  90000),
     ('weekly',      'Vé tuần',   7,  150000),
@@ -163,6 +202,7 @@ CREATE TABLE tickets (
     from_station_id INT REFERENCES stations(id),
     to_station_id   INT REFERENCES stations(id),
     price_paid      DECIMAL(12, 2) NOT NULL,
+    usage_remaining INT,                          -- NULL = khong gioi han (ve ngay/tuan/thang), 1/2 cho ve luot
     purchase_note   TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
@@ -195,25 +235,44 @@ CREATE TABLE payments (
 -- 5. TIỆN ÍCH QUANH GA
 -- ============================================================
 
+CREATE TABLE amenity_categories (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    name_en         VARCHAR(100),
+    slug            VARCHAR(50) UNIQUE NOT NULL,
+    icon_svg        TEXT,
+    color_hex       VARCHAR(10) DEFAULT '#6B7280',
+    bg_color_hex    VARCHAR(10) DEFAULT '#F3F4F6',
+    sort_order      INT DEFAULT 0,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE amenity_types (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,       -- 'Nhà hàng', 'ATM', 'Siêu thị', 'Bệnh viện', ...
+    name_en         VARCHAR(100),
     icon_url        TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE amenities (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    station_id      INT NOT NULL REFERENCES stations(id) ON DELETE CASCADE,
-    amenity_type_id INT NOT NULL REFERENCES amenity_types(id) ON DELETE SET NULL,
+    station_id      INT REFERENCES stations(id) ON DELETE CASCADE,
+    amenity_type_id INT REFERENCES amenity_types(id) ON DELETE SET NULL,
+    category_id     INT REFERENCES amenity_categories(id) ON DELETE SET NULL,
     name            VARCHAR(255) NOT NULL,       -- Tên tiện ích
+    name_en         VARCHAR(255),
+    slug            VARCHAR(300),
     distance_meters INT,                         -- Cách ga bao nhiêu mét
     address         VARCHAR(500),
+    address_en      VARCHAR(500),
     latitude        DECIMAL(10, 8),
     longitude       DECIMAL(11, 8),
     image_url       TEXT,
     opening_hours   VARCHAR(255),                -- VD: 'T2-T6: 7:00-22:00, T7-CN: 8:00-21:00'
+    opening_hours_en VARCHAR(255),
     description     TEXT,                        -- Giới thiệu
+    description_en  TEXT,
     phone           VARCHAR(30),
     website         TEXT,
     rating          DECIMAL(2, 1),               -- 0.0 - 5.0
@@ -246,6 +305,19 @@ CREATE TABLE map_configs (
     display_label   VARCHAR(255),
     popup_content   TEXT,                        -- HTML snippet hiển thị popup
     created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE bus_stop_cache (
+    id              SERIAL PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL,
+    code            VARCHAR(50),
+    latitude        DECIMAL(10, 8) NOT NULL,
+    longitude       DECIMAL(11, 8) NOT NULL,
+    address         VARCHAR(500),
+    routes          TEXT[],
+    station_id      INT REFERENCES stations(id) ON DELETE SET NULL,
+    distance_to_station INT,
+    fetched_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================================
@@ -318,7 +390,8 @@ SELECT
     s1.name         AS from_station,
     s2.name         AS to_station,
     t.price_paid,
-    t.created_at
+    t.created_at,
+    u.is_admin
 FROM tickets t
 JOIN users u        ON t.user_id = u.id
 JOIN ticket_types tt ON t.ticket_type_id = tt.id

@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "/backend-api";
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -15,8 +15,7 @@ function isAuthEndpoint(url?: string) {
     url.includes("/auth/login/refresh/") ||
     url.includes("/auth/register/") ||
     url.includes("/auth/google/") ||
-    url.includes("/auth/logout/") ||
-    url.includes("/auth/me/")
+    url.includes("/auth/logout/")
   );
 }
 
