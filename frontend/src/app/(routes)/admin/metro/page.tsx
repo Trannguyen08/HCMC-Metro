@@ -98,8 +98,8 @@ export default function AdminMetroPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">He thong Metro</h2>
-          <p className="text-sm text-muted-foreground">Quan ly tuyen duong, nha ga va co so ha tang.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Hệ thống Metro</h2>
+          <p className="text-sm text-muted-foreground">Quản lý tuyến đường, nhà ga và cơ sở hạ tầng.</p>
         </div>
       </div>
 
@@ -252,7 +252,7 @@ export default function AdminMetroPage() {
             </div>
             <div className="space-y-2">
               <Label>Tên Ga</Label>
-              <Input value={stationForm.name || ""} onChange={e => setStationForm({...stationForm, name: e.target.value})} placeholder="VD: Ben Thanh" />
+              <Input value={stationForm.name || ""} onChange={e => setStationForm({...stationForm, name: e.target.value})} placeholder="VD: Bến Thành" />
             </div>
             <div className="space-y-2">
               <Label>ID Tuyến (Line)</Label>

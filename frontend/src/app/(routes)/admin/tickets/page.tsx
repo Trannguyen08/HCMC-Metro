@@ -12,11 +12,28 @@ import { Input } from "@/components/ui/input";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/backend-api";
 
+type ScanHistoryRow = {
+  id: number;
+  ticket: string;
+  scanned_by: string | null;
+  scanned_by_name: string;
+  scanned_at: string;
+  scan_date: string;
+  status_before: string | null;
+  status_after: string | null;
+  usage_remaining_before: number | null;
+  usage_remaining_after: number | null;
+  success: boolean;
+  message: string;
+};
+
 export default function AdminTicketsPage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedQR, setSelectedQR] = useState<{ id: string; base64: string } | null>(null);
+  const [scanHistories, setScanHistories] = useState<ScanHistoryRow[]>([]);
+  const [scanHistoryLoading, setScanHistoryLoading] = useState(true);
 
   const [scanInput, setScanInput] = useState("");
   const [scanCard, setScanCard] = useState<{
@@ -24,6 +41,8 @@ export default function AdminTicketsPage() {
     status: string;
     usageRemaining: number | null;
     detail: string;
+    scannedAt?: string;
+    scanDate?: string;
     ticketTypeName?: string;
     routeText?: string;
     pricePaid?: string;
@@ -63,9 +82,27 @@ export default function AdminTicketsPage() {
     return status;
   };
 
+  const getStatusBadgeClassName = (status: string) => {
+    if (status === "active") return "border-transparent bg-emerald-100 text-emerald-700";
+    if (status === "used") return "border-transparent bg-sky-100 text-sky-700";
+    if (status === "expired") return "border-transparent bg-amber-100 text-amber-700";
+    if (status === "cancelled") return "border-transparent bg-rose-100 text-rose-700";
+    if (status === "pending") return "border-transparent bg-slate-100 text-slate-700";
+    return "border-transparent bg-slate-100 text-slate-700";
+  };
+
+  const getStatusCellClassName = (status: string) => {
+    if (status === "active") return "bg-emerald-50";
+    if (status === "used") return "bg-sky-50";
+    if (status === "expired") return "bg-amber-50";
+    if (status === "cancelled") return "bg-rose-50";
+    if (status === "pending") return "bg-slate-50";
+    return "bg-slate-50";
+  };
+
   const fetchTickets = async () => {
     try {
-      const token = localStorage.getItem("metro.access");
+      const token = sessionStorage.getItem("metro.admin.access") ?? localStorage.getItem("metro.access");
       const res = await axios.get(`${API_BASE}/ticketing/admin/bookings/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -77,12 +114,30 @@ export default function AdminTicketsPage() {
     }
   };
 
+  const fetchScanHistories = async () => {
+    setScanHistoryLoading(true);
+    try {
+      const token = sessionStorage.getItem("metro.admin.access") ?? localStorage.getItem("metro.access");
+      const res = await axios.get(`${API_BASE}/ticketing/admin/bookings/scan-histories/`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { limit: 200 },
+      });
+      setScanHistories(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch scan histories", err);
+      setScanHistories([]);
+    } finally {
+      setScanHistoryLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchTickets();
+    fetchScanHistories();
   }, []);
 
   const handleViewQR = async (ticketId: string) => {
-    setSelectedQR(null); // Clear old QR to show loading state
+    setSelectedQR(null);
     try {
       const token = localStorage.getItem("metro.access");
       const res = await axios.get(`${API_BASE}/ticketing/admin/bookings/${ticketId}/qr/`, {
@@ -119,7 +174,7 @@ export default function AdminTicketsPage() {
     setScanning(true);
     setScanMessage(null);
     try {
-      const token = localStorage.getItem("metro.access");
+      const token = sessionStorage.getItem("metro.admin.access") ?? localStorage.getItem("metro.access");
       const payload: any = { qr_data: scanValue };
       if (parsedTicketId) {
         payload.ticket_id = parsedTicketId;
@@ -147,6 +202,8 @@ export default function AdminTicketsPage() {
         status: String(res.data.status || ""),
         usageRemaining: res.data.usage_remaining ?? null,
         detail: String(res.data.detail || ""),
+        scannedAt: typeof res.data.scanned_at === "string" ? res.data.scanned_at : undefined,
+        scanDate: typeof res.data.scan_date === "string" ? res.data.scan_date : undefined,
         ticketTypeName: matchedTicket?.ticket_type_name,
         routeText:
           matchedTicket?.from_station_details?.name && matchedTicket?.to_station_details?.name
@@ -155,6 +212,7 @@ export default function AdminTicketsPage() {
         pricePaid: matchedTicket?.price_paid,
       });
       fetchTickets();
+      fetchScanHistories();
     } catch (err: any) {
       setScanMessage({
         type: "error",
@@ -169,6 +227,8 @@ export default function AdminTicketsPage() {
           status: String(err.response?.data?.status || ""),
           usageRemaining: err.response?.data?.usage_remaining ?? matchedTicket?.usage_remaining ?? null,
           detail: String(err.response?.data?.detail || "Quet ve that bai."),
+          scannedAt: typeof err.response?.data?.scanned_at === "string" ? err.response.data.scanned_at : undefined,
+          scanDate: typeof err.response?.data?.scan_date === "string" ? err.response.data.scan_date : undefined,
           ticketTypeName: matchedTicket?.ticket_type_name,
           routeText:
             matchedTicket?.from_station_details?.name && matchedTicket?.to_station_details?.name
@@ -177,6 +237,7 @@ export default function AdminTicketsPage() {
           pricePaid: matchedTicket?.price_paid,
         });
       }
+      fetchScanHistories();
     } finally {
       setScanning(false);
     }
@@ -250,7 +311,6 @@ export default function AdminTicketsPage() {
     };
   }, []);
 
-  // Tu dong an thong tin ve va thong bao sau 10 giay
   useEffect(() => {
     if (scanCard || scanMessage) {
       const timer = setTimeout(() => {
@@ -272,11 +332,11 @@ export default function AdminTicketsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">Quan ly ve va giao dich</h1>
-          <p className="text-sm text-muted-foreground">Theo doi toan bo ve va doanh thu he thong.</p>
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Quản lý vé & giao dịch</h1>
+          <p className="text-sm text-muted-foreground">Theo dõi toàn bộ vé và doanh thu hệ thống.</p>
         </div>
         <Button className="gap-2 shadow-sm font-bold">
-          <Download className="h-4 w-4" /> Xuat bao cao
+          <Download className="h-4 w-4" /> Xuất báo cáo
         </Button>
       </div>
 
@@ -345,7 +405,9 @@ export default function AdminTicketsPage() {
               </div>
               <div>
                 <div className="text-[11px] uppercase text-slate-500">Trang thai</div>
-                <div className="text-sm font-semibold">{getStatusLabel(scanCard.status)}</div>
+                <Badge variant="outline" className={getStatusBadgeClassName(scanCard.status)}>
+                  {getStatusLabel(scanCard.status)}
+                </Badge>
               </div>
               <div>
                 <div className="text-[11px] uppercase text-slate-500">Loai ve</div>
@@ -364,6 +426,14 @@ export default function AdminTicketsPage() {
                 <div className="text-sm font-medium">
                   {scanCard.pricePaid ? `${parseInt(scanCard.pricePaid, 10).toLocaleString("vi-VN")} VND` : "-"}
                 </div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase text-slate-500">Thoi gian quet</div>
+                <div className="text-sm">{scanCard.scannedAt ? new Date(scanCard.scannedAt).toLocaleString("vi-VN") : "-"}</div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase text-slate-500">Ngay quet</div>
+                <div className="text-sm">{scanCard.scanDate || "-"}</div>
               </div>
             </div>
           )}
@@ -429,9 +499,9 @@ export default function AdminTicketsPage() {
                         </Badge>
                       </td>
                       <td className="p-4 align-middle text-right font-mono font-bold">{parseInt(ticket.price_paid || "0", 10).toLocaleString("vi-VN")} VND</td>
-                      <td className="p-4 align-middle text-center">
-                        <Badge variant={ticket.status === "active" ? "default" : "outline"} className={ticket.status === "active" ? "bg-emerald-500" : ""}>
-                          {ticket.status}
+                      <td className={`p-4 align-middle text-center ${getStatusCellClassName(ticket.status)}`}>
+                        <Badge variant="outline" className={getStatusBadgeClassName(ticket.status)}>
+                          {getStatusLabel(ticket.status)}
                         </Badge>
                       </td>
                       <td className="p-4 align-middle text-center">{ticket.usage_remaining === null || ticket.usage_remaining === undefined ? "Vo han" : ticket.usage_remaining}</td>
@@ -462,9 +532,77 @@ export default function AdminTicketsPage() {
                             </DialogContent>
                           </Dialog>
                           <Button variant="ghost" size="icon" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleCancelTicket(ticket.id)} disabled={ticket.status === "cancelled"} title="Xoa Mềm (Hủy Vé)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c0-1 1-2 2-2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
                           </Button>
                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-none shadow-md">
+        <CardHeader>
+          <CardTitle>Lịch sử scan (gần đây)</CardTitle>
+          <CardDescription>Tự động cập nhật sau mỗi lần quét vé.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {scanHistoryLoading ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10">
+              <Loader2 className="h-7 w-7 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Đang tải lịch sử scan...</p>
+            </div>
+          ) : scanHistories.length === 0 ? (
+            <div className="py-8 text-sm text-muted-foreground">Chưa có lịch sử scan.</div>
+          ) : (
+            <div className="relative w-full overflow-auto">
+              <table className="w-full caption-bottom text-sm">
+                <thead>
+                  <tr className="border-b text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <td className="h-12 px-4 align-middle">Thời gian</td>
+                    <td className="h-12 px-4 align-middle">Mã vé</td>
+                    <td className="h-12 px-4 align-middle">Người quét</td>
+                    <td className="h-12 px-4 align-middle">Kết quả</td>
+                    <td className="h-12 px-4 align-middle">Nội dung</td>
+                    <td className="h-12 px-4 align-middle text-center">Trước → Sau</td>
+                  </tr>
+                </thead>
+                <tbody className="font-medium">
+                  {scanHistories.slice(0, 50).map((h) => (
+                    <tr key={h.id} className="border-b transition-colors hover:bg-muted/50">
+                      <td className="p-4 align-middle text-xs text-muted-foreground">
+                        {h.scanned_at ? new Date(h.scanned_at).toLocaleString("vi-VN") : "-"}
+                      </td>
+                      <td className="p-4 align-middle font-mono text-xs text-muted-foreground">
+                        {h.ticket ? `#${String(h.ticket).slice(0, 8)}` : "-"}
+                      </td>
+                      <td className="p-4 align-middle text-sm">{h.scanned_by_name || "System"}</td>
+                      <td className="p-4 align-middle">
+                        <Badge
+                          variant="outline"
+                          className={
+                            h.success
+                              ? "border-transparent bg-emerald-100 text-emerald-700"
+                              : "border-transparent bg-rose-100 text-rose-700"
+                          }
+                        >
+                          {h.success ? "Thành công" : "Thất bại"}
+                        </Badge>
+                      </td>
+                      <td className="p-4 align-middle text-sm">{h.message}</td>
+                      <td className="p-4 align-middle text-center text-xs text-muted-foreground">
+                        <span className="font-mono">{h.status_before ?? "-"}</span>
+                        {" -> "}
+                        <span className="font-mono">{h.status_after ?? "-"}</span>
+                        {h.usage_remaining_before !== null || h.usage_remaining_after !== null ? (
+                          <span className="ml-2 font-mono">
+                            ({h.usage_remaining_before ?? "-"}→{h.usage_remaining_after ?? "-"})
+                          </span>
+                        ) : null}
                       </td>
                     </tr>
                   ))}
@@ -477,4 +615,3 @@ export default function AdminTicketsPage() {
     </div>
   );
 }
-

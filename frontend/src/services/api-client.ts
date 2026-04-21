@@ -22,7 +22,8 @@ function isAuthEndpoint(url?: string) {
 // Request Interceptor: Attach Bearer Token
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined" && !isAuthEndpoint(config.url)) {
-    const access = localStorage.getItem("metro.access");
+    const access =
+      sessionStorage.getItem("metro.admin.access") ?? localStorage.getItem("metro.access");
     if (access) {
       config.headers.Authorization = `Bearer ${access}`;
     }
@@ -46,14 +47,20 @@ api.interceptors.response.use(
       original._retry = true;
       refreshing = true;
       try {
-        const refresh = localStorage.getItem("metro.refresh");
+        const refresh =
+          sessionStorage.getItem("metro.admin.refresh") ?? localStorage.getItem("metro.refresh");
         if (!refresh) throw new Error("no refresh token");
         
         const { data } = await axios.post(`${API_BASE}/auth/login/refresh/`, {
           refresh,
         });
         
-        localStorage.setItem("metro.access", data.access);
+        // Keep token storage consistent with where refresh token lives.
+        if (sessionStorage.getItem("metro.admin.refresh")) {
+          sessionStorage.setItem("metro.admin.access", data.access);
+        } else {
+          localStorage.setItem("metro.access", data.access);
+        }
         original.headers.Authorization = `Bearer ${data.access}`;
         return api(original);
       } catch {
@@ -61,6 +68,8 @@ api.interceptors.response.use(
         localStorage.removeItem("metro.access");
         localStorage.removeItem("metro.refresh");
         localStorage.removeItem("metro.user");
+        sessionStorage.removeItem("metro.admin.access");
+        sessionStorage.removeItem("metro.admin.refresh");
         
         if (typeof window !== "undefined" && window.location.pathname !== "/login") {
           window.location.href = "/login";

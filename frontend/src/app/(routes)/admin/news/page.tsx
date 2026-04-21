@@ -371,7 +371,7 @@ export default function AdminNewsPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingItem ? "Chỉnh sửa tin tức" : "Thêm tin tức mới"}
@@ -457,7 +457,7 @@ export default function AdminNewsPage() {
                 className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 value={formData.summary}
                 onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                placeholder="Nội dung ngắn gọn hiển thị ở danh sách bài viết..."
+                placeholder="Nội dung ngắn gọn..."
                 required
               />
             </div>
