@@ -7,7 +7,6 @@ import { TrainFront } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "../hooks/use-auth";
@@ -22,14 +21,19 @@ export function RegisterForm() {
   const [birthDate, setBirthDate] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
-  const [agree, setAgree] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const maxBirthDate = React.useMemo(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 12);
+    return d.toISOString().split("T")[0];
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!agree) return setError("Vui long dong y dieu khoan de tiep tuc.");
-    if (password !== confirmPassword) return setError("Xac nhan mat khau khong khop.");
+    if (!birthDate) return setError("Vui lòng chọn ngày sinh.");
+    if (birthDate > maxBirthDate) return setError("Bạn phải từ 12 tuổi trở lên để đăng ký.");
+    if (password !== confirmPassword) return setError("Xác nhận mật khẩu không khớp.");
 
     setLoading(true);
     try {
@@ -61,82 +65,80 @@ export function RegisterForm() {
           </div>
           <div className="text-center leading-tight">
             <div className="font-heading text-base font-extrabold">HCMC METRO</div>
-            <div className="text-xs text-muted-foreground">Tao tai khoan moi</div>
+            <div className="text-xs text-muted-foreground">Tạo tài khoản mới</div>
           </div>
         </div>
-        <CardTitle className="text-center text-lg">Dang ky</CardTitle>
+        <CardTitle className="text-center text-lg">Đăng ký</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
-              <Label>Ho ten</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nguyen Van A" />
+              <Label>Họ tên</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nguyễn Văn A" required />
             </div>
             <div className="space-y-1">
-              <Label>So dien thoai</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="090..." />
+              <Label>Số điện thoại</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="090..." required />
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1.6fr)_180px]">
             <div className="space-y-1">
               <Label>Email</Label>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@metrohcm.vn" />
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@metrohcm.vn"
+                required
+              />
             </div>
             <div className="space-y-1">
-              <Label>Ngay sinh</Label>
+              <Label>Ngày sinh</Label>
               <Input
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                max={new Date().toISOString().split("T")[0]}
+                max={maxBirthDate}
+                required
               />
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1">
-              <Label>Mat khau</Label>
+              <Label>Mật khẩu</Label>
               <Input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="********"
+                required
               />
             </div>
             <div className="space-y-1">
-              <Label>Xac nhan mat khau</Label>
+              <Label>Xác nhận mật khẩu</Label>
               <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="********"
+                required
               />
             </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <Checkbox id="agree" checked={agree} onCheckedChange={(v) => setAgree(Boolean(v))} />
-            <Label htmlFor="agree" className="text-sm text-muted-foreground">
-              Toi dong y voi{" "}
-              <Link href="/#dieu-khoan" className="text-primary hover:underline">
-                dieu khoan su dung
-              </Link>
-              .
-            </Label>
           </div>
 
           {authError && <p className="text-sm text-rose-600">{authError}</p>}
 
           <Button className="w-full" type="submit" disabled={loading}>
-            {loading ? "Dang tao tai khoan..." : "Tao tai khoan"}
+            {loading ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
-            Da co tai khoan?{" "}
+            Đã có tài khoản?{" "}
             <Link href="/login" className="font-medium text-primary hover:underline">
-              Dang nhap
+              Đăng nhập
             </Link>
           </p>
         </form>

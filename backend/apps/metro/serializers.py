@@ -128,15 +128,11 @@ def map_amenity_type(name: str | None) -> str:
 
 class StationSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source="code", read_only=True)
-    nameEn = serializers.SerializerMethodField()
     line = serializers.SerializerMethodField()
 
     class Meta:
         model = Station
-        fields = ["id", "name", "nameEn", "line"]
-
-    def get_nameEn(self, obj: Station) -> str:
-        return obj.name
+        fields = ["id", "name", "line"]
 
     def get_line(self, obj: Station) -> str | None:
         return getattr(obj.line, "code", None)
@@ -234,7 +230,7 @@ class AdminStationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Station
         fields = [
-            "id", "name", "code", "line", "address", 
+            "id", "name", "code", "line", "address",
             "latitude", "longitude", "sequence_order", 
             "is_active", "image_url", "description", "created_at"
         ]

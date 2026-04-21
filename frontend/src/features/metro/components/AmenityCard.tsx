@@ -1,7 +1,10 @@
-﻿import React from "react";
+import React from "react";
 import Link from "next/link";
 import { ArrowUpRight, Clock3, MapPin, Navigation, Star, TrainFront } from "lucide-react";
 
+import { TYPE_COLORS, TYPE_LABELS } from "@/features/metro/constants/amenity";
+import { formatDistance } from "@/features/metro/utils/amenity";
+import { Amenity } from "@/types/amenity";
 import { TYPE_COLORS, TYPE_LABELS } from "@/features/metro/constants/amenity";
 import { formatDistance } from "@/features/metro/utils/amenity";
 import { Amenity } from "@/types/amenity";
@@ -43,7 +46,7 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ amenity, onClick }) =>
               TYPE_COLORS[amenity.type] ?? "bg-slate-100 text-slate-700",
             )}
           >
-            {TYPE_LABELS[amenity.type] ?? amenity.type}
+            {TYPE_LABELS[amenity.type]}
           </span>
 
           {amenity.rating ? (
@@ -73,7 +76,7 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ amenity, onClick }) =>
 
           <div className="flex items-start gap-2 text-sm leading-6 text-slate-500">
             <MapPin className="mt-1 h-4 w-4 flex-shrink-0 text-slate-400" />
-            <span className="line-clamp-2">{amenity.address || "Đang cập nhật địa chỉ"}</span>
+            <span className="line-clamp-2">{amenity.address || "---"}</span>
           </div>
         </div>
 
@@ -92,7 +95,7 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ amenity, onClick }) =>
               Giờ mở cửa
             </span>
             <span className="line-clamp-1 text-right font-medium text-slate-900">
-              {amenity.openingHours || "Đang cập nhật"}
+              {amenity.openingHours || "---"}
             </span>
           </div>
         </div>

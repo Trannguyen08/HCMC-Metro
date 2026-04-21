@@ -2,13 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { 
-  CheckCircle2, 
-  Download, 
-  Share2, 
-  Home, 
-  Ticket, 
-  MapPin, 
+import {
+  CheckCircle2,
+  Download,
+  Home,
+  Ticket,
   Calendar,
   Loader2,
   ArrowRight,
@@ -28,10 +26,14 @@ export default function BookingSuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const ticketId = searchParams.get("id");
-  
+
   const [ticket, setTicket] = useState<any>(null);
   const [qrBase64, setQrBase64] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+
+  const normalizedStatus = ticket?.status?.toLowerCase?.() ?? "";
+  const canDownloadQr = normalizedStatus === "active" || normalizedStatus === "used" || normalizedStatus === "unused";
 
   useEffect(() => {
     if (!ticketId) return;
@@ -39,17 +41,23 @@ export default function BookingSuccessPage() {
     const fetchTicket = async () => {
       try {
         const token = localStorage.getItem("metro.access");
-        const [ticketRes, qrRes] = await Promise.all([
-          axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/qr/`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-        
+        const ticketRes = await axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
         setTicket(ticketRes.data);
-        setQrBase64(qrRes.data.qr_base64);
+
+        const status = ticketRes.data?.status?.toLowerCase?.() ?? "";
+        const allowQr = status === "active" || status === "used" || status === "unused";
+
+        if (allowQr) {
+          const qrRes = await axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/qr/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setQrBase64(qrRes.data.qr_base64 ?? null);
+        } else {
+          setQrBase64(null);
+        }
       } catch (err) {
         console.error("Failed to fetch ticket info", err);
       } finally {
@@ -59,6 +67,37 @@ export default function BookingSuccessPage() {
 
     fetchTicket();
   }, [ticketId]);
+
+  const handleDownloadQr = async () => {
+    if (!ticketId || !canDownloadQr) return;
+
+    try {
+      setDownloading(true);
+
+      let base64 = qrBase64;
+      if (!base64) {
+        const token = localStorage.getItem("metro.access");
+        const qrRes = await axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/qr/`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        base64 = qrRes.data?.qr_base64 ?? null;
+        setQrBase64(base64);
+      }
+
+      if (!base64) return;
+
+      const link = document.createElement("a");
+      link.href = `data:image/png;base64,${base64}`;
+      link.download = `metro-ticket-${ticketId.slice(0, 8)}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Failed to download QR", err);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -159,12 +198,17 @@ export default function BookingSuccessPage() {
 
               <div className="flex flex-col items-center gap-4">
                  <div className="p-4 bg-white border-2 border-slate-100 rounded-2xl shadow-inner">
-                    {qrBase64 ? (
-                       <img src={`data:image/png;base64,${qrBase64}`} alt="Ticket QR" className="w-48 h-48" />
+                    {canDownloadQr && qrBase64 ? (
+                      <img src={`data:image/png;base64,${qrBase64}`} alt="Ticket QR" className="w-48 h-48" />
                     ) : (
-                       <div className="w-48 h-48 bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
-                         <Ticket className="h-10 w-10 text-slate-300" />
-                       </div>
+                      <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center p-4 text-center">
+                        <div className="space-y-2">
+                          <Ticket className="mx-auto h-10 w-10 text-slate-300" />
+                          <p className="text-xs text-slate-500">
+                            {canDownloadQr ? "Đang tải mã QR..." : "Trạng thái vé hiện tại không cho phép tải mã QR."}
+                          </p>
+                        </div>
+                      </div>
                     )}
                  </div>
                  <div className="text-[10px] font-mono text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
@@ -208,14 +252,14 @@ export default function BookingSuccessPage() {
 
           <Separator />
 
-          <div className="grid grid-cols-2 gap-3">
-             <Button className="font-bold gap-2" variant="outline">
-                <Download className="h-4 w-4" /> Tải về
-             </Button>
-             <Button className="font-bold gap-2" variant="outline">
-                <Share2 className="h-4 w-4" /> Chia sẻ
-             </Button>
-          </div>
+          {canDownloadQr && (
+            <div className="grid grid-cols-1 gap-3">
+              <Button className="font-bold gap-2" variant="outline" onClick={handleDownloadQr} disabled={downloading || !qrBase64}>
+                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Tải về
+              </Button>
+            </div>
+          )}
 
           <div className="space-y-3">
              <Button className="w-full font-bold h-12 gap-2" size="lg" onClick={() => router.push('/')}>

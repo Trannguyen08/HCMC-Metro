@@ -13,12 +13,13 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "../hooks/use-auth";
 import { useAuthStore } from "@/store/use-auth-store";
 import { getPostAuthRedirect } from "../lib/get-post-auth-redirect";
+import type { AuthUser } from "../types";
 
 export function LoginForm() {
   const router = useRouter();
   const { login, loginWithGoogle, error: authError, setError } = useAuth();
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const [identifier, setIdentifier] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [googleLoading, setGoogleLoading] = React.useState(false);
@@ -28,7 +29,7 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      const result = await login({ identifier, password });
+      const result = await login({ identifier: email, password });
       
       // Handle unverified user redirect
       if ((result as any).requires_email_verification) {
@@ -50,7 +51,7 @@ export function LoginForm() {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     const credential = credentialResponse?.credential;
     if (!credential) {
-      setError("Khong nhan duoc token Google. Vui long thu lai.");
+      setError("Không nhận được token Google. Vui lòng thử lại.");
       setGoogleLoading(false);
       return;
     }
@@ -75,43 +76,46 @@ export function LoginForm() {
           </div>
           <div className="text-center leading-tight">
             <div className="font-heading text-base font-extrabold">HCMC METRO</div>
-            <div className="text-xs text-muted-foreground">Dang nhap he thong</div>
+            <div className="text-xs text-muted-foreground">Đăng nhập hệ thống</div>
           </div>
         </div>
-        <CardTitle className="text-center text-lg">Chao mung ban quay lai</CardTitle>
+        <CardTitle className="text-center text-lg">Đăng nhập</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-1">
-            <Label>Email/SDT</Label>
+            <Label>Email</Label>
             <Input
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="vd: user@metrohcm.vn hoac 090..."
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="vd: user@metrohcm.vn"
               autoComplete="username"
+              required
             />
           </div>
 
           <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label>Mat khau</Label>
-              <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
-                Quen mat khau?
-              </Link>
-            </div>
+            <Label>Mật khẩu</Label>
             <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="********"
               autoComplete="current-password"
+              required
             />
+            <div className="text-right">
+              <Link href="/forgot-password" className="inline-block text-xs text-blue-600 hover:underline">
+                Quên mật khẩu?
+              </Link>
+            </div>
           </div>
 
           {authError && <p className="text-sm text-rose-600">{authError}</p>}
 
           <Button className="w-full" type="submit" disabled={loading || googleLoading}>
-            {loading ? "Dang dang nhap..." : "Dang nhap"}
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
 
           <div className="w-full rounded-md border p-2">
@@ -127,22 +131,22 @@ export function LoginForm() {
                   void handleGoogleSuccess(res);
                 }}
                 onError={() => {
-                  setError("Dang nhap Google that bai.");
+                  setError("Đăng nhập Google thất bại.");
                   setGoogleLoading(false);
                 }}
               />
             ) : (
               <Button className="w-full" variant="outline" type="button" disabled>
                 <Chrome className="h-4 w-4" />
-                Thieu NEXT_PUBLIC_GOOGLE_CLIENT_ID
+                Thiếu NEXT_PUBLIC_GOOGLE_CLIENT_ID
               </Button>
             )}
           </div>
 
           <p className="text-center text-sm text-muted-foreground">
-            Chua co tai khoan?{" "}
+            Chưa có tài khoản?{" "}
             <Link href="/register" className="font-medium text-primary hover:underline">
-              Dang ky
+              Đăng ký
             </Link>
           </p>
         </form>

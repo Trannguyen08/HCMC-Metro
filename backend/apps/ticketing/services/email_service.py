@@ -2,6 +2,7 @@ import logging
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
+from django.utils import timezone
 from django.conf import settings
 from email.mime.image import MIMEImage
 
@@ -116,4 +117,93 @@ class TicketEmailService:
             logger.info(f"Ticket email sent to {user.email} for ticket {ticket.id}")
         except Exception as e:
             logger.error(f"Failed to send ticket email to {user.email}: {str(e)}")
+            raise e
+
+    @staticmethod
+    def send_scan_success_email(ticket):
+        """
+        Send an email when a ticket QR code is successfully scanned.
+        """
+        user = ticket.user
+        subject = f"Thông báo: Vé Metro của bạn vừa được quét thành công"
+        
+        from_st = ticket.from_station.name if getattr(ticket, 'from_station', None) else "Không chỉ định"
+        to_st = ticket.to_station.name if getattr(ticket, 'to_station', None) else "Không chỉ định"
+        scan_time_str = timezone.localtime(timezone.now()).strftime('%H:%M:%S ngày %d/%m/%Y')
+        
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+            <h2 style="color: #0055A5; text-align: center;">HCMC Metro - Thông báo quét vé</h2>
+            <p>Xin chào <strong>{user.full_name}</strong>,</p>
+            <p>Tuyệt vời! Vé của bạn vừa được quét thành công qua hệ thống cổng kiểm soát vào lúc <strong>{scan_time_str}</strong>.</p>
+            <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Loại vé:</strong> {ticket.ticket_type.name}</p>
+                <p style="margin: 5px 0;"><strong>Hành trình:</strong> {from_st} &rarr; {to_st}</p>
+                <p style="margin: 5px 0;"><strong>Thời gian quét:</strong> {scan_time_str}</p>
+                <p style="margin: 5px 0; font-size: 12px; color: #666;"><strong>Mã vé:</strong> {str(ticket.id)}</p>
+            </div>
+            <p>Chúc bạn có một chuyến đi thuận lợi và an toàn cùng HCMC Metro!</p>
+        </div>
+        """
+        text_content = strip_tags(html_content)
+        
+        msg = EmailMultiAlternatives(
+            subject, 
+            text_content, 
+            settings.DEFAULT_FROM_EMAIL, 
+            [user.email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+        
+        try:
+            msg.send()
+            logger.info(f"Scan success email sent to {user.email} for ticket {ticket.id}")
+        except Exception as e:
+            logger.error(f"Failed to send scan success email to {user.email}: {str(e)}")
+            raise e
+
+    @staticmethod
+    def send_ticket_exhausted_email(ticket):
+        """
+        Send an email when a ticket QR code has run out of uses.
+        """
+        user = ticket.user
+        subject = f"Thông báo: Vé Metro của bạn đã hết lượt sử dụng"
+        
+        from_st = ticket.from_station.name if getattr(ticket, 'from_station', None) else "Không chỉ định"
+        to_st = ticket.to_station.name if getattr(ticket, 'to_station', None) else "Không chỉ định"
+        scan_time_str = timezone.localtime(timezone.now()).strftime('%H:%M:%S ngày %d/%m/%Y')
+        
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+            <h2 style="color: #DC2626; text-align: center;">HCMC Metro - Vé hết lượt sử dụng</h2>
+            <p>Xin chào <strong>{user.full_name}</strong>,</p>
+            <p>Vé của bạn đã được sử dụng hết số lượt quy định tại thời điểm <strong>{scan_time_str}</strong> và hiện không còn giá trị để qua cổng kiểm soát nửa.</p>
+            <div style="background-color: #ffeaea; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Loại vé:</strong> {ticket.ticket_type.name}</p>
+                <p style="margin: 5px 0;"><strong>Hành trình:</strong> {from_st} &rarr; {to_st}</p>
+                <p style="margin: 5px 0;"><strong>Lần quét cuối:</strong> {scan_time_str}</p>
+                <p style="margin: 5px 0; font-size: 12px; color: #666;"><strong>Mã vé:</strong> {str(ticket.id)}</p>
+            </div>
+            <p>Cảm ơn bạn đã đồng hành cùng HCMC Metro. Vui lòng mua vé mới cho những chuyến đi tiếp theo của bạn.</p>
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="https://hcmc-metro.com/" style="display: inline-block; padding: 10px 20px; background-color: #0055A5; color: white; text-decoration: none; border-radius: 5px;">Mua vé mới ngay</a>
+            </div>
+        </div>
+        """
+        text_content = strip_tags(html_content)
+        
+        msg = EmailMultiAlternatives(
+            subject, 
+            text_content, 
+            settings.DEFAULT_FROM_EMAIL, 
+            [user.email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+        
+        try:
+            msg.send()
+            logger.info(f"Ticket exhausted email sent to {user.email} for ticket {ticket.id}")
+        except Exception as e:
+            logger.error(f"Failed to send ticket exhausted email to {user.email}: {str(e)}")
             raise e

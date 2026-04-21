@@ -102,7 +102,7 @@ interface AmenityFormState {
 }
 
 const CATEGORY_OPTIONS: Array<{ value: AmenityType; label: string }> = [
-  { value: "all", label: "Tat ca nhom" },
+  { value: "all", label: "Tất cả nhóm" },
   { value: "cafe", label: TYPE_LABELS.cafe },
   { value: "restaurant", label: TYPE_LABELS.restaurant },
   { value: "shopping", label: TYPE_LABELS.shopping },
@@ -340,9 +340,9 @@ export default function AdminAmenitiesPage() {
     <div className="mx-auto w-full max-w-[1280px] space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Quan ly Amenity</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Quản lý tiện ích</h2>
           <p className="text-sm text-muted-foreground">
-            Theo doi, cap nhat va bo sung cac tien ich xung quanh ga Metro.
+            Theo dõi, cập nhật và bổ sung các tiện ích xung quanh ga Metro.
           </p>
         </div>
         <Button
@@ -351,7 +351,7 @@ export default function AdminAmenitiesPage() {
           disabled={stations.length === 0 || amenityTypes.length === 0}
         >
           <Plus className="h-4 w-4" />
-          Them amenity
+          Thêm tiện ích
         </Button>
       </div>
 
@@ -594,12 +594,12 @@ export default function AdminAmenitiesPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Ten amenity</Label>
+              <Label htmlFor="name">Tên amenity</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                placeholder="Vi du: Highlands Coffee Ben Thanh"
+                placeholder="Vi du: Highlands Coffee"
                 required
               />
             </div>
@@ -673,12 +673,12 @@ export default function AdminAmenitiesPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="address">Dia chi</Label>
+              <Label htmlFor="address">Địa chỉ</Label>
               <Input
                 id="address"
                 value={formData.address}
                 onChange={(event) => setFormData({ ...formData, address: event.target.value })}
-                placeholder="So nha, duong, phuong..."
+                placeholder="Số nhà, đường..."
               />
             </div>
 
@@ -732,26 +732,24 @@ export default function AdminAmenitiesPage() {
               ) : null}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="opening_hours">Gio mo cua</Label>
-                <Input
-                  id="opening_hours"
-                  value={formData.opening_hours}
-                  onChange={(event) => setFormData({ ...formData, opening_hours: event.target.value })}
-                  placeholder="T2-T6: 07:00 - 22:00"
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="opening_hours">Giờ mở cửa</Label>
+              <Input
+                id="opening_hours"
+                value={formData.opening_hours}
+                onChange={(event) => setFormData({ ...formData, opening_hours: event.target.value })}
+                placeholder="T2-T6: 07:00 - 22:00"
+              />
+            </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="phone">So dien thoai</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(event) => setFormData({ ...formData, phone: event.target.value })}
-                  placeholder="0901234567"
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="phone">So dien thoai</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(event) => setFormData({ ...formData, phone: event.target.value })}
+                placeholder="0901234567"
+              />
             </div>
 
             <div className="grid gap-2">
@@ -765,14 +763,14 @@ export default function AdminAmenitiesPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Mo ta</Label>
+              <Label htmlFor="description">Mô tả</Label>
               <textarea
                 id="description"
                 rows={5}
                 className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 value={formData.description}
                 onChange={(event) => setFormData({ ...formData, description: event.target.value })}
-                placeholder="Mo ta ngan ve amenity nay..."
+                placeholder="Mô tả..."
               />
             </div>
 

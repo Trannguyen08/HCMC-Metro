@@ -80,6 +80,7 @@ CREATE TABLE user_sessions (
 CREATE TABLE news_categories (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,       -- 'Thông báo', 'Sự kiện', 'Khuyến mãi', ...
+    name_en         VARCHAR(100),
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -87,7 +88,9 @@ CREATE TABLE news (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     category_id     INT REFERENCES news_categories(id) ON DELETE SET NULL,
     title           VARCHAR(500) NOT NULL,
+    title_en        VARCHAR(500),
     summary         TEXT,                        -- Nội dung ngắn gọn
+    summary_en      TEXT,
     thumbnail_url   TEXT,                        -- Ảnh đại diện
     external_link   TEXT,                        -- Link bài đăng gốc (nếu có)
     slug            VARCHAR(500) UNIQUE,
@@ -105,6 +108,7 @@ CREATE TABLE news (
 CREATE TABLE metro_lines (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,       -- 'Tuyến 1', 'Tuyến 2', ...
+    name_en         VARCHAR(100),
     code            VARCHAR(20) UNIQUE NOT NULL, -- 'L1', 'L2'
     color           VARCHAR(10),                 -- Hex color: '#FF0000'
     color_hex       VARCHAR(10) DEFAULT '#0066CC',
@@ -112,6 +116,7 @@ CREATE TABLE metro_lines (
     geojson_coordinates JSONB,
     status          VARCHAR(30) DEFAULT 'active',
     description     TEXT,
+    description_en  TEXT,
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -119,15 +124,18 @@ CREATE TABLE metro_lines (
 CREATE TABLE stations (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(255) NOT NULL,
+    name_en         VARCHAR(255),
     code            VARCHAR(20) UNIQUE NOT NULL, -- 'BT', 'TP', 'SG', ...
     line_id         INT REFERENCES metro_lines(id) ON DELETE SET NULL,
     address         VARCHAR(500),
+    address_en      VARCHAR(500),
     latitude        DECIMAL(10, 8),
     longitude       DECIMAL(11, 8),
     sequence_order  INT,                         -- Thứ tự trên tuyến
     is_active       BOOLEAN DEFAULT TRUE,
     image_url       TEXT,
     description     TEXT,
+    description_en  TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -165,9 +173,11 @@ CREATE TABLE ticket_types (
     id              SERIAL PRIMARY KEY,
     type            ticket_type NOT NULL,
     name            VARCHAR(100) NOT NULL,       -- 'Vé ngày', 'Vé 3 ngày', 'Vé tuần', 'Vé tháng'
+    name_en         VARCHAR(100),
     duration_days   INT NOT NULL,                -- 1, 3, 7, 30
     price           DECIMAL(12, 2) NOT NULL,
     description     TEXT,
+    description_en  TEXT,
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -228,6 +238,7 @@ CREATE TABLE payments (
 CREATE TABLE amenity_categories (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,
+    name_en         VARCHAR(100),
     slug            VARCHAR(50) UNIQUE NOT NULL,
     icon_svg        TEXT,
     color_hex       VARCHAR(10) DEFAULT '#6B7280',
@@ -239,6 +250,7 @@ CREATE TABLE amenity_categories (
 CREATE TABLE amenity_types (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(100) NOT NULL,       -- 'Nhà hàng', 'ATM', 'Siêu thị', 'Bệnh viện', ...
+    name_en         VARCHAR(100),
     icon_url        TEXT,
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -249,14 +261,18 @@ CREATE TABLE amenities (
     amenity_type_id INT REFERENCES amenity_types(id) ON DELETE SET NULL,
     category_id     INT REFERENCES amenity_categories(id) ON DELETE SET NULL,
     name            VARCHAR(255) NOT NULL,       -- Tên tiện ích
+    name_en         VARCHAR(255),
     slug            VARCHAR(300),
     distance_meters INT,                         -- Cách ga bao nhiêu mét
     address         VARCHAR(500),
+    address_en      VARCHAR(500),
     latitude        DECIMAL(10, 8),
     longitude       DECIMAL(11, 8),
     image_url       TEXT,
     opening_hours   VARCHAR(255),                -- VD: 'T2-T6: 7:00-22:00, T7-CN: 8:00-21:00'
+    opening_hours_en VARCHAR(255),
     description     TEXT,                        -- Giới thiệu
+    description_en  TEXT,
     phone           VARCHAR(30),
     website         TEXT,
     rating          DECIMAL(2, 1),               -- 0.0 - 5.0

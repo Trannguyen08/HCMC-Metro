@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import * as React from "react";
@@ -13,7 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useLanguage } from "@/lib/i18n";
 import api from "@/services/api-client";
 
 type TicketItem = {
@@ -47,8 +46,27 @@ function statusLabel(status: string): string {
 
 function TicketStatusBadge({ status }: { status: string }) {
   const normalized = status.toLowerCase();
-  const variant = normalized === "active" ? "secondary" : normalized === "cancelled" ? "outline" : "default";
-  return <Badge variant={variant as any}>{statusLabel(status)}</Badge>;
+
+  const className =
+    normalized === "cancelled"
+      ? "bg-rose-100 text-rose-700 hover:bg-rose-100"
+      : normalized === "expired"
+        ? "bg-slate-100 text-slate-700 hover:bg-slate-100"
+        : "bg-emerald-100 text-emerald-700 hover:bg-emerald-100";
+
+  return (
+    <Badge variant="secondary" className={className}>
+      {statusLabel(status)}
+    </Badge>
+  );
+}
+
+function getDetailActionClass(status: string): string {
+  const normalized = status.toLowerCase();
+  if (normalized === "active" || normalized === "used" || normalized === "unused") {
+    return "bg-emerald-100 text-emerald-700 hover:bg-emerald-200";
+  }
+  return "bg-blue-100 text-blue-700 hover:bg-blue-200";
 }
 
 function formatDate(value?: string) {
@@ -74,7 +92,6 @@ function formatRoute(t: TicketItem) {
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, updateProfile, logout } = useAuth();
-  const { t } = useLanguage();
 
   const [name, setName] = React.useState(user?.full_name ?? "");
   const [email, setEmail] = React.useState(user?.email ?? "");
@@ -221,14 +238,14 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-2xl">
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle className="text-lg">{t("profile.not_logged_in")}</CardTitle>
+            <CardTitle className="text-lg">Chưa đăng nhập</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">{t("profile.not_logged_in_desc")}</p>
+            <p className="text-sm text-muted-foreground">Vui lòng đăng nhập để xem thông tin hồ sơ và quản lý vé của bạn.</p>
             <Button asChild>
               <Link href="/login">
                 <LogIn className="h-4 w-4" />
-                {t("nav.login")}
+                Đăng nhập
               </Link>
             </Button>
           </CardContent>
@@ -241,20 +258,20 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold tracking-tight">{t("profile.title")}</h1>
-          <p className="text-sm text-muted-foreground">{t("profile.desc")}</p>
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Hồ sơ cá nhân</h1>
+          <p className="text-sm text-muted-foreground">Quản lý thông tin tài khoản và lịch sử giao dịch của bạn tại HCMC Metro.</p>
         </div>
         <Button variant="outline" onClick={logout}>
-          {t("nav.logout")}
+          Đăng xuất
         </Button>
       </div>
 
       <Tabs defaultValue="profile">
         <TabsList className="w-full justify-start">
-          <TabsTrigger value="profile">{t("profile.personal_info")}</TabsTrigger>
-          <TabsTrigger value="history">{t("profile.ticket_history")}</TabsTrigger>
-          <TabsTrigger value="active">{t("profile.active_tickets")}</TabsTrigger>
-          <TabsTrigger value="security">Bảo mật</TabsTrigger>
+          <TabsTrigger value="profile">Thông tin cá nhân</TabsTrigger>
+          <TabsTrigger value="history">Lịch sử vé</TabsTrigger>
+          <TabsTrigger value="active">Vé đang hoạt động</TabsTrigger>
+          <TabsTrigger value="security">Bảo mật</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
@@ -276,7 +293,7 @@ export default function ProfilePage() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-1 md:col-span-1">
-                  <Label>Họ tên</Label>
+                   <Label>Họ tên</Label>
                   <Input value={name} onChange={(e) => setName(e.target.value)} />
                 </div>
                 <div className="space-y-1 md:col-span-1">
@@ -298,9 +315,9 @@ export default function ProfilePage() {
                     window.setTimeout(() => setSaved(false), 1200);
                   }}
                 >
-                  {t("profile.save")}
+                  Lưu thay đổi
                 </Button>
-                {saved && <span className="text-sm text-metro-green">{t("profile.saved")}</span>}
+                {saved && <span className="text-sm text-metro-green">Đã lưu!</span>}
               </div>
             </CardContent>
           </Card>
@@ -321,13 +338,13 @@ export default function ProfilePage() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/60 text-left text-muted-foreground">
                       <tr>
-                        <th className="px-4 py-3 font-medium">{t("table.id")}</th>
-                        <th className="px-4 py-3 font-medium">{t("table.route")}</th>
-                        <th className="px-4 py-3 font-medium">{t("table.date")}</th>
-                        <th className="px-4 py-3 font-medium">{t("table.type")}</th>
-                        <th className="px-4 py-3 font-medium">{t("table.price")}</th>
-                        <th className="px-4 py-3 font-medium">{t("table.status")}</th>
-                        <th className="px-4 py-3 font-medium">Thao tác</th>
+                        <th className="px-4 py-3 font-medium">Mã vé</th>
+                        <th className="px-4 py-3 font-medium">Lộ trình/Loại</th>
+                        <th className="px-4 py-3 font-medium">Ngày mua</th>
+                        <th className="px-4 py-3 font-medium">Hạng vé</th>
+                        <th className="px-4 py-3 font-medium">Giá tiền</th>
+                        <th className="px-4 py-3 font-medium">Trạng thái</th>
+                        <th className="px-4 py-3 text-center font-medium">{"Thao t\u00e1c"}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -337,34 +354,42 @@ export default function ProfilePage() {
                           <td className="px-4 py-3">{formatRoute(ticket)}</td>
                           <td className="px-4 py-3">{formatDateTime(ticket.created_at)}</td>
                           <td className="px-4 py-3">{ticket.ticket_type_name}</td>
-                          <td className="px-4 py-3">{Math.round(parseFloat(ticket.price_paid || "0")).toLocaleString("vi-VN")}đ</td>
+                          <td className="px-4 py-3">{Math.round(parseFloat(ticket.price_paid || "0")).toLocaleString("vi-VN")}₫</td>
                           <td className="px-4 py-3">
                             <TicketStatusBadge status={ticket.status} />
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 text-center">
                             {ticket.status === "pending" ? (
-                              <div className="flex gap-2">
+                              <div className="flex items-center justify-center gap-2">
                                 <Button
                                   size="sm"
+                                  variant="ghost"
+                                  className="h-auto rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-200 hover:text-emerald-700"
                                   onClick={() => continuePayment(ticket.id)}
                                   disabled={actingTicketId === ticket.id}
                                 >
-                                  Tiếp tục thanh toán
+                                  {"Ti\u1ebfp t\u1ee5c thanh to\u00e1n"}
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant="outline"
+                                  variant="ghost"
+                                  className="h-auto rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200 hover:text-rose-700"
                                   onClick={() => cancelTicket(ticket.id)}
                                   disabled={actingTicketId === ticket.id}
                                 >
-                                  Hủy vé
+                                  {"H\u1ee7y v\u00e9"}
                                 </Button>
                               </div>
                             ) : ticket.status === "cancelled" ? (
-                              <span className="text-xs text-muted-foreground">Đã hủy</span>
+                              <span />
                             ) : (
-                              <Button size="sm" variant="ghost" onClick={() => router.push(`/dat-ve/thanh-cong?id=${ticket.id}`)}>
-                                Xem chi tiết
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className={`h-auto rounded-full px-3 py-1 text-xs font-semibold ${getDetailActionClass(ticket.status)}`}
+                                onClick={() => router.push(`/dat-ve/thanh-cong?id=${ticket.id}`)}
+                              >
+                                {"Xem chi ti\u1ebft"}
                               </Button>
                             )}
                           </td>
@@ -397,12 +422,12 @@ export default function ProfilePage() {
                   <CardContent className="space-y-3">
                     <div className="rounded-xl border bg-background p-4 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">{t("ticket.type")}</span>
+                        <span className="text-muted-foreground">Loại vé</span>
                         <span className="font-medium">{ticket.ticket_type_name}</span>
                       </div>
                       <Separator className="my-3" />
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">{t("ticket.validity")}</span>
+                        <span className="text-muted-foreground">Thời hạn sử dụng</span>
                         <span className="font-medium">{formatDate(ticket.valid_from)} - {formatDate(ticket.valid_until)}</span>
                       </div>
                     </div>
@@ -411,7 +436,7 @@ export default function ProfilePage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm font-medium">
                           <QrCode className="h-4 w-4 text-metro-blue" />
-                          Mã QR Vé
+                          Mã QR vé
                         </div>
                         <div className="text-xs text-muted-foreground">Xuất trình tại cổng soát vé</div>
                       </div>
@@ -502,4 +527,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

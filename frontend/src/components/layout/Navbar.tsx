@@ -25,22 +25,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useLanguage } from "@/lib/i18n";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function Navbar() {
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
-  const { language, setLanguage, t } = useLanguage();
   const [openMobile, setOpenMobile] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const isClientAuthenticated = Boolean(isAuthenticated && user && !user.is_admin);
 
   const navLinks = [
-    { href: "/dat-ve", label: t("nav.book") },
-    { href: "/lo-trinh", label: t("nav.route") },
-    { href: "/tien-ich", label: t("nav.amenities") },
-    { href: "/ban-do-so", label: t("nav.map") },
-    { href: "/tin-tuc", label: t("nav.news") }
+    { href: "/dat-ve", label: "Đặt vé" },
+    { href: "/lo-trinh", label: "Tra cứu Lộ trình" },
+    { href: "/tien-ich", label: "Tiện ích quanh Ga" },
+    { href: "/ban-do-so", label: "Bản đồ số" },
+    { href: "/tin-tuc", label: "Tin tức" }
   ];
 
   React.useEffect(() => {
@@ -95,43 +93,13 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <div className="mr-2 w-24">
-            <Select value={language} onValueChange={(v: any) => setLanguage(v)}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vi">
-                  <span className="flex items-center gap-2">
-                    <img 
-                      src="https://flagcdn.com/w40/vn.png" 
-                      alt="Vietnam Flag" 
-                      className="w-5 h-auto"
-                    />
-                    <span>VN</span>
-                  </span>
-                </SelectItem>
-                <SelectItem value="en">
-                  <span className="flex items-center gap-2">
-                    <img 
-                      src="https://flagcdn.com/w40/gb.png" 
-                      alt="UK Flag" 
-                      className="w-5 h-auto"
-                    />
-                    <span>EN</span>
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {!isAuthenticated ? (
+          {!isClientAuthenticated ? (
             <>
               <Button variant="outline" asChild>
-                <Link href="/login">{t("nav.login")}</Link>
+                <Link href="/login">Đăng nhập</Link>
               </Button>
               <Button asChild>
-                <Link href="/register">{t("nav.register")}</Link>
+                <Link href="/register">Đăng ký</Link>
               </Button>
             </>
           ) : (
@@ -148,26 +116,18 @@ export function Navbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>{t("nav.account")}</DropdownMenuLabel>
+                <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/profile" className="gap-2">
                     <CircleUser className="h-4 w-4" />
-                    {t("nav.profile")}
+                    Hồ sơ
                   </Link>
                 </DropdownMenuItem>
-                {user?.is_admin && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin" className="gap-2">
-                      <LayoutDashboard className="h-4 w-4" />
-                      Quản trị
-                    </Link>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem asChild>
                   <Link href="/dat-ve" className="gap-2">
                     <Ticket className="h-4 w-4" />
-                    {t("nav.book")}
+                    Đặt vé
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -176,7 +136,7 @@ export function Navbar() {
                   onClick={logout}
                 >
                   <LogOut className="h-4 w-4" />
-                  {t("nav.logout")}
+                  Đăng xuất
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -217,7 +177,7 @@ export function Navbar() {
           </div>
 
           <div className="mt-3 flex gap-2">
-            {!isAuthenticated ? (
+            {!isClientAuthenticated ? (
               <>
                 <Button variant="outline" className="flex-1" asChild>
                   <Link href="/login">Đăng nhập</Link>
@@ -231,11 +191,6 @@ export function Navbar() {
                 <Button variant="outline" className="flex-1" asChild>
                   <Link href="/profile">Hồ sơ</Link>
                 </Button>
-                {user?.is_admin && (
-                  <Button variant="outline" className="flex-1" asChild>
-                    <Link href="/admin">Quản trị</Link>
-                  </Button>
-                )}
                 <Button
                   variant="outline"
                   className="flex-1 text-rose-600"

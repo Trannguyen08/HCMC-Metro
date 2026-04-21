@@ -2,22 +2,29 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.db.utils import ProgrammingError
 
 from apps.metro.models import Station
 from apps.payments.models import Payment
-from apps.ticketing.models import Ticket, TicketType
+from apps.ticketing.models import Ticket, TicketScanHistory, TicketType
 from apps.ticketing.serializers import (
     AdminTicketScanSerializer,
     BookingCalculateRequestSerializer,
     BookingCreateRequestSerializer,
     StationSummarySerializer,
+    TicketScanHistorySerializer,
     TicketSerializer,
     TicketTypeSerializer,
     UserCategorySerializer,
 )
 from apps.ticketing.services.booking_service import BookingService
 from apps.ticketing.services.email_service import TicketEmailService
-from apps.ticketing.tasks import send_ticket_email_task
+from apps.ticketing.tasks import (
+    send_ticket_email_task,
+    send_scan_success_email_task,
+    send_ticket_exhausted_email_task,
+)
 from apps.users.models import UserCategory
 from core.permissions import IsAdminUser
 
@@ -218,20 +225,85 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
             else:
                 ticket = Ticket.objects.filter(qr_code=qr_data).select_related("ticket_type").first()
 
+        scanned_at = timezone.now()
+        scanned_by = getattr(request, "user", None) if getattr(request, "user", None) and request.user.is_authenticated else None
+
         if not ticket:
+            # Log failed scan attempt (no ticket found)
+            try:
+                TicketScanHistory.objects.create(
+                    ticket_id=None,  # may fail depending on DB constraints; ignore if so
+                    scanned_by=scanned_by,
+                    scanned_at=scanned_at,
+                    scan_date=scanned_at.date(),
+                    status_before=None,
+                    status_after=None,
+                    usage_remaining_before=None,
+                    usage_remaining_after=None,
+                    success=False,
+                    message="Khong tim thay ve tu du lieu QR.",
+                )
+            except Exception:
+                pass
             return Response({"detail": "Khong tim thay ve tu du lieu QR."}, status=status.HTTP_404_NOT_FOUND)
 
         BookingService.expire_outdated_tickets()
         ticket.refresh_from_db()
+        status_before = ticket.status
+        usage_before = ticket.usage_remaining
 
         if ticket.status == "expired":
+            try:
+                TicketScanHistory.objects.create(
+                    ticket=ticket,
+                    scanned_by=scanned_by,
+                    scanned_at=scanned_at,
+                    scan_date=scanned_at.date(),
+                    status_before=status_before,
+                    status_after=ticket.status,
+                    usage_remaining_before=usage_before,
+                    usage_remaining_after=ticket.usage_remaining,
+                    success=False,
+                    message="Ve da het han.",
+                )
+            except Exception:
+                pass
             return Response(
-                {"success": False, "detail": "Ve da het han.", "ticket_id": str(ticket.id), "status": ticket.status},
+                {
+                    "success": False,
+                    "detail": "Ve da het han.",
+                    "ticket_id": str(ticket.id),
+                    "status": ticket.status,
+                    "scanned_at": scanned_at.isoformat(),
+                    "scan_date": scanned_at.date().isoformat(),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if ticket.status in ["cancelled", "pending"]:
+            try:
+                TicketScanHistory.objects.create(
+                    ticket=ticket,
+                    scanned_by=scanned_by,
+                    scanned_at=scanned_at,
+                    scan_date=scanned_at.date(),
+                    status_before=status_before,
+                    status_after=ticket.status,
+                    usage_remaining_before=usage_before,
+                    usage_remaining_after=ticket.usage_remaining,
+                    success=False,
+                    message="Ve chua hop le de su dung.",
+                )
+            except Exception:
+                pass
             return Response(
-                {"success": False, "detail": "Ve chua hop le de su dung.", "ticket_id": str(ticket.id), "status": ticket.status},
+                {
+                    "success": False,
+                    "detail": "Ve chua hop le de su dung.",
+                    "ticket_id": str(ticket.id),
+                    "status": ticket.status,
+                    "scanned_at": scanned_at.isoformat(),
+                    "scan_date": scanned_at.date().isoformat(),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -240,8 +312,31 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
             if remaining <= 0:
                 ticket.status = "expired"
                 ticket.save(update_fields=["status", "updated_at"])
+                try:
+                    TicketScanHistory.objects.create(
+                        ticket=ticket,
+                        scanned_by=scanned_by,
+                        scanned_at=scanned_at,
+                        scan_date=scanned_at.date(),
+                        status_before=status_before,
+                        status_after=ticket.status,
+                        usage_remaining_before=usage_before,
+                        usage_remaining_after=ticket.usage_remaining,
+                        success=False,
+                        message="Ve luot da het luot su dung.",
+                    )
+                except Exception:
+                    pass
                 return Response(
-                    {"success": False, "detail": "Ve luot da het luot su dung.", "ticket_id": str(ticket.id), "status": ticket.status},
+                    {
+                        "success": False,
+                        "detail": "Ve luot da het luot su dung.",
+                        "ticket_id": str(ticket.id),
+                        "status": ticket.status,
+                        "usage_remaining": ticket.usage_remaining,
+                        "scanned_at": scanned_at.isoformat(),
+                        "scan_date": scanned_at.date().isoformat(),
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -254,6 +349,29 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
                 ticket.status = "used"
                 
             ticket.save(update_fields=["usage_remaining", "status", "updated_at"])
+            
+            try:
+                send_scan_success_email_task.delay(str(ticket.id))
+                if remaining <= 0:
+                    send_ticket_exhausted_email_task.delay(str(ticket.id))
+            except Exception:
+                pass
+                
+            try:                
+                TicketScanHistory.objects.create(
+                    ticket=ticket,
+                    scanned_by=scanned_by,
+                    scanned_at=scanned_at,
+                    scan_date=scanned_at.date(),
+                    status_before=status_before,
+                    status_after=ticket.status,
+                    usage_remaining_before=usage_before,
+                    usage_remaining_after=ticket.usage_remaining,
+                    success=True,
+                    message="Quet ve thanh cong.",
+                )
+            except Exception:
+                pass
             return Response(
                 {
                     "success": True,
@@ -261,6 +379,8 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
                     "ticket_id": str(ticket.id),
                     "status": ticket.status,
                     "usage_remaining": ticket.usage_remaining,
+                    "scanned_at": scanned_at.isoformat(),
+                    "scan_date": scanned_at.date().isoformat(),
                 }
             )
 
@@ -268,6 +388,26 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
             ticket.status = "used"
             ticket.save(update_fields=["status", "updated_at"])
 
+        try:
+            send_scan_success_email_task.delay(str(ticket.id))
+        except Exception:
+            pass
+
+        try:
+            TicketScanHistory.objects.create(
+                ticket=ticket,
+                scanned_by=scanned_by,
+                scanned_at=scanned_at,
+                scan_date=scanned_at.date(),
+                status_before=status_before,
+                status_after=ticket.status,
+                usage_remaining_before=usage_before,
+                usage_remaining_after=ticket.usage_remaining,
+                success=True,
+                message="Quet ve thanh cong.",
+            )
+        except Exception:
+            pass
         return Response(
             {
                 "success": True,
@@ -275,9 +415,42 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
                 "ticket_id": str(ticket.id),
                 "status": ticket.status,
                 "usage_remaining": ticket.usage_remaining,
+                "scanned_at": scanned_at.isoformat(),
+                "scan_date": scanned_at.date().isoformat(),
             }
         )
 
+    @action(detail=False, methods=["get"], url_path="scan-histories")
+    def scan_histories(self, request):
+        """
+        Admin: list scan histories.
+        Optional query params:
+        - ticket_id (uuid)
+        - success (true/false)
+        - limit (default 200)
+        """
+        try:
+            qs = TicketScanHistory.objects.select_related("ticket", "scanned_by").order_by("-scanned_at")
+        except ProgrammingError:
+            return Response([])
+        ticket_id = request.query_params.get("ticket_id")
+        success = request.query_params.get("success")
+        try:
+            limit = int(request.query_params.get("limit", "200"))
+        except ValueError:
+            limit = 200
+        limit = max(1, min(limit, 1000))
+
+        if ticket_id:
+            qs = qs.filter(ticket_id=ticket_id)
+        if success in ["true", "false"]:
+            qs = qs.filter(success=(success == "true"))
+
+        try:
+            items = qs[:limit]
+            return Response(TicketScanHistorySerializer(items, many=True).data)
+        except ProgrammingError:
+            return Response([])
     @action(detail=True, methods=["get"], url_path="qr")
     def get_qr(self, request, pk=None):
         """Allow admins to get QR code for any ticket."""

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React from "react";
 import Link from "next/link";
@@ -65,7 +65,7 @@ function EmptyState({
       </div>
       <h3 className="mt-5 text-2xl font-semibold text-slate-900">Chưa tìm thấy tiện ích phù hợp</h3>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500">
-        Thử đổi ga, loại tiện ích hoặc từ khóa tìm kiếm. Hệ thống sẽ hiển thị danh sách mới ngay khi có kết quả phù hợp.
+        Thử đổi bộ lọc trên.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <Button onClick={onReset} className="rounded-full px-5">
@@ -73,7 +73,7 @@ function EmptyState({
         </Button>
         {type !== "all" ? (
           <Button variant="outline" onClick={() => onReset()} className="rounded-full px-5">
-            Quay lại tất cả nhóm
+            Quay lại tất cả
           </Button>
         ) : null}
       </div>
@@ -136,7 +136,7 @@ const AmenitiesPage: React.FC = () => {
                 <p className="text-sm font-medium text-slate-500">Trạng thái hiện tại</p>
                 <p className="mt-2 text-2xl font-semibold text-slate-950">{loading ? "Đang tải..." : `${total} điểm`}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Danh sách được cập nhật theo bộ lọc bạn đang chọn.
+                  Danh sách được cập nhật theo bộ lọc.
                 </p>
               </div>
               <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/90 p-5">
@@ -150,7 +150,7 @@ const AmenitiesPage: React.FC = () => {
                 <p className="text-sm font-medium text-slate-500">Danh mục</p>
                 <p className="mt-2 text-2xl font-semibold text-slate-950">{CATEGORY_COUNT} nhóm</p>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Du lịch, ăn uống, mua sắm và các dịch vụ cơ bản.
+                  Du lịch, ăn uống, mua sắm và dịch vụ cơ bản.
                 </p>
               </div>
             </div>
@@ -171,19 +171,19 @@ const AmenitiesPage: React.FC = () => {
           <StatCard
             label="Kết quả đang hiển thị"
             value={loading ? "--" : amenities.length.toString()}
-            hint="Số lượng thẻ đang hiện trên màn hình theo bộ lọc hiện tại."
+            hint="Số lượng thẻ đang hiện trên màn hình."
             accentClass="bg-[#0055A5]"
           />
           <StatCard
             label="Tổng điểm phù hợp"
             value={loading ? "--" : total.toString()}
-            hint="Tổng kết quả tìm được trên toàn bộ hệ thống cho lựa chọn hiện tại."
+            hint="Tổng kết quả trên toàn bộ hệ thống."
             accentClass="bg-[#00A86B]"
           />
           <StatCard
             label="Chế độ duyệt"
             value={filters.stationId ? "Theo ga" : "Toàn mạng"}
-            hint="Bạn có thể chuyển nhanh giữa xem tổng hợp và xem theo từng nhà ga."
+            hint="Chuyển nhanh xem tổng hợp hoặc theo ga."
             accentClass="bg-amber-400"
           />
         </section>
@@ -193,7 +193,7 @@ const AmenitiesPage: React.FC = () => {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Danh sách tiện ích</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Ảnh trong mỗi thẻ được giữ cùng một tỉ lệ để danh sách gọn và dễ quét hơn.
+                Ảnh trong thẻ giữ cùng tỉ lệ để dễ xem hơn.
               </p>
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">

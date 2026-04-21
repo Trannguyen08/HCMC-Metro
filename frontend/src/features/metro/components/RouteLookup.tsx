@@ -55,7 +55,7 @@ export function RouteLookup() {
     }
   }, [selectedStation]);
 
-  if (loading) return <div className="p-12 text-center text-gray-400">Đang khởi tạo bản điều khiển theo dõi...</div>;
+  if (loading) return <div className="p-12 text-center text-gray-400">Đang tải dữ liệu...</div>;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
@@ -122,7 +122,7 @@ export function RouteLookup() {
                                                 <div>
                                                     <p className="text-sm font-black">{arr.train_number}</p>
                                                     <p className="text-[10px] font-medium opacity-70 capitalize">
-                                                        {arr.direction === 'outbound' ? 'Lượt đi' : 'Lượt về'}
+                                                        {arr.direction === 'outbound' ? "Lượt đi" : "Lượt về"}
                                                     </p>
                                                 </div>
                                             </div>

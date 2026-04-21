@@ -8,6 +8,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  hasHydrated: boolean;
 
   // Actions
   setUser: (user: AuthUser | null) => void;
@@ -26,6 +27,7 @@ interface AuthState {
   setError: (error: string | null) => void;
   setPendingBooking: (booking: any | null) => void;
   pendingBooking: any | null;
+  setHasHydrated: (value: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -35,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      hasHydrated: false,
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
 
@@ -44,14 +47,16 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await authService.login(input);
-          
-          if (data.requires_email_verification) {
-            set({ isLoading: false });
-            return data as any;
+          if (data.user?.is_admin) {
+            sessionStorage.setItem("metro.admin.access", data.access);
+            sessionStorage.setItem("metro.admin.refresh", data.refresh);
+            // Never persist admin tokens to localStorage
+            localStorage.removeItem("metro.access");
+            localStorage.removeItem("metro.refresh");
+          } else {
+            localStorage.setItem("metro.access", data.access);
+            localStorage.setItem("metro.refresh", data.refresh);
           }
-
-          localStorage.setItem("metro.access", data.access);
-          localStorage.setItem("metro.refresh", data.refresh);
           set({ user: data.user, isAuthenticated: true, isLoading: false });
           return data.user;
         } catch (err) {
@@ -65,8 +70,15 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await authService.loginWithGoogle(payload);
-          localStorage.setItem("metro.access", data.access);
-          localStorage.setItem("metro.refresh", data.refresh);
+          if (data.user?.is_admin) {
+            sessionStorage.setItem("metro.admin.access", data.access);
+            sessionStorage.setItem("metro.admin.refresh", data.refresh);
+            localStorage.removeItem("metro.access");
+            localStorage.removeItem("metro.refresh");
+          } else {
+            localStorage.setItem("metro.access", data.access);
+            localStorage.setItem("metro.refresh", data.refresh);
+          }
           set({ user: data.user, isAuthenticated: true, isLoading: false });
           return data.user;
         } catch (err) {
@@ -93,8 +105,15 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await authService.verifyEmailOtp(input);
-          localStorage.setItem("metro.access", data.access);
-          localStorage.setItem("metro.refresh", data.refresh);
+          if (data.user?.is_admin) {
+            sessionStorage.setItem("metro.admin.access", data.access);
+            sessionStorage.setItem("metro.admin.refresh", data.refresh);
+            localStorage.removeItem("metro.access");
+            localStorage.removeItem("metro.refresh");
+          } else {
+            localStorage.setItem("metro.access", data.access);
+            localStorage.setItem("metro.refresh", data.refresh);
+          }
           set({ user: data.user, isAuthenticated: true, isLoading: false });
           return data.user;
         } catch (err) {
@@ -105,12 +124,15 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        const refresh = localStorage.getItem("metro.refresh");
+        const refresh =
+          sessionStorage.getItem("metro.admin.refresh") ?? localStorage.getItem("metro.refresh");
         try {
           await authService.logout(refresh);
         } catch {}
         localStorage.removeItem("metro.access");
         localStorage.removeItem("metro.refresh");
+        sessionStorage.removeItem("metro.admin.access");
+        sessionStorage.removeItem("metro.admin.refresh");
         set({ user: null, isAuthenticated: false });
       },
 
@@ -123,12 +145,20 @@ export const useAuthStore = create<AuthState>()(
 
       setPendingBooking: (booking) => set({ pendingBooking: booking }),
       pendingBooking: null,
+      setHasHydrated: (value) => set({ hasHydrated: value }),
     }),
 
     {
       name: "metro.user",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => {
+        // Never persist admin user in localStorage
+        if (state.user?.is_admin) return { user: null, isAuthenticated: false };
+        return { user: state.user, isAuthenticated: state.isAuthenticated };
+      },
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

@@ -100,7 +100,7 @@ export function NewsList() {
               <line x1="9" y1="16" x2="13" y2="16"/>
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-slate-800">Tin tức &amp; Sự kiện</h1>
+          <h1 className="text-xl font-bold text-slate-800">Tin tức & Cập nhật</h1>
         </div>
 
         {/* Search + Filter — merged single bar */}
@@ -125,11 +125,11 @@ export function NewsList() {
             <SelectTrigger className="h-full w-[200px] border-none shadow-none rounded-none bg-transparent text-sm pl-3 pr-3 focus:ring-0">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-slate-400 shrink-0" />
-                <SelectValue placeholder="Tất cả tin tức" />
+                <SelectValue placeholder="Tất cả" />
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả tin tức</SelectItem>
+              <SelectItem value="all">Tất cả</SelectItem>
               {categories.map((cat) => (
                 <SelectItem key={cat.id} value={cat.slug || cat.id.toString()}>
                   {cat.name}
@@ -213,14 +213,14 @@ export function NewsList() {
                   disabled={loadingMore}
                   className="rounded-full px-7 h-9 text-sm text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-metro-blue transition-all"
                 >
-                  {loadingMore ? "Đang tải..." : "Xem thêm tin cũ"}
+                  {loadingMore ? "Đang tải..." : "Đọc tiếp"}
                 </Button>
               </div>
             )}
           </>
         ) : (
           <div className="py-20 text-center border-2 border-dashed rounded-2xl bg-slate-50 mt-2">
-            <p className="text-slate-500 text-sm">Không tìm thấy tin tức nào phù hợp.</p>
+            <p className="text-slate-500 text-sm">Không tìm thấy bài viết nào.</p>
             <Button
               variant="link"
               className="mt-2 text-metro-blue text-sm"
@@ -229,7 +229,7 @@ export function NewsList() {
                 setSelectedCategory("all");
               }}
             >
-              Đặt lại bộ lọc
+              Xóa bộ lọc
             </Button>
           </div>
         )}

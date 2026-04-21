@@ -58,10 +58,8 @@ const LiveMetroTracker: React.FC = () => {
 
             <div className="relative mt-12 pt-16 pb-24 overflow-x-auto no-scrollbar">
                 <div className="relative min-w-[1600px] px-12">
-                    {/* The Line - Solid Blue for Line 1 */}
-                    <div className="absolute top-[40px] left-12 right-12 h-1.5 bg-blue-100 -translate-y-1/2 rounded-full overflow-hidden z-0">
-                        <div className="h-full bg-blue-500 opacity-80" />
-                    </div>
+                    {/* Unified Curved Loop Track */}
+                    <div className="absolute top-[27px] left-6 right-6 h-[26px] border-[6px] border-t-blue-400 border-b-green-400 border-x-slate-300 rounded-full z-0 opacity-80" />
 
                     <div className="flex justify-between relative">
                     {stations.map((st, i) => (
@@ -97,11 +95,26 @@ const LiveMetroTracker: React.FC = () => {
                             posPercent += (diff * train.progress_to_next) * 100;
                         }
 
+                        // Curve turnaround logic
+                        let topPos = train.direction === 'outbound' ? 30 : 50;
+                        let leftPos = `${posPercent}%`;
+
+                        if (startIdx === 0 && train.direction === 'outbound' && train.status === 'idle') {
+                            topPos = 40;
+                            leftPos = `calc(0% - 26px)`;
+                        } else if (startIdx === totalUnits && train.direction === 'inbound' && train.status === 'idle') {
+                            topPos = 40;
+                            leftPos = `calc(100% + 26px)`;
+                        }
+
                         return (
                             <div 
                                 key={train.train_number}
-                                className="absolute top-[40px] -translate-y-1/2 -translate-x-1/2 z-30 transition-all duration-1000 ease-linear"
-                                style={{ left: `${posPercent}%` }}
+                                className="absolute -translate-y-1/2 -translate-x-1/2 z-30 transition-all duration-1000 ease-linear"
+                                style={{ 
+                                    left: leftPos,
+                                    top: `${topPos}px`
+                                }}
                             >
                                 <div className={`relative flex flex-col items-center group cursor-pointer ${
                                     train.direction === 'outbound' ? 'text-blue-600' : 'text-green-600'
