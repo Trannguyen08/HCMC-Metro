@@ -151,11 +151,6 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "metro.user",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => {
-        // Never persist admin user in localStorage
-        if (state.user?.is_admin) return { user: null, isAuthenticated: false };
-        return { user: state.user, isAuthenticated: state.isAuthenticated };
-      },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

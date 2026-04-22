@@ -227,20 +227,93 @@ class AdminAmenitySerializer(serializers.ModelSerializer):
         return map_amenity_type(getattr(obj.amenity_type, "name", ""))
 
 class AdminStationSerializer(serializers.ModelSerializer):
+    line_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Station
         fields = [
-            "id", "name", "code", "line", "address",
+            "id", "name", "code", "line", "line_name", "address",
             "latitude", "longitude", "sequence_order", 
             "is_active", "image_url", "description", "created_at"
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "line_name"]
+
+    def get_line_name(self, obj):
+        if obj.line:
+            return obj.line.name
+        return None
 
 class AdminTrainSerializer(serializers.ModelSerializer):
+    current_station_name = serializers.SerializerMethodField()
+    next_station_name = serializers.SerializerMethodField()
+    next_station = serializers.SerializerMethodField()
+    line_name = serializers.SerializerMethodField()
+    route_label = serializers.SerializerMethodField()
+
     class Meta:
         model = Train
         fields = [
-            "id", "train_number", "line", "capacity", 
+            "id", "train_number", "line", "line_name", "capacity",
+            "direction", "current_station", "current_station_name",
+            "next_station", "next_station_name", "route_label",
             "status", "is_active", "manufacture_year", "created_at"
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = [
+            "id", "created_at", "current_station_name", 
+            "next_station", "next_station_name", "line_name", "route_label"
+        ]
+
+    def get_current_station_name(self, obj):
+        if obj.current_station:
+            return obj.current_station.name
+        return None
+
+    def get_line_name(self, obj):
+        if obj.line:
+            return obj.line.name
+        return None
+
+    def get_next_station(self, obj):
+        if not obj.current_station or not obj.line:
+            return None
+        
+        current_order = obj.current_station.sequence_order
+        if current_order is None:
+            return None
+
+        # Find next station based on direction
+        if obj.direction == "outbound":
+            next_st = Station.objects.filter(
+                line=obj.line, 
+                sequence_order__gt=current_order,
+                is_active=True
+            ).order_by("sequence_order").first()
+        else:
+            next_st = Station.objects.filter(
+                line=obj.line, 
+                sequence_order__lt=current_order,
+                is_active=True
+            ).order_by("-sequence_order").first()
+            
+        return next_st.id if next_st else None
+
+    def get_next_station_name(self, obj):
+        next_id = self.get_next_station(obj)
+        if next_id:
+            return Station.objects.get(id=next_id).name
+        return None
+
+    def get_route_label(self, obj):
+        if not obj.line:
+            return "N/A"
+        
+        stations = list(obj.line.stations.filter(is_active=True).order_by("sequence_order"))
+        if len(stations) < 2:
+            return obj.line.name
+
+        first_st = stations[0].name
+        last_st = stations[-1].name
+
+        if obj.direction == "outbound":
+            return f"{first_st} → {last_st}"
+        return f"{last_st} → {first_st}"

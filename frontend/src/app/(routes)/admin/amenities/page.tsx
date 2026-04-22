@@ -168,7 +168,7 @@ export default function AdminAmenitiesPage() {
       setAmenityTypes(amenityTypesRes.data);
     } catch (error) {
       console.error("Fetch amenities admin data failed:", error);
-      alert("Khong the tai du lieu amenity trong trang admin.");
+      alert("Không thể tải dữ liệu tiện ích trong trang admin.");
     } finally {
       setLoading(false);
     }
@@ -186,7 +186,7 @@ export default function AdminAmenitiesPage() {
       setAmenities(response.data);
     } catch (error) {
       console.error("Refresh amenities failed:", error);
-      alert("Khong the tai danh sach amenity.");
+      alert("Không thể tải danh sách tiện ích.");
     }
   }
 
@@ -205,7 +205,7 @@ export default function AdminAmenitiesPage() {
         setAmenities(response.data);
       } catch (error) {
         console.error("Refresh amenities failed:", error);
-        alert("Khong the tai danh sach amenity.");
+        alert("Không thể tải danh sách tiện ích.");
       }
     };
 
@@ -308,7 +308,7 @@ export default function AdminAmenitiesPage() {
       console.error("Submit amenity failed:", error);
       const errorMessage =
         (error as { response?: { data?: { detail?: string } } }).response?.data?.detail ??
-        "Khong the luu amenity. Vui long kiem tra lai du lieu.";
+        "Không thể lưu tiện ích. Vui lòng kiểm tra lại dữ liệu.";
       alert(errorMessage);
     } finally {
       setSaving(false);
@@ -326,7 +326,7 @@ export default function AdminAmenitiesPage() {
       await refreshAmenities();
     } catch (error) {
       console.error("Delete amenity failed:", error);
-      alert("Khong the xoa amenity nay.");
+      alert("Không thể xóa tiện ích này.");
     } finally {
       setDeleting(false);
     }
@@ -358,52 +358,52 @@ export default function AdminAmenitiesPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tong amenity</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Tổng tiện ích</CardTitle>
             <Store className="h-4 w-4 text-metro-blue" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{amenities.length}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Toan bo diem tien ich dang quan ly</p>
+            <p className="mt-1 text-xs text-muted-foreground">Toàn bộ điểm tiện ích đang quản lý</p>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Dang hien thi</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Đang hiển thị</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeCount}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Amenity dang bat tren he thong</p>
+            <p className="mt-1 text-xs text-muted-foreground">Tiện ích đang bật trên hệ thống</p>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tam an</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Tạm ẩn</CardTitle>
             <XCircle className="h-4 w-4 text-rose-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inactiveCount}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Amenity da tat hoac tam dung</p>
+            <p className="mt-1 text-xs text-muted-foreground">Tiện ích đã tắt hoặc tạm dừng</p>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Do phu nha ga</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Độ phủ nhà ga</CardTitle>
             <MapPin className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stationCoverageCount}</div>
-            <p className="mt-1 text-xs text-muted-foreground">So nha ga dang co amenity lien ket</p>
+            <p className="mt-1 text-xs text-muted-foreground">Số nhà ga đang có tiện ích liên kết</p>
           </CardContent>
         </Card>
       </div>
 
       <Card className="border-none shadow-md">
         <CardHeader className="pb-4">
-          <CardTitle>Danh sach amenity</CardTitle>
+          <CardTitle>Danh sách tiện ích</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1.5fr)_220px_220px_180px]">
@@ -411,7 +411,7 @@ export default function AdminAmenitiesPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
-                placeholder="Tim theo ten, dia chi hoac ga..."
+                placeholder="Tìm theo tên, địa chỉ hoặc ga..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
               />
@@ -419,10 +419,10 @@ export default function AdminAmenitiesPage() {
 
             <Select value={stationFilter} onValueChange={setStationFilter}>
               <SelectTrigger>
-                <SelectValue placeholder="Loc theo ga" />
+                <SelectValue placeholder="Lọc theo ga" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tat ca nha ga</SelectItem>
+                <SelectItem value="all">Tất cả nhà ga</SelectItem>
                 {stations.map((station) => (
                   <SelectItem key={station.id} value={station.id}>
                     {station.name}
@@ -433,7 +433,7 @@ export default function AdminAmenitiesPage() {
 
             <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value as AmenityType)}>
               <SelectTrigger>
-                <SelectValue placeholder="Loc theo nhom" />
+                <SelectValue placeholder="Lọc theo nhóm" />
               </SelectTrigger>
               <SelectContent>
                 {CATEGORY_OPTIONS.map((option) => (
@@ -449,9 +449,9 @@ export default function AdminAmenitiesPage() {
                 <SelectValue placeholder="Trang thai" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tat ca trang thai</SelectItem>
-                <SelectItem value="true">Dang bat</SelectItem>
-                <SelectItem value="false">Tam an</SelectItem>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="true">Đang bật</SelectItem>
+                <SelectItem value="false">Tạm ẩn</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -460,26 +460,25 @@ export default function AdminAmenitiesPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b bg-muted/50 text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Amenity</th>
-                  <th className="px-4 py-3 font-medium">Loai</th>
-                  <th className="px-4 py-3 font-medium">Nha ga</th>
-                  <th className="px-4 py-3 font-medium">Khoang cach</th>
-                  <th className="px-4 py-3 font-medium">Trang thai</th>
-                  <th className="px-4 py-3 font-medium">Cap nhat</th>
-                  <th className="px-4 py-3 text-right font-medium">Thao tac</th>
+                  <th className="px-4 py-3 font-medium">Tiện ích</th>
+                  <th className="px-4 py-3 font-medium">Loại</th>
+                  <th className="px-4 py-3 font-medium">Nhà ga</th>
+                  <th className="px-4 py-3 font-medium">Khoảng cách</th>
+                  <th className="px-4 py-3 font-medium">Giờ hoạt động</th>
+                  <th className="px-4 py-3 text-right font-medium">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {loading ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                      Dang tai du lieu...
+                      Đang tải dữ liệu...
                     </td>
                   </tr>
                 ) : amenities.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                      Chua co amenity nao phu hop voi bo loc hien tai.
+                      Chưa có tiện ích nào phù hợp với bộ lọc hiện tại.
                     </td>
                   </tr>
                 ) : (
@@ -503,7 +502,7 @@ export default function AdminAmenitiesPage() {
                           <div className="min-w-0">
                             <div className="font-medium text-foreground">{item.name}</div>
                             <div className="line-clamp-2 text-xs text-muted-foreground">
-                              {item.address || "Chua cap nhat dia chi"}
+                              {item.address || "Chưa cập nhật địa chỉ"}
                             </div>
                           </div>
                         </div>
@@ -521,58 +520,44 @@ export default function AdminAmenitiesPage() {
                         <div className="text-xs text-muted-foreground">{item.station_code}</div>
                       </td>
                       <td className="px-4 py-4 text-muted-foreground">
-                        {item.distance_meters ? `${item.distance_meters} m` : "Chua co"}
-                      </td>
-                      <td className="px-4 py-4">
-                        {item.is_active ? (
-                          <span className="inline-flex items-center gap-1.5 text-green-600">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Dang bat
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-rose-600">
-                            <XCircle className="h-4 w-4" />
-                            Tam an
-                          </span>
-                        )}
+                        {item.distance_meters ? `${item.distance_meters} m` : "Chưa có"}
                       </td>
                       <td className="px-4 py-4 text-muted-foreground">
-                        {format(new Date(item.updated_at), "dd/MM/yyyy HH:mm", { locale: vi })}
+                        {item.opening_hours || "Chưa có"}
                       </td>
                       <td className="px-4 py-4 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44">
-                            <DropdownMenuLabel>Thao tac</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={`/tien-ich/${item.id}-${item.slug}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="cursor-pointer"
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                Xem trang cong khai
-                              </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenEdit(item)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Chinh sua
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-rose-600 focus:text-rose-600"
-                              onClick={() => handleOpenDelete(item)}
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            asChild
+                          >
+                            <a
+                              href={`/tien-ich/${item.id}-${item.slug}`}
+                              target="_blank"
+                              rel="noreferrer"
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Xoa
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <Eye className="h-4 w-4" />
+                            </a>
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                            onClick={() => handleOpenEdit(item)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                            onClick={() => handleOpenDelete(item)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -586,9 +571,9 @@ export default function AdminAmenitiesPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingItem ? "Chinh sua amenity" : "Them amenity moi"}</DialogTitle>
+            <DialogTitle>{editingItem ? "Chỉnh sửa tiện ích" : "Thêm tiện ích mới"}</DialogTitle>
             <DialogDescription>
-              Dien thong tin chi tiet de hien thi amenity trong he thong admin va trang cong khai.
+              Điền thông tin chi tiết để hiển thị tiện ích trong hệ thống admin và trang công khai.
             </DialogDescription>
           </DialogHeader>
 
@@ -599,20 +584,20 @@ export default function AdminAmenitiesPage() {
                 id="name"
                 value={formData.name}
                 onChange={(event) => setFormData({ ...formData, name: event.target.value })}
-                placeholder="Vi du: Highlands Coffee"
+                placeholder="Ví dụ: Highlands Coffee"
                 required
               />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="station">Nha ga</Label>
+                <Label htmlFor="station">Nhà ga</Label>
                 <Select
                   value={formData.station}
                   onValueChange={(value) => setFormData({ ...formData, station: value })}
                 >
                   <SelectTrigger id="station">
-                    <SelectValue placeholder="Chon nha ga" />
+                    <SelectValue placeholder="Chọn nhà ga" />
                   </SelectTrigger>
                   <SelectContent>
                     {stations.map((station) => (
@@ -631,7 +616,7 @@ export default function AdminAmenitiesPage() {
                   onValueChange={(value) => setFormData({ ...formData, amenity_type: value })}
                 >
                   <SelectTrigger id="amenity_type">
-                    <SelectValue placeholder="Chon loai amenity" />
+                    <SelectValue placeholder="Chọn loại tiện ích" />
                   </SelectTrigger>
                   <SelectContent>
                     {amenityTypes.map((option) => (
@@ -646,19 +631,19 @@ export default function AdminAmenitiesPage() {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="distance_meters">Khoang cach toi ga (m)</Label>
+                <Label htmlFor="distance_meters">Khoảng cách tới ga (m)</Label>
                 <Input
                   id="distance_meters"
                   type="number"
                   min="0"
                   value={formData.distance_meters}
                   onChange={(event) => setFormData({ ...formData, distance_meters: event.target.value })}
-                  placeholder="Vi du: 120"
+                  placeholder="Ví dụ: 120"
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="rating">Danh gia</Label>
+                <Label htmlFor="rating">Đánh giá</Label>
                 <Input
                   id="rating"
                   type="number"
@@ -683,7 +668,7 @@ export default function AdminAmenitiesPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="image_url">Anh dai dien</Label>
+              <Label htmlFor="image_url">Ảnh đại diện</Label>
               <div className="flex items-center gap-4">
                 <div className="flex h-24 w-36 items-center justify-center overflow-hidden rounded-lg border bg-muted">
                   {selectedFile ? (
@@ -714,10 +699,10 @@ export default function AdminAmenitiesPage() {
                     id="image_url"
                     value={formData.image_url}
                     onChange={(event) => setFormData({ ...formData, image_url: event.target.value })}
-                    placeholder="Hoac nhap URL https://..."
+                    placeholder="Hoặc nhập URL https://..."
                   />
                   <p className="text-xs text-muted-foreground">
-                    Ho tro JPG, PNG, WEBP, GIF. Kich thuoc toi da 5MB.
+                    Hỗ trợ JPG, PNG, WEBP, GIF. Kích thước tối đa 5MB.
                   </p>
                 </div>
               </div>
@@ -743,7 +728,7 @@ export default function AdminAmenitiesPage() {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="phone">So dien thoai</Label>
+              <Label htmlFor="phone">Số điện thoại</Label>
               <Input
                 id="phone"
                 value={formData.phone}
@@ -781,13 +766,13 @@ export default function AdminAmenitiesPage() {
                 onCheckedChange={(checked) => setFormData({ ...formData, is_active: Boolean(checked) })}
               />
               <Label htmlFor="is_active" className="cursor-pointer text-sm font-medium">
-                Hien thi amenity tren he thong
+                Hiển thị tiện ích trên hệ thống
               </Label>
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={saving}>
-                Huy
+                Hủy
               </Button>
               <Button
                 type="submit"

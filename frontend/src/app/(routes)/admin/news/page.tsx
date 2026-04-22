@@ -23,14 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Dialog, 
   DialogContent, 
@@ -42,10 +35,11 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import axios from "axios";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { IMAGE_UPLOAD_ACCEPT, validateImageFile } from "@/lib/upload-validation";
+import { Pagination } from "@/components/admin/pagination";
+import api from "@/lib/api";
 
 interface News {
   id: string;
@@ -70,6 +64,8 @@ export default function AdminNewsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   // Upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -91,15 +87,19 @@ export default function AdminNewsPage() {
     is_published: false
   });
 
-  const fetchNews = async () => {
+  const fetchNews = async (p = page) => {
     setLoading(true);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem("metro.access") : "";
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/admin/news/`, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setNews(res.data);
+      const res = await api.get("/admin/news/", {
+        params: { page: p }
+      });
+      if (res.data.results) {
+        setNews(res.data.results);
+        setTotalPages(res.data.total_pages || 1);
+      } else {
+        setNews(Array.isArray(res.data) ? res.data : []);
+        setTotalPages(1);
+      }
     } catch (err) {
       console.error("Fetch news failed:", err);
     } finally {
@@ -109,8 +109,7 @@ export default function AdminNewsPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/news/categories/`);
-      console.log(res.data);
+      const res = await api.get("/news/categories/");
       setCategories(res.data);
     } catch (err) {
       console.error("Fetch categories failed:", err);
@@ -118,9 +117,9 @@ export default function AdminNewsPage() {
   };
 
   useEffect(() => {
-    fetchNews();
+    fetchNews(page);
     fetchCategories();
-  }, []);
+  }, [page]);
 
   const handleOpenCreate = () => {
     setEditingItem(null);
@@ -185,17 +184,9 @@ export default function AdminNewsPage() {
       if (selectedFile) {
         const uploadFormData = new FormData();
         uploadFormData.append("file", selectedFile);
-        const token = typeof window !== 'undefined' ? localStorage.getItem("metro.access") : "";
-        const uploadRes = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/upload/`, 
-          uploadFormData, 
-          {
-            headers: { 
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+        const uploadRes = await api.post("/upload/", uploadFormData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
         finalThumbnailUrl = uploadRes.data.url;
       }
 
@@ -208,14 +199,10 @@ export default function AdminNewsPage() {
       };
 
       // 3. Save news
-      const token = typeof window !== 'undefined' ? localStorage.getItem("metro.access") : "";
-      const headers = { Authorization: `Bearer ${token}` };
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      
       if (editingItem) {
-        await axios.put(`${baseUrl}/admin/news/${editingItem.id}/`, payload, { headers });
+        await api.put(`/admin/news/${editingItem.id}/`, payload);
       } else {
-        await axios.post(`${baseUrl}/admin/news/create/`, payload, { headers });
+        await api.post("/admin/news/create/", payload);
       }
 
       setIsDialogOpen(false);
@@ -232,11 +219,7 @@ export default function AdminNewsPage() {
   const handleDelete = async () => {
     if (!itemToDelete) return;
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem("metro.access") : "";
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      await axios.delete(`${baseUrl}/admin/news/${itemToDelete.id}/`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/admin/news/${itemToDelete.id}/`);
       setIsDeleteDialogOpen(false);
       fetchNews();
     } catch (err) {
@@ -335,36 +318,45 @@ export default function AdminNewsPage() {
                       {format(new Date(item.created_at), "dd/MM/yyyy", { locale: vi })}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild>
-                             <a href={`/tin-tuc/${item.slug}`} target="_blank" className="cursor-pointer">
-                               <Eye className="mr-2 h-4 w-4" /> Xem thử
-                             </a>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleOpenEdit(item)}>
-                            <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-rose-600 focus:text-rose-600"
-                            onClick={() => handleOpenDelete(item)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          asChild
+                        >
+                          <a href={`/tin-tuc/${item.slug}`} target="_blank">
+                            <Eye className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          onClick={() => handleOpenEdit(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                          onClick={() => handleOpenDelete(item)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <Pagination 
+              currentPage={page} 
+              totalPages={totalPages} 
+              onPageChange={(p) => setPage(p)} 
+              className="mt-4 px-6"
+            />
           </div>
         </CardContent>
       </Card>
@@ -416,7 +408,7 @@ export default function AdminNewsPage() {
                   id="slug" 
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  placeholder="vd: khai-truong-metro-so-1"
+                  placeholder="ví dụ: khai-truong-metro-so-1"
                   required
                 />
               </div>

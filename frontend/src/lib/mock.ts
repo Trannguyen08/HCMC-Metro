@@ -18,6 +18,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '1',
     name: 'Chợ Bến Thành',
+    slug: 'cho-ben-thanh',
     type: 'service',
     address: 'Lê Lợi, P. Bến Thành',
     stationId: 'BT',
@@ -28,6 +29,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '2',
     name: 'New World Saigon Hotel',
+    slug: 'new-world',
     type: 'hotel',
     address: '76 Đường Lê Lai, Phường Bến Thành, Thành phố Hồ Chí Minh, Việt Nam',
     stationId: 'BT',
@@ -40,6 +42,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '3',
     name: 'Nhà hát Thành phố',
+    slug: 'nha-hat-tp',
     type: 'service',
     address: '7 Công Trường Lam Sơn',
     stationId: 'NHTP',
@@ -50,6 +53,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '4',
     name: 'The Coffee House',
+    slug: 'the-coffee-house',
     type: 'cafe',
     address: '86 Đường Cao Thắng, Quận 3',
     stationId: 'BT',
@@ -62,6 +66,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '5',
     name: 'Phúc Long Coffee & Tea',
+    slug: 'phuc-long',
     type: 'cafe',
     address: '42 Nguyễn Huệ, Quận 1',
     stationId: 'NHTP',
@@ -74,6 +79,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '6',
     name: 'Nhà hàng Ngon',
+    slug: 'nha-hang-ngon',
     type: 'restaurant',
     address: '160 Pasteur, Quận 3',
     stationId: 'BT',
@@ -86,6 +92,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '7',
     name: 'Vincom Center Bến Thành',
+    slug: 'vincom',
     type: 'shopping',
     address: '72 Lê Thánh Tôn, Quận 1',
     stationId: 'NHTP',
@@ -98,6 +105,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '8',
     name: 'Rex Hotel Saigon',
+    slug: 'rex-hotel',
     type: 'hotel',
     address: '141 Nguyễn Huệ, Quận 1',
     stationId: 'NHTP',
@@ -110,6 +118,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '9',
     name: 'Pizza 4P\'s Lê Thánh Tôn',
+    slug: 'pizza-4ps',
     type: 'restaurant',
     address: '8 Thủ Khoa Huân, Phường Bến Thành, Quận 1',
     stationId: 'BT',
@@ -122,6 +131,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '10',
     name: 'Saigon Centre',
+    slug: 'saigon-centre',
     type: 'shopping',
     address: '65 Lê Lợi, Phường Bến Thành, Quận 1',
     stationId: 'BT',
@@ -134,6 +144,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '11',
     name: 'Highlands Coffee',
+    slug: 'highlands',
     type: 'cafe',
     address: 'Tầng 1, Vincom Center, 72 Lê Thánh Tôn',
     stationId: 'NHTP',
@@ -146,6 +157,7 @@ export const MOCK_AMENITIES: Amenity[] = [
   {
     id: '12',
     name: 'Bưu điện Thành phố',
+    slug: 'buu-dien-tp',
     type: 'service',
     address: '2 Công Xã Paris, Bến Nghé, Quận 1',
     stationId: 'NHTP',

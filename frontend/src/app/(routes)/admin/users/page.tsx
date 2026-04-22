@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Pagination } from "@/components/admin/pagination";
 import api from "@/lib/api";
 
 interface User {
@@ -43,15 +44,26 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    fetchUsers(page);
+  }, [page]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (p = page) => {
+    setLoading(true);
     try {
-      const res = await api.get("/admin/users/");
-      setUsers(res.data);
+      const res = await api.get("/admin/users/", {
+        params: { page: p }
+      });
+      if (res.data.results) {
+        setUsers(res.data.results);
+        setTotalPages(res.data.total_pages || 1);
+      } else {
+        setUsers(Array.isArray(res.data) ? res.data : []);
+        setTotalPages(1);
+      }
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -183,6 +195,12 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
+            <Pagination 
+              currentPage={page} 
+              totalPages={totalPages} 
+              onPageChange={(p) => setPage(p)} 
+              className="mt-4"
+            />
           </div>
         </CardContent>
       </Card>

@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, hasHydrated } = useAuth();
+  const { user, isAuthenticated, hasHydrated, logout } = useAuth();
 
   React.useEffect(() => {
     if (!hasHydrated) return;
@@ -52,13 +52,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-screen bg-muted/30">
-      <aside className="fixed left-0 top-0 z-40 h-screen w-72 border-r bg-metro-blue text-white">
-        <div className="flex h-full flex-col px-3 py-4">
-          <Link href="/" className="mb-8 flex items-center px-4">
-            <span className="font-heading text-xl font-bold tracking-tighter text-white">
+      <aside className="fixed left-0 top-0 z-40 h-screen w-72 border-r bg-white text-slate-900 shadow-sm">
+        <div className="flex h-full flex-col px-3 py-6">
+          <Link href="/" className="mb-2 flex items-center px-4">
+            <span className="font-heading text-xl font-black tracking-tighter text-primary">
               HCMC METRO ADMIN
             </span>
           </Link>
+          
+          <div className="mx-4 mb-6 mt-4 h-px w-12 bg-slate-200" />
 
           <nav className="flex-1 space-y-1">
             {menuItems.map((item) => {
@@ -70,29 +72,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "group flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                    "group flex items-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 shadow-none",
                     active
-                      ? "bg-white/15 text-white"
-                      : "text-white/85 hover:bg-white/10 hover:text-white",
+                      ? "bg-primary text-white shadow-md shadow-primary/20"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-primary",
                   )}
                 >
                   <Icon
                     className={cn(
                       "mr-3 h-4 w-4",
-                      active ? "text-white" : "text-white/80",
+                      active ? "text-white" : "text-slate-400 group-hover:text-primary",
                     )}
                   />
                   {item.label}
-                  {active ? <ChevronRight className="ml-auto h-3 w-3" /> : null}
+                  {active ? <ChevronRight className="ml-auto h-3 w-3 animate-in fade-in slide-in-from-left-1 text-white" /> : null}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="mt-auto border-t border-white/15 pt-4">
+          <div className="mt-auto border-t border-slate-100 pt-6">
             <Button
               type="button"
-              className="w-full justify-start gap-2 bg-rose-600 text-white hover:bg-rose-700"
+              variant="outline"
+              className="w-full justify-center gap-2 border-primary/20 bg-white font-bold text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
               onClick={async () => {
                 await logout();
                 router.replace("/login");

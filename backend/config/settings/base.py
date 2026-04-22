@@ -24,6 +24,13 @@ for env_file in env_files:
     if env_file.exists():
         env.read_env(env_file)
 
+# ---------------------------------------------------------------------------
+# Database Configuration
+# ---------------------------------------------------------------------------
+DATABASES = {
+    "default": env.db("DATABASE_URL", default="postgres://postgres:postgres@db:5432/postgres")
+}
+
 SECRET_KEY = env("SECRET_KEY", default="change-me")
 
 # Default apps mapping
@@ -216,8 +223,8 @@ MAX_TOKENS = env.int("MAX_TOKENS", default=800)
 # ---------------------------------------------------------------------------
 # Celery Configuration
 # ---------------------------------------------------------------------------
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="amqp://guest:guest@localhost:5672//")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="amqp://guest:guest@rabbitmq:5672//")
+CELERY_RESULT_BACKEND = env("REDIS_URL", default="redis://redis:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

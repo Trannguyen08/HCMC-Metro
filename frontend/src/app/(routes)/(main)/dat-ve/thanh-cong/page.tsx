@@ -31,6 +31,7 @@ export default function BookingSuccessPage() {
   const [qrBase64, setQrBase64] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   const normalizedStatus = ticket?.status?.toLowerCase?.() ?? "";
   const canDownloadQr = normalizedStatus === "active" || normalizedStatus === "used" || normalizedStatus === "unused";
@@ -41,22 +42,34 @@ export default function BookingSuccessPage() {
     const fetchTicket = async () => {
       try {
         const token = localStorage.getItem("metro.access");
-        const ticketRes = await axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        setTicket(ticketRes.data);
-
-        const status = ticketRes.data?.status?.toLowerCase?.() ?? "";
-        const allowQr = status === "active" || status === "used" || status === "unused";
-
-        if (allowQr) {
-          const qrRes = await axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/qr/`, {
-            headers: { Authorization: `Bearer ${token}` }
+        try {
+          const ticketRes = await axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
           });
-          setQrBase64(qrRes.data.qr_base64 ?? null);
-        } else {
-          setQrBase64(null);
+          setTicket(ticketRes.data);
+          setIsPublic(false);
+
+          const status = ticketRes.data?.status?.toLowerCase?.() ?? "";
+          const allowQr = status === "active" || status === "used" || status === "unused";
+
+          if (allowQr) {
+            const qrRes = await axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/qr/`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            setQrBase64(qrRes.data.qr_base64 ?? null);
+          } else {
+            setQrBase64(null);
+          }
+        } catch (err: any) {
+          // If 401 or no token, try public info
+          if (err.response?.status === 401 || !token) {
+            const publicRes = await axios.get(`${API_BASE}/ticketing/my-tickets/${ticketId}/public-info/`);
+            setTicket(publicRes.data);
+            setIsPublic(true);
+            setQrBase64(null);
+          } else {
+            throw err;
+          }
         }
       } catch (err) {
         console.error("Failed to fetch ticket info", err);
@@ -122,7 +135,7 @@ export default function BookingSuccessPage() {
   }
 
   return (
-    <div className="container mx-auto py-12 px-4 max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="container mx-auto pt-4 pb-12 px-4 max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col items-center gap-6 mb-12 text-center">
         <div className="h-20 w-20 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm border-4 border-white">
           <CheckCircle2 className="h-10 w-10" />
@@ -196,25 +209,35 @@ export default function BookingSuccessPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center gap-4">
-                 <div className="p-4 bg-white border-2 border-slate-100 rounded-2xl shadow-inner">
-                    {canDownloadQr && qrBase64 ? (
-                      <img src={`data:image/png;base64,${qrBase64}`} alt="Ticket QR" className="w-48 h-48" />
-                    ) : (
-                      <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center p-4 text-center">
-                        <div className="space-y-2">
-                          <Ticket className="mx-auto h-10 w-10 text-slate-300" />
-                          <p className="text-xs text-slate-500">
-                            {canDownloadQr ? "Đang tải mã QR..." : "Trạng thái vé hiện tại không cho phép tải mã QR."}
-                          </p>
+               <div className="flex flex-col items-center gap-4">
+                  <div className="p-4 bg-white border-2 border-slate-100 rounded-2xl shadow-inner">
+                     {isPublic ? (
+                        <div className="w-48 h-48 bg-slate-50 rounded-lg flex flex-col items-center justify-center p-4 text-center gap-3">
+                           <Info className="h-8 w-8 text-amber-500" />
+                           <p className="text-xs font-medium text-slate-600">
+                             Vui lòng đăng nhập để xem và tải mã QR vé.
+                           </p>
+                           <Button size="sm" variant="outline" className="text-[10px] h-7" onClick={() => router.push('/login')}>
+                             Đăng nhập ngay
+                           </Button>
                         </div>
-                      </div>
-                    )}
-                 </div>
-                 <div className="text-[10px] font-mono text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-                   ID: {ticket.id}
-                 </div>
-              </div>
+                     ) : canDownloadQr && qrBase64 ? (
+                       <img src={`data:image/png;base64,${qrBase64}`} alt="Ticket QR" className="w-48 h-48" />
+                     ) : (
+                       <div className="w-48 h-48 bg-slate-100 rounded-lg flex items-center justify-center p-4 text-center">
+                         <div className="space-y-2">
+                           <Ticket className="mx-auto h-10 w-10 text-slate-300" />
+                           <p className="text-xs text-slate-500">
+                             {canDownloadQr ? "Đang tải mã QR..." : "Trạng thái vé hiện tại không cho phép tải mã QR."}
+                           </p>
+                         </div>
+                       </div>
+                     )}
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                    ID: {ticket.id}
+                  </div>
+               </div>
             </CardContent>
             
             <div className="bg-slate-50 border-t border-slate-100 p-6 flex justify-between items-center text-xs font-bold text-slate-400 uppercase tracking-widest">

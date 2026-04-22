@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.utils import ProgrammingError
+from django.core.cache import cache
 
 from apps.metro.models import Station
 from apps.payments.models import Payment
@@ -27,6 +28,7 @@ from apps.ticketing.tasks import (
 )
 from apps.users.models import UserCategory
 from core.permissions import IsAdminUser
+from core.pagination import StandardResultsSetPagination, ProfileResultsSetPagination
 
 
 class TicketTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -161,10 +163,27 @@ class MyTicketViewSet(viewsets.ReadOnlyModelViewSet):
 
     serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = ProfileResultsSetPagination
 
     def get_queryset(self):
         BookingService.expire_outdated_tickets()
         return Ticket.objects.filter(user=self.request.user).order_by("-created_at")
+
+    @action(detail=True, methods=["get"], url_path="public-info", permission_classes=[permissions.AllowAny])
+    def public_info(self, request, pk=None):
+        """Show limited ticket info for the success page without login."""
+        ticket = get_object_or_404(Ticket, id=pk)
+        return Response({
+            "id": ticket.id,
+            "ticket_type_name": ticket.ticket_type.name,
+            "from_station_details": StationSummarySerializer(ticket.from_station).data if ticket.from_station else None,
+            "to_station_details": StationSummarySerializer(ticket.to_station).data if ticket.to_station else None,
+            "status": ticket.status,
+            "valid_from": ticket.valid_from,
+            "valid_until": ticket.valid_until,
+            "price_paid": ticket.price_paid,
+            "created_at": ticket.created_at,
+        })
 
     @action(detail=True, methods=["get"], url_path="qr")
     def get_qr(self, request, pk=None):
@@ -194,13 +213,32 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all().order_by("-created_at")
     serializer_class = TicketSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         BookingService.expire_outdated_tickets()
         return Ticket.objects.all().order_by("-created_at")
 
+    def list(self, request, *args, **kwargs):
+        page = request.query_params.get('page', 1)
+        cache_key = f"admin_tickets_list:page_{page}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        # Cache for 5 minutes
+        cache.set(cache_key, response.data, timeout=300)
+        return response
+
     @action(detail=False, methods=["post"], url_path="scan")
     def scan_ticket(self, request):
+        # Invalidate ticket list cache
+        # We delete up to 50 pages to be safe, or we could use a versioning system.
+        # For simplicity, we'll clear the primary cache keys.
+        for i in range(1, 51):
+            cache.delete(f"admin_tickets_list:page_{i}")
+
         serializer = AdminTicketScanSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -212,18 +250,38 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
             ticket = Ticket.objects.filter(id=ticket_id).select_related("ticket_type").first()
         elif qr_data:
             parsed_id = None
+            raw_data = qr_data.strip()
+            
+            # 1. Try parsing as JSON
             try:
                 import json
-
-                payload = json.loads(qr_data)
+                payload = json.loads(raw_data)
                 parsed_id = payload.get("ticket_id")
             except Exception:
-                parsed_id = None
+                pass
+
+            # 2. Try parsing raw_data (or stripped QR-) as UUID
+            if not parsed_id:
+                candidate = raw_data
+                if candidate.upper().startswith("QR-"):
+                    candidate = candidate[3:]
+                
+                try:
+                    import uuid
+                    # Try to parse. uuid.UUID handles hex strings with or without hyphens.
+                    val = uuid.UUID(candidate)
+                    parsed_id = str(val)
+                except (ValueError, AttributeError):
+                    parsed_id = None
 
             if parsed_id:
                 ticket = Ticket.objects.filter(id=parsed_id).select_related("ticket_type").first()
-            else:
-                ticket = Ticket.objects.filter(qr_code=qr_data).select_related("ticket_type").first()
+            
+            # 3. Final fallback: exact string match on qr_code field
+            if not ticket:
+                ticket = Ticket.objects.filter(qr_code=raw_data).select_related("ticket_type").first()
+            if not ticket and raw_data.upper().startswith("QR-"):
+                 ticket = Ticket.objects.filter(qr_code=raw_data.upper()).select_related("ticket_type").first()
 
         scanned_at = timezone.now()
         scanned_by = getattr(request, "user", None) if getattr(request, "user", None) and request.user.is_authenticated else None

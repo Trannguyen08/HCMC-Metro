@@ -5,9 +5,6 @@ import { ArrowUpRight, Clock3, MapPin, Navigation, Star, TrainFront } from "luci
 import { TYPE_COLORS, TYPE_LABELS } from "@/features/metro/constants/amenity";
 import { formatDistance } from "@/features/metro/utils/amenity";
 import { Amenity } from "@/types/amenity";
-import { TYPE_COLORS, TYPE_LABELS } from "@/features/metro/constants/amenity";
-import { formatDistance } from "@/features/metro/utils/amenity";
-import { Amenity } from "@/types/amenity";
 import { cn } from "@/lib/utils";
 
 interface AmenityCardProps {

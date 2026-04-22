@@ -16,7 +16,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { StationSelect } from "../StationSelect";
-import { type MetroStation, type TicketType } from "@/lib/mock-data";
+import { type MetroStation, type TicketType, METRO_STATIONS } from "@/lib/mock-data";
 
 function todayISO() {
   const d = new Date();
@@ -65,7 +65,7 @@ export function QuickBooking() {
           <div className="md:col-span-3">
             <Label>Ga đi</Label>
             <div className="mt-1">
-              <StationSelect value={from} onChange={setFrom} placeholder="Chọn ga đi" />
+              <StationSelect value={from} onChange={setFrom} stations={[...METRO_STATIONS]} placeholder="Chọn ga đi" />
             </div>
           </div>
 
@@ -85,7 +85,7 @@ export function QuickBooking() {
           <div className="md:col-span-3">
             <Label>Ga đến</Label>
             <div className="mt-1">
-              <StationSelect value={to} onChange={setTo} placeholder="Chọn ga đến" />
+              <StationSelect value={to} onChange={setTo} stations={[...METRO_STATIONS]} placeholder="Chọn ga đến" />
             </div>
           </div>
 

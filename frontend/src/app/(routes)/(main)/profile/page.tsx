@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import * as React from "react";
@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import api from "@/services/api-client";
+import { Pagination } from "@/components/admin/pagination";
 
 type TicketItem = {
   id: string;
@@ -102,6 +103,8 @@ export default function ProfilePage() {
   const [loadingTickets, setLoadingTickets] = React.useState(false);
   const [qrByTicket, setQrByTicket] = React.useState<Record<string, string>>({});
   const [actingTicketId, setActingTicketId] = React.useState<string | null>(null);
+  const [page, setPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
 
   const [oldPassword, setOldPassword] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
@@ -136,46 +139,59 @@ export default function ProfilePage() {
     setPhone(user?.phone ?? "");
   }, [user]);
 
-  React.useEffect(() => {
+  const loadProfile = React.useCallback(async () => {
     if (!isAuthenticated) return;
-
-    const load = async () => {
-      const accessToken = typeof window !== "undefined" ? localStorage.getItem("metro.access") : null;
-      if (!accessToken) {
+    try {
+      const meRes = await api.get("/auth/me/");
+      const me = meRes.data;
+      updateProfile({
+        full_name: me.full_name,
+        email: me.email,
+        phone: me.phone,
+        date_of_birth: me.date_of_birth,
+        avatar_url: me.avatar_url,
+        email_verified: me.email_verified,
+        is_admin: me.is_admin,
+      });
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
         await logout();
-        return;
       }
-
-      setLoadingTickets(true);
-      try {
-        const meRes = await api.get("/auth/me/");
-        const ticketsRes = await api.get("/ticketing/my-tickets/");
-        const me = meRes.data;
-        updateProfile({
-          full_name: me.full_name,
-          email: me.email,
-          phone: me.phone,
-          date_of_birth: me.date_of_birth,
-          avatar_url: me.avatar_url,
-          email_verified: me.email_verified,
-          is_admin: me.is_admin,
-        });
-
-        const ticketData = ticketsRes.data?.results || ticketsRes.data || [];
-        setTickets(Array.isArray(ticketData) ? ticketData : []);
-      } catch (err: any) {
-        if (err?.response?.status === 401) {
-          await logout();
-          return;
-        }
-        console.error("Failed to load profile tickets", err);
-      } finally {
-        setLoadingTickets(false);
-      }
-    };
-
-    load();
+      console.error("Failed to load profile", err);
+    }
   }, [isAuthenticated, updateProfile, logout]);
+
+  React.useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const loadTickets = React.useCallback(async (p = page) => {
+    if (!isAuthenticated) return;
+    setLoadingTickets(true);
+    try {
+      const res = await api.get("/ticketing/my-tickets/", {
+        params: { page: p }
+      });
+      const data = res.data;
+      if (data.results) {
+        setTickets(data.results);
+        setTotalPages(data.total_pages || 1);
+      } else {
+        setTickets(Array.isArray(data) ? data : []);
+        setTotalPages(1);
+      }
+    } catch (err: any) {
+      console.error("Failed to load tickets", err);
+    } finally {
+      setLoadingTickets(false);
+    }
+  }, [isAuthenticated, page]);
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      loadTickets(page);
+    }
+  }, [isAuthenticated, page, loadTickets]);
 
   const activeTickets = React.useMemo(
     () => tickets.filter((t) => t.status === "active"),
@@ -368,7 +384,7 @@ export default function ProfilePage() {
                                   onClick={() => continuePayment(ticket.id)}
                                   disabled={actingTicketId === ticket.id}
                                 >
-                                  {"Ti\u1ebfp t\u1ee5c thanh to\u00e1n"}
+                                  {"Thanh toán"}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -377,7 +393,7 @@ export default function ProfilePage() {
                                   onClick={() => cancelTicket(ticket.id)}
                                   disabled={actingTicketId === ticket.id}
                                 >
-                                  {"H\u1ee7y v\u00e9"}
+                                  {"Hủy vé"}
                                 </Button>
                               </div>
                             ) : ticket.status === "cancelled" ? (
@@ -389,7 +405,7 @@ export default function ProfilePage() {
                                 className={`h-auto rounded-full px-3 py-1 text-xs font-semibold ${getDetailActionClass(ticket.status)}`}
                                 onClick={() => router.push(`/dat-ve/thanh-cong?id=${ticket.id}`)}
                               >
-                                {"Xem chi ti\u1ebft"}
+                                {"Xem chi tiết"}
                               </Button>
                             )}
                           </td>
@@ -398,6 +414,12 @@ export default function ProfilePage() {
                     </tbody>
                   </table>
                 </div>
+                <Pagination 
+                  currentPage={page} 
+                  totalPages={totalPages} 
+                  onPageChange={(p) => setPage(p)} 
+                  className="mt-4"
+                />
               )}
             </CardContent>
           </Card>

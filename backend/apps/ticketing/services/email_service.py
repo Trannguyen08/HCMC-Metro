@@ -24,12 +24,7 @@ class TicketEmailService:
         import io
         import json
         
-        qr_data = json.dumps({
-            "ticket_id": str(ticket.id),
-            "user_id": str(ticket.user_id),
-            "type": ticket.ticket_type.name,
-            "valid_until": str(ticket.valid_until)
-        })
+        qr_data = str(ticket.id)
         
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(qr_data)
@@ -56,10 +51,16 @@ class TicketEmailService:
         # For simplicity in this demo, we'll use a direct HTML string. 
         # In a real app, use render_to_string('emails/ticket.html', context)
         html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
-            <h2 style="color: #0055A5; text-align: center;">HCMC Metro - Vé Điện Tử</h2>
-            <p>Xin chào <strong>{context['user_name']}</strong>,</p>
-            <p>Cảm ơn bạn đã đặt vé trên hệ thống HCMC Metro. Dưới đây là thông tin vé của bạn:</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="margin: 0; padding: 0;">
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+                <h2 style="color: #0055A5; text-align: center;">HCMC Metro - Vé Điện Tử</h2>
+                <p>Xin chào <strong>{context['user_name']}</strong>,</p>
+                <p>Cảm ơn bạn đã đặt vé trên hệ thống HCMC Metro. Dưới đây là thông tin vé của bạn:</p>
             
             <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                 <tr>
@@ -90,10 +91,12 @@ class TicketEmailService:
                 <p style="font-size: 12px; color: #666; margin-top: 10px;">Mã QR: {ticket.qr_code or 'N/A'}</p>
             </div>
             
-            <p style="margin-top: 30px; font-size: 14px; text-align: center; color: #666;">
-                Chúc bạn có một chuyến đi an toàn và thoải mái cùng HCMC Metro!
-            </p>
-        </div>
+                <p style="margin-top: 30px; font-size: 14px; text-align: center; color: #666;">
+                    Chúc bạn có một chuyến đi an toàn và thoải mái cùng HCMC Metro!
+                </p>
+            </div>
+        </body>
+        </html>
         """
         
         text_content = strip_tags(html_content)
@@ -132,18 +135,26 @@ class TicketEmailService:
         scan_time_str = timezone.localtime(timezone.now()).strftime('%H:%M:%S ngày %d/%m/%Y')
         
         html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
-            <h2 style="color: #0055A5; text-align: center;">HCMC Metro - Thông báo quét vé</h2>
-            <p>Xin chào <strong>{user.full_name}</strong>,</p>
-            <p>Tuyệt vời! Vé của bạn vừa được quét thành công qua hệ thống cổng kiểm soát vào lúc <strong>{scan_time_str}</strong>.</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="margin: 0; padding: 0;">
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+                <h2 style="color: #0055A5; text-align: center;">HCMC Metro - Thông báo quét vé</h2>
+                <p>Xin chào <strong>{user.full_name}</strong>,</p>
+                <p>Tuyệt vời! Vé của bạn vừa được quét thành công qua hệ thống cổng kiểm soát vào lúc <strong>{scan_time_str}</strong>.</p>
             <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <p style="margin: 5px 0;"><strong>Loại vé:</strong> {ticket.ticket_type.name}</p>
                 <p style="margin: 5px 0;"><strong>Hành trình:</strong> {from_st} &rarr; {to_st}</p>
                 <p style="margin: 5px 0;"><strong>Thời gian quét:</strong> {scan_time_str}</p>
                 <p style="margin: 5px 0; font-size: 12px; color: #666;"><strong>Mã vé:</strong> {str(ticket.id)}</p>
             </div>
-            <p>Chúc bạn có một chuyến đi thuận lợi và an toàn cùng HCMC Metro!</p>
-        </div>
+                <p>Chúc bạn có một chuyến đi thuận lợi và an toàn cùng HCMC Metro!</p>
+            </div>
+        </body>
+        </html>
         """
         text_content = strip_tags(html_content)
         
@@ -175,10 +186,16 @@ class TicketEmailService:
         scan_time_str = timezone.localtime(timezone.now()).strftime('%H:%M:%S ngày %d/%m/%Y')
         
         html_content = f"""
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
-            <h2 style="color: #DC2626; text-align: center;">HCMC Metro - Vé hết lượt sử dụng</h2>
-            <p>Xin chào <strong>{user.full_name}</strong>,</p>
-            <p>Vé của bạn đã được sử dụng hết số lượt quy định tại thời điểm <strong>{scan_time_str}</strong> và hiện không còn giá trị để qua cổng kiểm soát nửa.</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="margin: 0; padding: 0;">
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px;">
+                <h2 style="color: #DC2626; text-align: center;">HCMC Metro - Vé hết lượt sử dụng</h2>
+                <p>Xin chào <strong>{user.full_name}</strong>,</p>
+                <p>Vé của bạn đã được sử dụng hết số lượt quy định tại thời điểm <strong>{scan_time_str}</strong> và hiện không còn giá trị để qua cổng kiểm soát nữa.</p>
             <div style="background-color: #ffeaea; padding: 15px; border-radius: 5px; margin: 20px 0;">
                 <p style="margin: 5px 0;"><strong>Loại vé:</strong> {ticket.ticket_type.name}</p>
                 <p style="margin: 5px 0;"><strong>Hành trình:</strong> {from_st} &rarr; {to_st}</p>
@@ -186,10 +203,12 @@ class TicketEmailService:
                 <p style="margin: 5px 0; font-size: 12px; color: #666;"><strong>Mã vé:</strong> {str(ticket.id)}</p>
             </div>
             <p>Cảm ơn bạn đã đồng hành cùng HCMC Metro. Vui lòng mua vé mới cho những chuyến đi tiếp theo của bạn.</p>
-            <div style="text-align: center; margin-top: 20px;">
-                <a href="https://hcmc-metro.com/" style="display: inline-block; padding: 10px 20px; background-color: #0055A5; color: white; text-decoration: none; border-radius: 5px;">Mua vé mới ngay</a>
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="https://hcmc-metro.com/" style="display: inline-block; padding: 10px 20px; background-color: #0055A5; color: white; text-decoration: none; border-radius: 5px;">Mua vé mới ngay</a>
+                </div>
             </div>
-        </div>
+        </body>
+        </html>
         """
         text_content = strip_tags(html_content)
         
