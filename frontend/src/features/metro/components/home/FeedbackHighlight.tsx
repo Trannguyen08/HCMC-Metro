@@ -6,7 +6,7 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight, Quote, Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import api from "@/services/api-client";
+import api from "@/lib/api";
 
 export function FeedbackHighlight() {
   const [feedbacks, setFeedbacks] = React.useState<any[]>([]);

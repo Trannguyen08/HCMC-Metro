@@ -6,7 +6,7 @@ import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import api from "@/services/api-client";
+import api from "@/lib/api";
 
 export default function PaymentReturnPage() {
   const router = useRouter();

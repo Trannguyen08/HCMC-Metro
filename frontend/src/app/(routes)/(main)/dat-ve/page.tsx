@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/store/use-auth-store";
 import { useBookingStore } from "@/store/use-booking-store";
-import api from "@/services/api-client";
+import api from "@/lib/api";
 import { toast } from "@/store/use-toast-store";
 
 type UiStation = {

@@ -1,1 +1,0 @@
-Placeholder file created only to satisfy tool-enforced completion checks after repository access failed. No project changes were possible because backend inspection tools did not work.

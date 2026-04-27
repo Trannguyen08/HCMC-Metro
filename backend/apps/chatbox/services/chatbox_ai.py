@@ -4,11 +4,11 @@ Dùng thư viện `requests` (đã có trong requirements.txt) để gọi Groq 
 """
 import json
 import logging
-import os
 import re
 import time
 
 import requests
+from django.conf import settings
 
 from apps.chatbox.config.blocklist import OUTPUT_SENSITIVE_KEYWORDS
 from apps.chatbox.config.system_prompt import METRO_SYSTEM_PROMPT
@@ -16,11 +16,11 @@ from apps.metro.models import Station, MetroLine
 
 logger = logging.getLogger(__name__)
 
-# Cấu hình AI từ environment
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+# Cấu hình AI từ Django settings (configured via .env)
+GROQ_API_KEY = settings.GROQ_API_KEY
+GROQ_MODEL = settings.GROQ_MODEL
 # Tăng giới hạn token để trả lời đầy đủ
-MAX_TOKENS = int(os.environ.get("MAX_TOKENS", "1024"))
+MAX_TOKENS = settings.MAX_TOKENS
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 

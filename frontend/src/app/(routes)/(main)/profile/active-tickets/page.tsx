@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { QrCode } from "lucide-react";
-import api from "@/services/api-client";
+import api from "@/lib/api";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
