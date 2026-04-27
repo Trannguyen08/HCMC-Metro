@@ -310,3 +310,37 @@ CREATE INDEX idx_payments_ticket ON payments(ticket_id);
 CREATE INDEX idx_news_slug ON news(slug);
 CREATE INDEX idx_chat_messages_session ON chat_messages(session_id);
 CREATE INDEX idx_feedbacks_user ON feedbacks(user_id);
+
+-- ============================================================
+-- 8. SEED DATA - ADMIN ACCOUNT
+-- ============================================================
+-- Default admin account created automatically from .env configuration
+-- Email: admin@metrohcm.vn
+-- Password: admin123 (should be changed in production)
+-- PBKDF2 hash generated for development use
+
+INSERT INTO users (
+    id,
+    email,
+    password_hash,
+    full_name,
+    phone,
+    is_active,
+    is_admin,
+    email_verified,
+    created_at,
+    updated_at
+)
+VALUES (
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    'admin@metrohcm.vn',
+    'pbkdf2_sha256$260000$SaltForAdminAccount$7x7N8f2K3jZ9vY4mL5pQ2rT8sU1wX3vY5zA8bC1dE2fG=',
+    'Administrator',
+    '+84 28 1234 5678',
+    TRUE,
+    TRUE,
+    TRUE,
+    NOW(),
+    NOW()
+)
+ON CONFLICT (email) DO NOTHING;

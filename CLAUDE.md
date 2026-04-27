@@ -33,7 +33,8 @@ Start here before reading source. This file is the short operational memory for 
 - News: `frontend/src/features/news/*`
 - Auth: `frontend/src/features/auth/*`
 - Shared UI: `frontend/src/components/ui/*`
-- Current auth consumption path: `frontend/src/features/auth/hooks/use-auth.ts` -> Zustand store
+- Current auth consumption path: `frontend/src/features/auth/hooks/use-auth.ts` → Zustand store (sole auth mechanism)
+- API client: `frontend/src/lib/api.ts` (single source of truth)
 
 ## Backend modules
 
@@ -59,16 +60,12 @@ Start here before reading source. This file is the short operational memory for 
 
 ## Important gotchas
 
-- There are duplicate client utilities:
-  - `frontend/src/services/api-client.ts`
-  - `frontend/src/lib/api.ts`
 - There are duplicate auth approaches:
   - active: Zustand store
-  - older: `frontend/src/lib/auth.tsx`
+  - older (removed): `frontend/src/lib/auth.tsx`
 - Frontend refresh flow calls `/auth/login/refresh/`, but backend does not expose that route today.
 - Backend permissions often use `request.auth.payload["user_id"]`, not `request.user`.
 - Public DRF endpoints must opt out of global auth with `AllowAny`.
-- `backend/apps/metro/views/aminity.py` is misspelled but active.
 
 ## Read only what you need
 

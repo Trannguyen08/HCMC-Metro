@@ -1,4 +1,4 @@
-import api from "@/services/api-client";
+import api from "@/lib/api";
 import { Feedback, CreateFeedbackData, FeedbackStatus } from "../types";
 
 export const feedbackService = {

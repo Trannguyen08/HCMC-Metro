@@ -1,4 +1,4 @@
-import api from "@/services/api-client";
+import api from "@/lib/api";
 import axios from "axios";
 import { AuthUser, LoginResponse, RegisterResponse } from "../types";
 

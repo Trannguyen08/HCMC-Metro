@@ -1,6 +1,6 @@
 ﻿// src/features/metro/services/amenityService.ts
 
-import api from '@/services/api-client';
+import api from '@/lib/api';
 import { Amenity, AmenitiesResponse, MetroStation, AmenityFilters } from '../../../types/amenity';
 import { MOCK_AMENITIES, MOCK_STATIONS } from '../../../lib/mock';
 import { buildAmenityDetail } from '../utils/amenity';

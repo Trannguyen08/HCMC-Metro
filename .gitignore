@@ -2,7 +2,8 @@
 .env
 .env.local
 .env.*.local
-.env.example
+# .env.example is COMMITTED to git as a template for developers
+# DO NOT add .env.example to this ignore list
 
 ### Python
 __pycache__/

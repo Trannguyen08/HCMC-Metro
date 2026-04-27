@@ -1,4 +1,4 @@
-import api from "@/services/api-client";
+import api from "@/lib/api";
 
 import { resolveMediaUrl } from "../utils";
 import { News, NewsCategory } from "../types";

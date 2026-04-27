@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { feedbackService } from "../services/feedback-service";
 import { FeedbackType, Train } from "../types";
-import api from "@/services/api-client";
+import api from "@/lib/api";
 import { toast } from "@/store/use-toast-store";
 
 export function FeedbackForm({ onSuccess }: { onSuccess?: () => void }) {
