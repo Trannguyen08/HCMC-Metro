@@ -96,13 +96,6 @@ export const AmenityCard: React.FC<AmenityCardProps> = ({ amenity, onClick }) =>
             </span>
           </div>
         </div>
-
-        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
-          <span className="font-medium text-slate-900">Xem chi tiết</span>
-          <span className="text-slate-400 transition-colors group-hover:text-[#0055A5]">
-            Phù hợp khi đi metro
-          </span>
-        </div>
       </div>
     </Link>
   );

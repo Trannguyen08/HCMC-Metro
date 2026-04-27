@@ -1,23 +1,32 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Popup, useMap, useMapEvents, Tooltip } from "react-leaflet";
+import { useEffect, useRef, useState } from "react";
+import {
+  CircleMarker,
+  MapContainer,
+  Marker,
+  Polyline,
+  Popup,
+  TileLayer,
+  Tooltip,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
-import { AmenityMap, BusStopCacheMap, MapInitData, StationMap } from "@/types/map";
-import { MapService } from "../../services/MapService";
-import { SearchBar } from "./SearchBar";
-import { FilterBar } from "./FilterBar";
-import { AmenityPopup } from "./AmenityPopup"; 
 
-// Fix Leaflet Default Icon issue in Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+import { AmenityMap, BusStopMap, MapInitData, StationMap } from "@/types/map";
+import { MapService } from "../../services/MapService";
+import { FilterBar } from "./FilterBar";
+import { AmenityPopup } from "./AmenityPopup";
+import { BusStopPopup } from "./BusStopPopup";
+
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Helpers
 const AMENITY_ICONS: Record<string, { color: string; path: string }> = {
   cafe: {
     color: "#D97706",
@@ -47,58 +56,88 @@ const createAmenityIcon = (categorySlug: string) => {
     path: '<circle cx="12" cy="12" r="10"/>',
   };
 
-  const html = `
-    <div style="
-      background-color: ${config.color};
-      width: 32px;
-      height: 32px;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    ">
-      <svg xmlns="http://www.w3.org/2000/svg" 
-           viewBox="0 0 24 24" 
-           fill="none" 
-           stroke="white" 
-           stroke-width="2" 
-           stroke-linecap="round" 
-           stroke-linejoin="round"
-           style="transform: rotate(45deg); width: 18px; height: 18px;">
-        ${config.path}
-      </svg>
-    </div>
-  `;
-
   return L.divIcon({
-    html,
+    html: `
+      <div style="
+        background-color: ${config.color};
+        width: 32px;
+        height: 32px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          style="transform: rotate(45deg); width: 18px; height: 18px;">
+          ${config.path}
+        </svg>
+      </div>
+    `,
     className: "",
     iconSize: [32, 32],
-    iconAnchor: [16, 32], // Anchor at the tip of the "pin"
+    iconAnchor: [16, 32],
   });
 };
 
-const busIcon = L.divIcon({
-  html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0891B2" stroke="white" stroke-width="1.5"><path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/></svg>`,
-  className: '',
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
+const createBusIcon = (color: string, glow = false) =>
+  L.divIcon({
+    html: `
+      <div style="
+        background-color: ${color};
+        width: 32px;
+        height: 32px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg) ${glow ? "scale(1.12)" : ""};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        box-shadow: ${glow ? "0 0 14px rgba(8,145,178,0.5)" : "0 2px 4px rgba(0,0,0,0.3)"};
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          style="transform: rotate(45deg); width: 18px; height: 18px;">
+          <path d="M8 6v6"/>
+          <path d="M15 6v6"/>
+          <path d="M2 12h19.6"/>
+          <path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/>
+          <circle cx="7" cy="18" r="2"/>
+          <path d="M9 18h5"/>
+          <circle cx="16" cy="18" r="2"/>
+        </svg>
+      </div>
+    `,
+    className: "",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+  });
 
-// A component to catch map movement
+const busIcon = createBusIcon("#0891B2");
+const busIconActive = createBusIcon("#06B6D4", true);
+
 function MapEvents({ onBoundsChanged }: { onBoundsChanged: (bounds: L.LatLngBounds) => void }) {
   useMapEvents({
-    moveend: (e: L.LeafletEvent) => {
-      onBoundsChanged(e.target.getBounds());
-    }
+    moveend: (event: L.LeafletEvent) => {
+      onBoundsChanged(event.target.getBounds());
+    },
   });
   return null;
 }
 
-// A component to pan map
 function MapController({ center }: { center?: [number, number] }) {
   const map = useMap();
   useEffect(() => {
@@ -113,150 +152,148 @@ export default function DigitalMapClient() {
   const [initData, setInitData] = useState<MapInitData | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [amenities, setAmenities] = useState<AmenityMap[]>([]);
-  const [busStops, setBusStops] = useState<BusStopCacheMap[]>([]);
-  
+  const [busStops, setBusStops] = useState<BusStopMap[]>([]);
   const [selectedStation, setSelectedStation] = useState<StationMap | null>(null);
-  const [selectedAmenity, setSelectedAmenity] = useState<AmenityMap | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
+  const [refreshTick, setRefreshTick] = useState(0);
   const boundsRef = useRef<L.LatLngBounds | null>(null);
 
   useEffect(() => {
     let active = true;
-    MapService.getInitData().then(data => {
-      if (active) setInitData(data);
+    MapService.getInitData().then((data) => {
+      if (active) {
+        setInitData(data);
+      }
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
     if (!initData) return;
-    
-    let debounceTimer = setTimeout(async () => {
+
+    const timer = setTimeout(async () => {
       try {
+        if (selectedCategory === "bus") {
+          setAmenities([]);
+          return;
+        }
+
         const bounds = boundsRef.current;
         const sw = bounds?.getSouthWest();
         const ne = bounds?.getNorthEast();
-        
+
         const data = await MapService.getAmenities({
           category: selectedCategory,
+          station: selectedStation?.code,
           sw_lat: sw?.lat,
           sw_lng: sw?.lng,
           ne_lat: ne?.lat,
           ne_lng: ne?.lng,
-          station: selectedStation ? selectedStation.code : undefined
         });
         setAmenities(data);
-      } catch (err) {
-        console.error("Failed to fetch amenities", err);
+      } catch (error) {
+        console.error("Failed to fetch amenities", error);
       }
-    }, 500);
+    }, 350);
 
-    return () => clearTimeout(debounceTimer);
-  }, [selectedCategory, selectedStation, initData, boundsRef.current]);
+    return () => clearTimeout(timer);
+  }, [initData, refreshTick, selectedCategory, selectedStation]);
 
   useEffect(() => {
-    if (!selectedStation) {
-      setBusStops([]);
-      return;
-    }
-    
-    MapService.getBusStops(selectedStation.id).then(stops => {
-      setBusStops(stops);
-    });
-    
-    if (selectedStation.latitude && selectedStation.longitude) {
+    if (!initData) return;
+
+    const bounds = boundsRef.current;
+    const sw = bounds?.getSouthWest();
+    const ne = bounds?.getNorthEast();
+
+    MapService.getBusStops({
+      station: selectedStation?.code,
+      sw_lat: sw?.lat,
+      sw_lng: sw?.lng,
+      ne_lat: ne?.lat,
+      ne_lng: ne?.lng,
+    })
+      .then((stops) => {
+        setBusStops(stops);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch bus stops", error);
+      });
+  }, [initData, refreshTick, selectedStation]);
+
+  useEffect(() => {
+    if (selectedStation?.latitude && selectedStation?.longitude) {
       setMapCenter([Number(selectedStation.latitude), Number(selectedStation.longitude)]);
     }
   }, [selectedStation]);
 
-
   const handleBoundsChanged = (bounds: L.LatLngBounds) => {
     boundsRef.current = bounds;
-    // We force re-render by calling a dummy state or just rely on ref 
-    // In strict react, we might want to store bounds object in state but it causes too many renders.
-    // Instead we can use a small counter or just let it be if we want it to trigger the effect.
-    // However, since `useEffect` deps has `boundsRef.current`, it won't retrigger unless state changes.
-    // Let's use a small counter to trigger refresh
-    setRefreshTick(t => t + 1);
+    setRefreshTick((value) => value + 1);
   };
-  const [refreshTick, setRefreshTick] = useState(0);
 
   const handleStationClick = (station: StationMap) => {
     setSelectedStation(station);
-    setSelectedAmenity(null);
-  };
-
-  const handleAmenityClick = (amenity: AmenityMap) => {
-    setSelectedAmenity(amenity);
-    if (amenity.latitude && amenity.longitude) {
-      setMapCenter([Number(amenity.latitude), Number(amenity.longitude)]);
-    }
   };
 
   if (!initData) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex h-full w-full items-center justify-center bg-slate-50">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
       </div>
     );
   }
 
-  // HCM Center
   const defaultCenter: [number, number] = [10.795, 106.74];
 
   return (
-    <div className="relative w-full h-[calc(100vh-80px)] overflow-hidden bg-slate-50">
-      
-      <FilterBar 
-        categories={initData.categories} 
-        selectedCategory={selectedCategory} 
-        onSelectCategory={setSelectedCategory} 
+    <div className="relative h-[calc(100vh-80px)] w-full overflow-hidden bg-slate-50">
+      <FilterBar
+        categories={initData.categories}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
       />
-      
-      <SearchBar onSelectStation={handleStationClick} />
 
-      <MapContainer 
-        center={defaultCenter} 
-        zoom={13} 
-        style={{ height: '100%', width: '100%', zIndex: 0 }}
-        zoomControl={true}
+      <MapContainer
+        center={defaultCenter}
+        zoom={13}
+        style={{ height: "100%", width: "100%", zIndex: 0 }}
+        zoomControl
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
 
         <MapEvents onBoundsChanged={handleBoundsChanged} />
-        {mapCenter && <MapController center={mapCenter} />}
+        {mapCenter ? <MapController center={mapCenter} /> : null}
 
-        {/* Lines */}
-        {initData.lines.map(line => {
+        {initData.lines.map((line) => {
           if (!line.geojson_coordinates) return null;
-          const positions: [number, number][] = line.geojson_coordinates.map(c => [c[1], c[0]]);
+          const positions: [number, number][] = line.geojson_coordinates.map((coordinate) => [coordinate[1], coordinate[0]]);
           return (
             <div key={line.id}>
-              {/* Glow */}
-              <Polyline 
-                positions={positions} 
-                pathOptions={{ color: line.color_hex || '#0066CC', weight: (line.stroke_weight || 5) + 4, opacity: 0.3 }} 
+              <Polyline
+                positions={positions}
+                pathOptions={{ color: line.color_hex || "#0066CC", weight: (line.stroke_weight || 5) + 4, opacity: 0.3 }}
               />
-              {/* Main Line */}
-              <Polyline 
-                positions={positions} 
-                pathOptions={{ color: line.color_hex || '#0066CC', weight: line.stroke_weight || 5 }} 
+              <Polyline
+                positions={positions}
+                pathOptions={{ color: line.color_hex || "#0066CC", weight: line.stroke_weight || 5 }}
               />
             </div>
           );
         })}
 
-        {/* Stations */}
-        {initData.stations.map(station => {
+        {initData.stations.map((station) => {
           if (!station.latitude || !station.longitude) return null;
           return (
             <CircleMarker
               key={station.id}
               center={[Number(station.latitude), Number(station.longitude)]}
-              pathOptions={{ fillColor: '#ffffff', fillOpacity: 1, color: '#0055A5', weight: 3 }}
+              pathOptions={{ fillColor: "#ffffff", fillOpacity: 1, color: "#0055A5", weight: 3 }}
               radius={6}
               eventHandlers={{ click: () => handleStationClick(station) }}
             >
@@ -267,15 +304,17 @@ export default function DigitalMapClient() {
           );
         })}
 
-        {/* Bus Stops */}
-        {busStops.map(stop => {
+        {busStops.map((stop) => {
           if (!stop.latitude || !stop.longitude) return null;
           return (
             <Marker
               key={stop.id}
               position={[Number(stop.latitude), Number(stop.longitude)]}
-              icon={busIcon}
+              icon={selectedCategory === "bus" ? busIconActive : busIcon}
             >
+              <Popup closeButton minWidth={300} className="amenity-custom-popup">
+                <BusStopPopup stop={stop} />
+              </Popup>
               <Tooltip direction="top" offset={[0, -10]}>
                 {stop.name}
               </Tooltip>
@@ -283,22 +322,15 @@ export default function DigitalMapClient() {
           );
         })}
 
-        {/* Amenities */}
-        {amenities.map(amenity => {
+        {amenities.map((amenity) => {
           if (!amenity.latitude || !amenity.longitude) return null;
           return (
             <Marker
               key={amenity.id}
               position={[Number(amenity.latitude), Number(amenity.longitude)]}
               icon={createAmenityIcon(amenity.category_slug)}
-              eventHandlers={{ 
-                click: () => handleAmenityClick(amenity),
-                mouseover: (e) => {
-                  e.target.openPopup();
-                }
-              }}
             >
-              <Popup closeButton={true} minWidth={300} className="amenity-custom-popup">
+              <Popup closeButton minWidth={300} className="amenity-custom-popup">
                 <AmenityPopup amenity={amenity} />
               </Popup>
               <Tooltip direction="top" offset={[0, -10]}>

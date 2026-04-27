@@ -4,12 +4,10 @@ import React, { useEffect, useState } from "react";
 import { 
   Plus, 
   Search, 
-  MoreVertical, 
   Edit, 
   Trash2, 
   Eye, 
   CheckCircle, 
-  XCircle,
   AlertCircle,
   Upload,
   Loader2
@@ -34,7 +32,6 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { IMAGE_UPLOAD_ACCEPT, validateImageFile } from "@/lib/upload-validation";

@@ -24,6 +24,8 @@ urlpatterns = [
 
     path("api/admin/stations/", metro_admin_views.admin_station_list, name="admin_api_station_list"),
     path("api/admin/stations/<int:pk>/", metro_admin_views.admin_station_detail, name="admin_api_station_detail"),
+    path("api/admin/bus-stops/", metro_admin_views.admin_bus_stop_list, name="admin_api_bus_stop_list"),
+    path("api/admin/bus-stops/<int:pk>/", metro_admin_views.admin_bus_stop_detail, name="admin_api_bus_stop_detail"),
     path("api/admin/trains/", metro_admin_views.admin_train_list, name="admin_api_train_list"),
     path("api/admin/trains/<int:pk>/", metro_admin_views.admin_train_detail, name="admin_api_train_detail"),
 
@@ -34,6 +36,7 @@ urlpatterns = [
     path("api/ticketing/", include("apps.ticketing.urls")),
     path("api/payments/", include("apps.payments.urls")),
     path("api/chatbox/", include("apps.chatbox.urls")),
+    path("api/feedback/", include("apps.feedback.urls")),
     path("api/", include("apps.metro.urls")),
     path("api/", include("core.urls")),
 

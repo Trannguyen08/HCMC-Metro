@@ -11,6 +11,7 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/use-auth-store";
 import { AuthUser } from "@/features/auth/types";
+import { toast } from "@/store/use-toast-store";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -23,7 +24,6 @@ export default function ForgotPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [otpVerified, setOtpVerified] = useState(false);
 
   // Timer state (3 minutes = 180s)
@@ -40,19 +40,19 @@ export default function ForgotPasswordPage() {
   const handleSendOTP = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!email) {
-      setError("Vui lòng nhập email.");
+      toast.error("Vui lòng nhập email.");
       return;
     }
     setLoading(true);
-    setError(null);
     try {
       const res = await api.post("/auth/forgot-password/", { email });
       setToken(res.data.verification_token);
       setStep(2);
       setTimeLeft(180);
       setOtpVerified(false);
+      toast.success("Đã gửi mã OTP đến email của bạn.");
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Email không tìm thấy trong hệ thống.");
+      toast.error(err.response?.data?.detail || "Email không tìm thấy trong hệ thống.");
     } finally {
       setLoading(false);
     }
@@ -61,15 +61,14 @@ export default function ForgotPasswordPage() {
   const handleVerifyAndReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp || newPassword.length < 6) {
-      setError("Vui lòng điền đủ mã OTP và mật khẩu ít nhất 6 ký tự.");
+      toast.error("Vui lòng điền đủ mã OTP và mật khẩu ít nhất 6 ký tự.");
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Mật khẩu nhập lại không khớp.");
+      toast.error("Mật khẩu nhập lại không khớp.");
       return;
     }
     setLoading(true);
-    setError(null);
     try {
       const res = await api.post("/auth/forgot-password/verify/", {
         verification_token: token,
@@ -81,9 +80,10 @@ export default function ForgotPasswordPage() {
       localStorage.setItem("metro.refresh", res.data.refresh);
       // Auto Login
       useAuthStore.getState().setUser(res.data.user as AuthUser);
+      toast.success("Khôi phục mật khẩu thành công!");
       router.replace("/");
     } catch (err: any) {
-      setError(err.response?.data?.detail || "OTP không hợp lệ hoặc đã hết hạn.");
+      toast.error(err.response?.data?.detail || "OTP không hợp lệ hoặc đã hết hạn.");
     } finally {
       setLoading(false);
     }
@@ -126,8 +126,6 @@ export default function ForgotPasswordPage() {
         </CardHeader>
         
         <CardContent>
-          {error && <div className="mb-4 text-sm text-rose-600 bg-rose-50 p-2 rounded">{error}</div>}
-
           {step === 1 && (
             <form onSubmit={handleSendOTP} className="space-y-4">
               <div className="space-y-2">

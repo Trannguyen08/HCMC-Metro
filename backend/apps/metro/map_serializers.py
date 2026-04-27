@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.metro.models import Amenity, AmenityCategory, Station, MetroLine, BusStopCache
+from apps.metro.models import Amenity, AmenityCategory, BusStop, MetroLine, Station
 
 
 class MetroLineMapSerializer(serializers.ModelSerializer):
@@ -68,9 +68,12 @@ class AmenityMapSerializer(serializers.ModelSerializer):
         ]
 
 
-class BusStopCacheSerializer(serializers.ModelSerializer):
+class BusStopMapSerializer(serializers.ModelSerializer):
+    station_code = serializers.CharField(source="station.code", read_only=True)
+    station_name = serializers.CharField(source="station.name", read_only=True)
+
     class Meta:
-        model = BusStopCache
+        model = BusStop
         fields = [
             "id",
             "name",
@@ -79,5 +82,9 @@ class BusStopCacheSerializer(serializers.ModelSerializer):
             "longitude",
             "address",
             "routes",
+            "station_code",
+            "station_name",
             "distance_to_station",
+            "stop_type",
+            "note",
         ]

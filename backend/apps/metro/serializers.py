@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.metro.models import Amenity, AmenityType, Station, Train, MetroLine
+from apps.metro.models import Amenity, AmenityType, BusStop, MetroLine, Station, Train
 
 
 AMENITY_TYPE_ALIASES: dict[str, tuple[str, ...]] = {
@@ -242,6 +242,44 @@ class AdminStationSerializer(serializers.ModelSerializer):
         if obj.line:
             return obj.line.name
         return None
+
+
+class AdminBusStopSerializer(serializers.ModelSerializer):
+    station_code = serializers.CharField(source="station.code", read_only=True)
+    station_name = serializers.CharField(source="station.name", read_only=True)
+    station = serializers.SlugRelatedField(
+        slug_field="code",
+        queryset=Station.objects.filter(is_active=True),
+        write_only=True,
+    )
+
+    class Meta:
+        model = BusStop
+        fields = [
+            "id",
+            "name",
+            "code",
+            "station",
+            "station_code",
+            "station_name",
+            "address",
+            "latitude",
+            "longitude",
+            "routes",
+            "distance_to_station",
+            "stop_type",
+            "note",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at", "station_code", "station_name"]
+
+class TrainSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Train
+        fields = ["id", "train_number", "status"]
+
 
 class AdminTrainSerializer(serializers.ModelSerializer):
     current_station_name = serializers.SerializerMethodField()

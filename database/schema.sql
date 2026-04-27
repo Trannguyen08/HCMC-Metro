@@ -138,17 +138,23 @@ CREATE TABLE IF NOT EXISTS amenities (
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS bus_stop_cache (
+DROP TABLE IF EXISTS bus_stop_cache;
+
+CREATE TABLE IF NOT EXISTS bus_stops (
     id              SERIAL PRIMARY KEY,
     name            VARCHAR(255) NOT NULL,
-    code            VARCHAR(50),
+    code            VARCHAR(50) UNIQUE NOT NULL,
     latitude        DECIMAL(10, 8) NOT NULL,
     longitude       DECIMAL(11, 8) NOT NULL,
     address         VARCHAR(500),
     routes          JSONB,
     station_id      INT REFERENCES stations(id) ON DELETE SET NULL,
     distance_to_station INT,
-    fetched_at      TIMESTAMPTZ DEFAULT NOW()
+    stop_type       VARCHAR(120),
+    note            TEXT,
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================================
@@ -258,6 +264,22 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 -- ============================================================
+-- 7. FEEDBACK
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS feedbacks (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type            VARCHAR(30) NOT NULL, -- facility, experience, error
+    content         TEXT NOT NULL,
+    train_id        INT REFERENCES trains(id) ON DELETE SET NULL,
+    status          VARCHAR(30) DEFAULT 'pending', -- pending, processing, resolved, rejected
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+-- ============================================================
 -- 7. TRIGGERS & INDEXES
 -- ============================================================
 
@@ -273,14 +295,18 @@ $$ LANGUAGE plpgsql;
 -- Apply updated_at triggers
 CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_amenities_updated_at BEFORE UPDATE ON amenities FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_bus_stops_updated_at BEFORE UPDATE ON bus_stops FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_news_updated_at BEFORE UPDATE ON news FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_tickets_updated_at BEFORE UPDATE ON tickets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER trg_chat_sessions_updated_at BEFORE UPDATE ON chat_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER trg_feedbacks_updated_at BEFORE UPDATE ON feedbacks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Core Indexes
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_stations_line ON stations(line_id);
+CREATE INDEX idx_bus_stops_station ON bus_stops(station_id);
 CREATE INDEX idx_tickets_user ON tickets(user_id);
 CREATE INDEX idx_payments_ticket ON payments(ticket_id);
 CREATE INDEX idx_news_slug ON news(slug);
 CREATE INDEX idx_chat_messages_session ON chat_messages(session_id);
+CREATE INDEX idx_feedbacks_user ON feedbacks(user_id);

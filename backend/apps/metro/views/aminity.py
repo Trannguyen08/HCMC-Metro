@@ -3,12 +3,21 @@ from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from apps.metro.models import Amenity, Station
+from apps.metro.models import Amenity, Station, Train
 from apps.metro.serializers import (
     AMENITY_TYPE_ALIASES,
     AmenitySerializer,
     StationSerializer,
+    TrainSerializer,
 )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def train_list(request):
+    trains = Train.objects.filter(is_active=True).order_by("train_number")
+    serializer = TrainSerializer(trains, many=True)
+    return Response(serializer.data)
 
 
 @api_view(["GET"])

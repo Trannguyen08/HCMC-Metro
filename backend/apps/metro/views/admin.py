@@ -4,9 +4,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from core.permissions import IsAdminUser
-from apps.metro.models import Amenity, AmenityType, Station, Train
+from apps.metro.models import Amenity, AmenityType, BusStop, Station, Train
 from apps.metro.serializers import (
     AdminAmenitySerializer,
+    AdminBusStopSerializer,
     AmenityTypeOptionSerializer,
     AMENITY_TYPE_ALIASES,
     AdminStationSerializer,
@@ -140,6 +141,60 @@ def admin_station_detail(request, pk):
 
     station.is_active = False
     station.save(update_fields=["is_active"])
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAdminUser])
+def admin_bus_stop_list(request):
+    if request.method == "GET":
+        queryset = BusStop.objects.select_related("station").order_by("station__sequence_order", "distance_to_station", "name")
+
+        search = request.query_params.get("search", "").strip()
+        station = request.query_params.get("station", "").strip()
+        is_active = request.query_params.get("is_active", "").strip().lower()
+
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(code__icontains=search)
+                | Q(address__icontains=search)
+                | Q(note__icontains=search)
+                | Q(station__name__icontains=search)
+            )
+
+        if station:
+            queryset = queryset.filter(station__code__iexact=station)
+
+        if is_active in {"true", "false"}:
+            queryset = queryset.filter(is_active=is_active == "true")
+
+        serializer = AdminBusStopSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    serializer = AdminBusStopSerializer(data=request.data)
+    if serializer.is_valid():
+        bus_stop = serializer.save()
+        return Response(AdminBusStopSerializer(bus_stop).data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET", "PUT", "DELETE"])
+@permission_classes([IsAdminUser])
+def admin_bus_stop_detail(request, pk):
+    bus_stop = get_object_or_404(BusStop.objects.select_related("station"), pk=pk)
+
+    if request.method == "GET":
+        return Response(AdminBusStopSerializer(bus_stop).data)
+
+    if request.method == "PUT":
+        serializer = AdminBusStopSerializer(bus_stop, data=request.data, partial=True)
+        if serializer.is_valid():
+            bus_stop = serializer.save()
+            return Response(AdminBusStopSerializer(bus_stop).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    bus_stop.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(["GET", "POST"])

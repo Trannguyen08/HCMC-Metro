@@ -3,6 +3,7 @@ import base64
 import io
 import json
 import logging
+import uuid
 from decimal import Decimal
 from datetime import date, timedelta
 from django.utils import timezone

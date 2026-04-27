@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "apps.payments",
     "apps.news",
     "apps.chatbox",
+    "apps.feedback",
     "django_celery_results",
     "django_celery_beat",
     "drf_spectacular",
