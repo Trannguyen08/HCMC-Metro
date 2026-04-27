@@ -97,7 +97,7 @@ const AmenitiesPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7fafc_0%,#eef5ff_26%,#ffffff_100%)] pb-16">
-      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pt-2 pb-6 sm:px-6 lg:px-8 lg:pt-2 lg:pb-8">
         <section className="relative overflow-hidden rounded-[36px] border border-slate-200/80 bg-white px-6 py-8 shadow-[0_28px_80px_rgba(15,23,42,0.08)] sm:px-8 lg:px-10 lg:py-10">
           <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(0,168,107,0.18),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(0,85,165,0.12),transparent_42%)] lg:block" />
           <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] lg:items-end">
@@ -157,16 +157,6 @@ const AmenitiesPage: React.FC = () => {
           </div>
         </section>
 
-        <AmenityFiltersBar
-          search={filters.search}
-          stationId={filters.stationId}
-          type={filters.type}
-          stations={stations}
-          onSearchChange={setSearch}
-          onStationChange={setStationId}
-          onTypeChange={setType}
-        />
-
         <section className="grid gap-4 md:grid-cols-3">
           <StatCard
             label="Kết quả đang hiển thị"
@@ -187,6 +177,16 @@ const AmenitiesPage: React.FC = () => {
             accentClass="bg-amber-400"
           />
         </section>
+
+        <AmenityFiltersBar
+          search={filters.search}
+          stationId={filters.stationId}
+          type={filters.type}
+          stations={stations}
+          onSearchChange={setSearch}
+          onStationChange={setStationId}
+          onTypeChange={setType}
+        />
 
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

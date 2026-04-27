@@ -25,6 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/store/use-auth-store";
 import { useBookingStore } from "@/store/use-booking-store";
 import api from "@/services/api-client";
+import { toast } from "@/store/use-toast-store";
 
 type UiStation = {
   id: number;
@@ -63,7 +64,6 @@ export default function BookingPage() {
 
   const [stations, setStations] = useState<UiStation[]>([]);
   const [isBooking, setIsBooking] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -91,10 +91,9 @@ export default function BookingPage() {
     const nextId = Number(val);
     if (!Number.isFinite(nextId)) return;
     if (toStationId && toStationId === nextId) {
-      setMessage({ type: "error", text: "Ga khởi hành và ga đến không được trùng nhau." });
+      toast.error("Ga khởi hành và ga đến không được trùng nhau.");
       return;
     }
-    setMessage(null);
     setFromStation(nextId);
   };
 
@@ -102,10 +101,9 @@ export default function BookingPage() {
     const nextId = Number(val);
     if (!Number.isFinite(nextId)) return;
     if (fromStationId && fromStationId === nextId) {
-      setMessage({ type: "error", text: "Ga khởi hành và ga đến không được trùng nhau." });
+      toast.error("Ga khởi hành và ga đến không được trùng nhau.");
       return;
     }
-    setMessage(null);
     setToStation(nextId);
   };
 
@@ -132,17 +130,16 @@ export default function BookingPage() {
 
     // Chi bat buoc chon ga doi voi ve luot
     if (isSingleTicket && (!fromStationId || !toStationId)) {
-      setMessage({ type: "error", text: "Vui lòng chọn đủ ga khởi hành và ga đến cho vé lượt." });
+      toast.error("Vui lòng chọn đủ ga khởi hành và ga đến cho vé lượt.");
       return;
     }
 
     if (isSingleTicket && sameStationSelected) {
-      setMessage({ type: "error", text: "Ga khởi hành và ga đến không được trùng nhau." });
+      toast.error("Ga khởi hành và ga đến không được trùng nhau.");
       return;
     }
 
     setIsBooking(true);
-    setMessage(null);
 
     try {
       const res = await api.post(`/payments/payos/create/`, {
@@ -153,16 +150,16 @@ export default function BookingPage() {
       });
 
       if (!res.data?.payment_url) {
-        setMessage({ type: "error", text: "Không lấy được liên kết thanh toán PayOS." });
+        toast.error("Không lấy được liên kết thanh toán PayOS.");
         return;
       }
 
       if (!res.data?.ticket_id) {
-        setMessage({ type: "error", text: "Không tạo được vé chờ thanh toán." });
+        toast.error("Không tạo được vé chờ thanh toán.");
         return;
       }
 
-      setMessage({ type: "success", text: "Đã lưu vé chờ thanh toán, đang chuyển sang trang thanh toán..." });
+      toast.success("Đã lưu vé chờ thanh toán, đang chuyển sang trang thanh toán...");
       router.push(`/dat-ve/thanh-toan?ticket_id=${res.data.ticket_id}`);
     } catch (err: any) {
       if (err.response?.status === 401) {
@@ -175,14 +172,14 @@ export default function BookingPage() {
         router.push("/login?redirect=/dat-ve");
         return;
       }
-      setMessage({ type: "error", text: err.response?.data?.error || err.response?.data?.detail || "Đặt vé thất bại. Vui lòng thử lại." });
+      toast.error(err.response?.data?.error || err.response?.data?.detail || "Đặt vé thất bại. Vui lòng thử lại.");
     } finally {
       setIsBooking(false);
     }
   };
 
   return (
-    <div className="container mx-auto max-w-6xl px-4 py-8">
+    <div className="container mx-auto max-w-6xl px-4 pt-2 pb-8">
       <div className="mb-8 flex flex-col gap-2">
         <h1 className="font-heading flex items-center gap-3 text-3xl font-extrabold tracking-tight text-primary">
           <Ticket className="h-8 w-8" />
@@ -251,7 +248,7 @@ export default function BookingPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-dashed border-primary/20 bg-muted/30 p-4">
+              <div className="rounded-xl border border-dashed border-primary/20 bg-white p-4">
                 <div className="flex items-start gap-3">
                   <Info className="mt-0.5 h-5 w-5 text-primary" />
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
@@ -338,19 +335,19 @@ export default function BookingPage() {
                 <CardTitle>Tổng cộng</CardTitle>
                 <CardDescription>Chi tiết giá vé hành trình</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between py-2">
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between py-1">
                   <span className="text-sm text-muted-foreground">Loại vé:</span>
                   <span className="font-semibold">{selectedTicketType?.name || "Chưa chọn"}</span>
                 </div>
-                <div className="flex items-center justify-between py-2">
+                <div className="flex items-center justify-between py-1">
                   <span className="text-sm text-muted-foreground">Đối tượng:</span>
                   <span className="font-semibold">{passengerGroup === "hssv" ? "HSSV" : "Normal"}</span>
                 </div>
 
                 <Separator />
 
-                <div className="space-y-2 py-2">
+                <div className="space-y-1.5 py-1">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Giá gốc:</span>
                     <span className="font-mono text-muted-foreground line-through">
@@ -363,7 +360,7 @@ export default function BookingPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl bg-primary/5 p-4">
+                <div className="flex items-center justify-between rounded-xl bg-primary/5 px-5 py-3">
                   <span className="font-bold">Thành tiền</span>
                   <div className="text-right">
                     <div className="font-mono text-2xl font-black leading-none text-primary">
@@ -371,17 +368,6 @@ export default function BookingPage() {
                     </div>
                   </div>
                 </div>
-
-                {message && (
-                  <div
-                    className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
-                      message.type === "success" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                    }`}
-                  >
-                    {message.type === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                    {message.text}
-                  </div>
-                )}
               </CardContent>
               <CardFooter className="flex flex-col gap-3">
                 <Button
@@ -415,7 +401,7 @@ export default function BookingPage() {
                   <div className="text-sm font-bold">Lịch sử đặt vé</div>
                   <div className="text-xs text-muted-foreground">Xem các vé đã đặt và mã QR</div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => router.push("/tai-khoan?tab=ve")}>
+                <Button variant="ghost" size="icon" onClick={() => router.push("/profile/tickets")}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </CardContent>

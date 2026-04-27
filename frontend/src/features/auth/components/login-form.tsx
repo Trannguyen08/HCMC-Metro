@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { Chrome, TrainFront } from "lucide-react";
+import { Chrome, Eye, EyeOff, TrainFront } from "lucide-react";
 import { GoogleLogin } from "@react-oauth/google";
 
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,19 @@ import type { AuthUser } from "../types";
 
 export function LoginForm() {
   const router = useRouter();
-  const { login, loginWithGoogle, error: authError, setError } = useAuth();
+  const { user, isAuthenticated, hasHydrated, login, loginWithGoogle, error: authError, setError } = useAuth();
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [googleLoading, setGoogleLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!hasHydrated || !isAuthenticated || !user) return;
+    const pendingBooking = useAuthStore.getState().pendingBooking;
+    router.replace(getPostAuthRedirect(user, pendingBooking));
+  }, [hasHydrated, isAuthenticated, router, user]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,14 +104,25 @@ export function LoginForm() {
 
           <div className="space-y-1">
             <Label>Mật khẩu</Label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="********"
-              autoComplete="current-password"
-              required
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="********"
+                autoComplete="current-password"
+                className="pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             <div className="text-right">
               <Link href="/forgot-password" className="inline-block text-xs text-blue-600 hover:underline">
                 Quên mật khẩu?
@@ -112,7 +130,7 @@ export function LoginForm() {
             </div>
           </div>
 
-          {authError && <p className="text-sm text-rose-600">{authError}</p>}
+
 
           <Button className="w-full" type="submit" disabled={loading || googleLoading}>
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}

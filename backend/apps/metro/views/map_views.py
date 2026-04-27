@@ -2,11 +2,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from apps.metro.models import Amenity, AmenityCategory, BusStopCache, MetroLine, Station
+from apps.metro.models import Amenity, AmenityCategory, BusStop, MetroLine, Station
 from apps.metro.map_serializers import (
     AmenityCategorySerializer,
     AmenityMapSerializer,
-    BusStopCacheSerializer,
+    BusStopMapSerializer,
     MetroLineMapSerializer,
     StationMapSerializer,
 )
@@ -77,13 +77,33 @@ def map_bus_stops(request):
     """
     Returns bus stops near a specific coordinate or station.
     """
-    queryset = BusStopCache.objects.all()
+    queryset = BusStop.objects.filter(is_active=True).select_related("station").order_by("distance_to_station", "name")
     
     station_id = request.GET.get("station_id")
     if station_id:
         queryset = queryset.filter(station_id=station_id)
-        
-    return Response(BusStopCacheSerializer(queryset, many=True).data)
+
+    station_code = request.GET.get("station")
+    if station_code:
+        queryset = queryset.filter(station__code=station_code)
+
+    sw_lat = request.GET.get("sw_lat")
+    sw_lng = request.GET.get("sw_lng")
+    ne_lat = request.GET.get("ne_lat")
+    ne_lng = request.GET.get("ne_lng")
+
+    if all([sw_lat, sw_lng, ne_lat, ne_lng]):
+        try:
+            queryset = queryset.filter(
+                latitude__gte=float(sw_lat),
+                latitude__lte=float(ne_lat),
+                longitude__gte=float(sw_lng),
+                longitude__lte=float(ne_lng),
+            )
+        except ValueError:
+            pass
+
+    return Response(BusStopMapSerializer(queryset, many=True).data)
 
 
 @api_view(["GET"])

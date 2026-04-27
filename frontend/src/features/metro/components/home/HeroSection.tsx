@@ -2,7 +2,7 @@
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden rounded-2xl border bg-background shadow-sm">
+    <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-background shadow-sm">
       <div className="absolute inset-0 -z-10">
         <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[#0055A5]/15 blur-3xl" />
         <div className="absolute -right-24 top-12 h-72 w-72 rounded-full bg-[#00A86B]/15 blur-3xl" />
@@ -11,7 +11,7 @@ export function HeroSection() {
 
       <div className="grid gap-8 p-6 md:grid-cols-12 md:p-10">
         <div className="md:col-span-7">
-          <div className="inline-flex items-center rounded-full border bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground">
+          <div className="inline-flex items-center rounded-full border border-slate-200 bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground">
             Metro HCM • Line 1
           </div>
           <h1 className="mt-4 font-heading text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -36,7 +36,7 @@ export function HeroSection() {
         </div>
 
         <div className="md:col-span-5">
-          <div className="rounded-2xl border bg-white/80 p-6 shadow-card backdrop-blur">
+          <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-card backdrop-blur">
             <h2 className="font-heading text-xl font-bold tracking-tight text-foreground">Giới thiệu Metro HCM</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Tuyến Metro số 1 giúp kết nối Đông - Tây thành phố, giảm áp lực giao thông mặt đất và tạo trải nghiệm di
@@ -44,7 +44,7 @@ export function HeroSection() {
             </p>
 
             <div className="mt-5 grid gap-3">
-              <div className="flex items-center gap-3 rounded-xl border bg-background/70 p-3">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-background/70 p-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-metro-blue/10 text-metro-blue">
                   <TrainFront className="h-4 w-4" />
                 </div>
@@ -54,7 +54,7 @@ export function HeroSection() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-xl border bg-background/70 p-3">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-background/70 p-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-metro-green/10 text-metro-green">
                   <Clock3 className="h-4 w-4" />
                 </div>
@@ -64,7 +64,7 @@ export function HeroSection() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-xl border bg-background/70 p-3">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-background/70 p-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
                   <ShieldCheck className="h-4 w-4" />
                 </div>

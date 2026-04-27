@@ -45,10 +45,13 @@ def process_payment_status_update_task(order_code, gateway_status=None):
             ticket.status = "active"
             ticket.save(update_fields=["status", "updated_at"])
 
-            # Trigger the email task
-            send_ticket_email_task.delay(str(ticket.id))
+            # Trigger the email task safely - don't let email failure roll back payment success
+            try:
+                send_ticket_email_task.delay(str(ticket.id))
+            except Exception as e:
+                logger.error(f"Failed to trigger email task for ticket {ticket.id}: {str(e)}")
             
-            logger.info(f"Payment {order_code} marked as success and ticket activated")
+            logger.info(f"Payment {order_code} marked as success and ticket {ticket.id} activated")
             return "Success"
         else:
             # Only update to failed if it wasn't already marked otherwise (e.g., cancelled)

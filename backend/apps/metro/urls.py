@@ -14,7 +14,10 @@ urlpatterns = [
     path("admin/amenities/", admin.admin_amenity_list, name="admin_amenity_list"),
     path("admin/amenities/create/", admin.admin_amenity_create, name="admin_amenity_create"),
     path("admin/amenities/<uuid:pk>/", admin.admin_amenity_detail, name="admin_amenity_detail"),
+    path("admin/bus-stops/", admin.admin_bus_stop_list, name="admin_bus_stop_list"),
+    path("admin/bus-stops/<int:pk>/", admin.admin_bus_stop_detail, name="admin_bus_stop_detail"),
     path("stations/", aminity.station_list, name="station-list"),
+    path("trains/", aminity.train_list, name="train-list"),
     path("amenities/", aminity.amenity_list, name="amenity-list"),
     path("amenities/<str:id_slug>/", aminity.amenity_detail, name="amenity-detail"),
 

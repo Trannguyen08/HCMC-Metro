@@ -22,7 +22,14 @@ function isAuthEndpoint(url?: string) {
 // ─── Request interceptor: attach Bearer token ──────────────────────────────
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined" && !isAuthEndpoint(config.url)) {
-    const access = localStorage.getItem("metro.access");
+    // Check localStorage first (regular users)
+    let access = localStorage.getItem("metro.access");
+    
+    // If not found, check sessionStorage (admin users)
+    if (!access) {
+      access = sessionStorage.getItem("metro.admin.access");
+    }
+
     if (access) {
       config.headers.Authorization = `Bearer ${access}`;
     }
@@ -42,12 +49,22 @@ api.interceptors.response.use(
       original._retry = true;
       refreshing = true;
       try {
-        const refresh = localStorage.getItem("metro.refresh");
+        // Find whichever refresh token we have
+        const refresh = localStorage.getItem("metro.refresh") ?? sessionStorage.getItem("metro.admin.refresh");
+        const isAdmin = !!sessionStorage.getItem("metro.admin.refresh");
+
         if (!refresh) throw new Error("no refresh token");
+
         const { data } = await axios.post(`${API_BASE}/auth/login/refresh/`, {
           refresh,
         });
-        localStorage.setItem("metro.access", data.access);
+
+        if (isAdmin) {
+          sessionStorage.setItem("metro.admin.access", data.access);
+        } else {
+          localStorage.setItem("metro.access", data.access);
+        }
+
         original.headers.Authorization = `Bearer ${data.access}`;
         return api(original);
       } catch {
@@ -55,6 +72,9 @@ api.interceptors.response.use(
         localStorage.removeItem("metro.access");
         localStorage.removeItem("metro.refresh");
         localStorage.removeItem("metro.user");
+        sessionStorage.removeItem("metro.admin.access");
+        sessionStorage.removeItem("metro.admin.refresh");
+
         if (typeof window !== "undefined" && window.location.pathname !== "/login") {
           window.location.href = "/login";
         }

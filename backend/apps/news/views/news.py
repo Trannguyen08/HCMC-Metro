@@ -13,6 +13,7 @@ to protect against scraping.
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.cache import cache
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from rest_framework import status
@@ -24,6 +25,7 @@ from apps.news.services.news_service import NewsService
 from apps.news.serializers.news import NewsSerializer, NewsCategorySerializer
 from core.permissions import IsAdminUser
 from infrastructure.rate_limit import rate_limit
+from core.pagination import StandardResultsSetPagination
 
 news_service = NewsService()
 
@@ -99,10 +101,31 @@ def public_categories(request):
 @api_view(["GET"])
 @permission_classes([IsAdminUser])
 def admin_news_list(request):
-    # Admin always gets fresh data — no caching
+    page = request.query_params.get('page', 1)
+    cache_key = f"admin_news_list:page_{page}"
+    
+    # Try to get from cache
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return Response(cached_data)
+
+    # Fetch from DB (via service)
     news = news_service.get_all_news_admin()
-    serializer = NewsSerializer(news, many=True)
-    return Response(serializer.data)
+    paginator = StandardResultsSetPagination()
+    result_page = paginator.paginate_queryset(news, request)
+    serializer = NewsSerializer(result_page, many=True)
+    
+    response_data = paginator.get_paginated_response(serializer.data).data
+    
+    # Cache for 5 minutes
+    cache.set(cache_key, response_data, timeout=300)
+    
+    return Response(response_data)
+
+
+def _invalidate_admin_news_cache():
+    for i in range(1, 51):
+        cache.delete(f"admin_news_list:page_{i}")
 
 
 @api_view(["POST"])
@@ -110,7 +133,8 @@ def admin_news_list(request):
 def admin_news_create(request):
     serializer = NewsSerializer(data=request.data)
     if serializer.is_valid():
-        news_service.create_news(serializer.validated_data)  # invalidates cache
+        news_service.create_news(serializer.validated_data)  # invalidates public cache
+        _invalidate_admin_news_cache() # invalidates admin cache
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -131,10 +155,12 @@ def admin_news_detail(request, pk: int):
     elif request.method == "PUT":
         serializer = NewsSerializer(news, data=request.data, partial=True)
         if serializer.is_valid():
-            news_service.update_news(news, serializer.validated_data)  # invalidates cache
+            news_service.update_news(news, serializer.validated_data)  # invalidates public cache
+            _invalidate_admin_news_cache() # invalidates admin cache
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == "DELETE":
-        news_service.delete_news(news)  # invalidates cache
+        news_service.delete_news(news)  # invalidates public cache
+        _invalidate_admin_news_cache() # invalidates admin cache
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { AmenityMap, BusSchedule, BusStopCacheMap, MapInitData, StationMap } from "@/types/map";
+import { AmenityMap, BusSchedule, BusStopMap, MapInitData, StationMap } from "@/types/map";
 
 export class MapService {
   /**
@@ -37,8 +37,24 @@ export class MapService {
   /**
    * Fetch bus stops
    */
-  static async getBusStops(stationId?: number): Promise<BusStopCacheMap[]> {
-    const res = await api.get<BusStopCacheMap[]>("/map/bus-stops/", { params: { station_id: stationId } });
+  static async getBusStops(params?: {
+    stationId?: number;
+    station?: string;
+    sw_lat?: number;
+    sw_lng?: number;
+    ne_lat?: number;
+    ne_lng?: number;
+  }): Promise<BusStopMap[]> {
+    const res = await api.get<BusStopMap[]>("/map/bus-stops/", {
+      params: {
+        station_id: params?.stationId,
+        station: params?.station,
+        sw_lat: params?.sw_lat,
+        sw_lng: params?.sw_lng,
+        ne_lat: params?.ne_lat,
+        ne_lng: params?.ne_lng,
+      },
+    });
     return res.data;
   }
 }

@@ -2,13 +2,14 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { Calendar, DollarSign, Download, Eye, Loader2, QrCode, Search, Ticket, TrendingUp } from "lucide-react";
-import axios from "axios";
+import api from "@/lib/api";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/admin/pagination";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/backend-api";
 
@@ -34,6 +35,8 @@ export default function AdminTicketsPage() {
   const [selectedQR, setSelectedQR] = useState<{ id: string; base64: string } | null>(null);
   const [scanHistories, setScanHistories] = useState<ScanHistoryRow[]>([]);
   const [scanHistoryLoading, setScanHistoryLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [scanInput, setScanInput] = useState("");
   const [scanCard, setScanCard] = useState<{
@@ -51,7 +54,7 @@ export default function AdminTicketsPage() {
   const [scanning, setScanning] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [cameraInfo, setCameraInfo] = useState<string>("Camera dang hoat dong");
+  const [cameraInfo, setCameraInfo] = useState<string>("Camera đang tắt");
   const isHandlingScanRef = useRef(false);
   const qrScannerRef = useRef<any>(null);
 
@@ -60,15 +63,24 @@ export default function AdminTicketsPage() {
   const parseTicketIdFromRaw = (rawValue: string): string | null => {
     const raw = (rawValue || "").trim();
     if (!raw) return null;
-    if (/^[0-9a-fA-F-]{36}$/.test(raw)) return raw;
+    
+    // Check if it's a raw UUID (with or without hyphens)
+    if (/^[0-9a-fA-F-]{32,36}$/.test(raw)) return raw;
+
+    // Check for legacy "QR-HEX" format
+    if (raw.toUpperCase().startsWith("QR-")) {
+      const candidate = raw.substring(3);
+      if (/^[0-9a-fA-F]{32,36}$/.test(candidate)) return candidate;
+    }
+
     try {
       const parsed = JSON.parse(raw);
       const ticketId = parsed?.ticket_id;
-      if (typeof ticketId === "string" && /^[0-9a-fA-F-]{36}$/.test(ticketId)) {
+      if (typeof ticketId === "string" && /^[0-9a-fA-F-]{32,36}$/.test(ticketId)) {
         return ticketId;
       }
     } catch (err) {
-      // ignore parsing errors
+      // Not JSON, ignore
     }
     return null;
   };
@@ -100,13 +112,21 @@ export default function AdminTicketsPage() {
     return "bg-slate-50";
   };
 
-  const fetchTickets = async () => {
+  const fetchTickets = async (p = page) => {
+    setLoading(true);
     try {
-      const token = sessionStorage.getItem("metro.admin.access") ?? localStorage.getItem("metro.access");
-      const res = await axios.get(`${API_BASE}/ticketing/admin/bookings/`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await api.get("/ticketing/admin/bookings/", {
+        params: { page: p }
       });
-      setTickets(res.data.results || res.data || []);
+      
+      const data = res.data;
+      if (data.results) {
+        setTickets(data.results);
+        setTotalPages(data.total_pages || 1);
+      } else {
+        setTickets(Array.isArray(data) ? data : []);
+        setTotalPages(1);
+      }
     } catch (err) {
       console.error("Failed to fetch tickets", err);
     } finally {
@@ -117,9 +137,7 @@ export default function AdminTicketsPage() {
   const fetchScanHistories = async () => {
     setScanHistoryLoading(true);
     try {
-      const token = sessionStorage.getItem("metro.admin.access") ?? localStorage.getItem("metro.access");
-      const res = await axios.get(`${API_BASE}/ticketing/admin/bookings/scan-histories/`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await api.get("/ticketing/admin/bookings/scan-histories/", {
         params: { limit: 200 },
       });
       setScanHistories(Array.isArray(res.data) ? res.data : []);
@@ -132,17 +150,14 @@ export default function AdminTicketsPage() {
   };
 
   useEffect(() => {
-    fetchTickets();
+    fetchTickets(page);
     fetchScanHistories();
-  }, []);
+  }, [page]);
 
   const handleViewQR = async (ticketId: string) => {
     setSelectedQR(null);
     try {
-      const token = localStorage.getItem("metro.access");
-      const res = await axios.get(`${API_BASE}/ticketing/admin/bookings/${ticketId}/qr/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get(`/ticketing/admin/bookings/${ticketId}/qr/`);
       setSelectedQR({ id: ticketId, base64: res.data.qr_base64 });
     } catch (err) {
       console.error("Failed to fetch QR", err);
@@ -152,10 +167,7 @@ export default function AdminTicketsPage() {
   const handleCancelTicket = async (ticketId: string) => {
     if (!confirm("Ban co chac chan muon xoa mem (huy) ve nay? Hanh dong nay se chuyen trang thai ve ve 'cancelled'.")) return;
     try {
-      const token = localStorage.getItem("metro.access");
-      await axios.delete(`${API_BASE}/ticketing/admin/bookings/${ticketId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/ticketing/admin/bookings/${ticketId}/`);
       fetchTickets();
     } catch (err) {
       console.error("Failed to cancel ticket", err);
@@ -174,15 +186,12 @@ export default function AdminTicketsPage() {
     setScanning(true);
     setScanMessage(null);
     try {
-      const token = sessionStorage.getItem("metro.admin.access") ?? localStorage.getItem("metro.access");
       const payload: any = { qr_data: scanValue };
       if (parsedTicketId) {
         payload.ticket_id = parsedTicketId;
       }
 
-      const res = await axios.post(`${API_BASE}/ticketing/admin/bookings/scan/`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.post("/ticketing/admin/bookings/scan/", payload);
 
       const finalTicketId = String(res.data.ticket_id || parsedTicketId || "");
       const matchedTicket = tickets.find((t) => t.id === finalTicketId);
@@ -259,6 +268,7 @@ export default function AdminTicketsPage() {
       qrScannerRef.current = null;
     }
     setCameraActive(false);
+    setCameraInfo("Camera đang tắt");
     isHandlingScanRef.current = false;
   };
 
@@ -275,29 +285,36 @@ export default function AdminTicketsPage() {
       await new Promise((resolve) => window.setTimeout(resolve, 0));
 
       const { Html5Qrcode } = await import("html5-qrcode");
-      const scanner = new Html5Qrcode(QR_READER_ID, { verbose: false });
+      const scanner = new Html5Qrcode(QR_READER_ID, { 
+        verbose: false,
+        useBarCodeDetectorIfSupported: true
+      });
       qrScannerRef.current = scanner;
 
       await scanner.start(
         { facingMode: "environment" },
         {
-          fps: 10,
-          qrbox: { width: 260, height: 260 },
-          aspectRatio: 16 / 9,
+          fps: 20,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+            const qrboxSize = Math.floor(minEdge * 0.7);
+            return { width: qrboxSize, height: qrboxSize };
+          },
         },
         async (decodedText: string) => {
           if (isHandlingScanRef.current) return;
           isHandlingScanRef.current = true;
           setScanInput(decodedText);
+          setCameraInfo("Đã nhận diện mã QR");
           await stopCamera();
           await handleScanTicket(decodedText);
         },
         () => {
-          // ignore decode-not-found frames
+          setCameraInfo("Đang quét...");
         }
       );
 
-      setCameraInfo("Camera dang hoat dong");
+      setCameraInfo("Camera đang hoạt động");
     } catch (err) {
       console.error("Error starting camera:", err);
       setCameraError("Khong mo duoc camera. Vui long cap quyen camera cho trinh duyet.");
@@ -474,13 +491,13 @@ export default function AdminTicketsPage() {
                 <thead>
                   <tr className="border-b text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     <td className="h-12 px-4 align-middle">Ma ve</td>
-                    <td className="h-12 px-4 align-middle">Lo trinh</td>
-                    <td className="h-12 px-4 align-middle">Loai ve</td>
-                    <td className="h-12 px-4 align-middle text-right">Gia tien</td>
+                    <td className="h-12 px-4 align-middle">Lộ trình</td>
+                    <td className="h-12 px-4 align-middle text-center">Loại vé</td>
+                    <td className="h-12 px-4 align-middle text-center">Giá tiền</td>
                     <td className="h-12 px-4 align-middle text-center">Trang thai</td>
                     <td className="h-12 px-4 align-middle text-center">Luot con</td>
-                    <td className="h-12 px-4 align-middle text-right">Ngay mua</td>
-                    <td className="h-12 px-4 align-middle text-right">QR</td>
+                    <td className="h-12 px-4 align-middle text-center">Ngày mua</td>
+                    <td className="h-12 px-4 align-middle text-center">QR</td>
                   </tr>
                 </thead>
                 <tbody className="font-medium">
@@ -493,21 +510,21 @@ export default function AdminTicketsPage() {
                           <span className="text-[10px] text-muted-foreground">{ticket.to_station_details?.name || "Tat ca ga"}</span>
                         </div>
                       </td>
-                      <td className="p-4 align-middle">
+                      <td className="p-4 align-middle text-center">
                         <Badge variant="outline" className="border-none bg-primary/5 text-primary">
                           {ticket.ticket_type_name}
                         </Badge>
                       </td>
-                      <td className="p-4 align-middle text-right font-mono font-bold">{parseInt(ticket.price_paid || "0", 10).toLocaleString("vi-VN")} VND</td>
-                      <td className={`p-4 align-middle text-center ${getStatusCellClassName(ticket.status)}`}>
+                      <td className="p-4 align-middle text-center font-mono font-bold">{parseInt(ticket.price_paid || "0", 10).toLocaleString("vi-VN")} VND</td>
+                      <td className="p-4 align-middle text-center">
                         <Badge variant="outline" className={getStatusBadgeClassName(ticket.status)}>
                           {getStatusLabel(ticket.status)}
                         </Badge>
                       </td>
                       <td className="p-4 align-middle text-center">{ticket.usage_remaining === null || ticket.usage_remaining === undefined ? "Vo han" : ticket.usage_remaining}</td>
-                      <td className="p-4 align-middle text-right text-xs text-muted-foreground">{new Date(ticket.created_at).toLocaleString("vi-VN")}</td>
-                      <td className="p-4 align-middle text-right">
-                        <div className="flex gap-1 justify-end">
+                      <td className="p-4 align-middle text-center text-xs text-muted-foreground">{new Date(ticket.created_at).toLocaleString("vi-VN")}</td>
+                      <td className="p-4 align-middle text-center">
+                        <div className="flex gap-1 justify-center">
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button variant="ghost" size="icon" onClick={() => handleViewQR(ticket.id)} title="Xem QR">
@@ -531,15 +548,17 @@ export default function AdminTicketsPage() {
                               </div>
                             </DialogContent>
                           </Dialog>
-                          <Button variant="ghost" size="icon" className="text-rose-600 hover:text-rose-700 hover:bg-rose-50" onClick={() => handleCancelTicket(ticket.id)} disabled={ticket.status === "cancelled"} title="Xoa Mềm (Hủy Vé)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c0-1 1-2 2-2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                          </Button>
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <Pagination 
+                currentPage={page} 
+                totalPages={totalPages} 
+                onPageChange={(p) => setPage(p)} 
+              />
             </div>
           )}
         </CardContent>

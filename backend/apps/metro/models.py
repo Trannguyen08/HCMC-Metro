@@ -144,13 +144,13 @@ class Amenity(models.Model):
         managed = True
 
 
-class BusStopCache(models.Model):
+class BusStop(models.Model):
     name = models.CharField(max_length=255)
-    code = models.CharField(max_length=50, null=True, blank=True)
+    code = models.CharField(max_length=50, unique=True)
     latitude = models.DecimalField(max_digits=10, decimal_places=8)
     longitude = models.DecimalField(max_digits=11, decimal_places=8)
     address = models.CharField(max_length=500, null=True, blank=True)
-    routes = models.JSONField(null=True, blank=True) # Text[] array stored as JSON
+    routes = models.JSONField(null=True, blank=True)
     station = models.ForeignKey(
         Station,
         on_delete=models.SET_NULL,
@@ -160,8 +160,12 @@ class BusStopCache(models.Model):
         related_name="bus_stops",
     )
     distance_to_station = models.IntegerField(null=True, blank=True)
-    fetched_at = models.DateTimeField(auto_now_add=True)
+    stop_type = models.CharField(max_length=120, null=True, blank=True)
+    note = models.TextField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "bus_stop_cache"
+        db_table = "bus_stops"
         managed = True

@@ -84,5 +84,35 @@
   .card-hover {
     @apply transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:shadow-card;
   }
+
+  .admin-shell table {
+    @apply text-sm text-slate-700;
+  }
+
+  .admin-shell table thead tr {
+    @apply border-b border-primary/20 bg-primary text-primary-foreground;
+  }
+
+  .admin-shell table thead th,
+  .admin-shell table thead td {
+    @apply font-heading text-xs font-bold uppercase tracking-[0.16em] text-primary-foreground;
+  }
+
+  .admin-shell table tbody {
+    @apply bg-white;
+  }
+
+  .admin-shell table tbody tr {
+    @apply border-b border-slate-200/80 transition-colors;
+  }
+
+  .admin-shell table tbody tr:hover {
+    @apply bg-primary/5;
+  }
+
+  .admin-shell table tbody td,
+  .admin-shell table tbody th {
+    @apply text-slate-700;
+  }
 }
 
