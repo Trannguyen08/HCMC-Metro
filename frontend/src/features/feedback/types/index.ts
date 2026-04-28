@@ -16,6 +16,7 @@ export interface Feedback {
   train: number | null;
   train_detail: Train | null;
   status: FeedbackStatus;
+  rating: number;
   created_at: string;
   updated_at: string;
 }

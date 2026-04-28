@@ -304,91 +304,93 @@ export default function AdminBusStopsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                <SelectItem value="true">Đang bật</SelectItem>
+                <SelectItem value="true">Hoạt động</SelectItem>
                 <SelectItem value="false">Tạm ẩn</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b bg-muted/50 text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Trạm bus</th>
-                  <th className="px-4 py-3 font-medium">Ga liên kết</th>
-                  <th className="px-4 py-3 font-medium">Tuyến</th>
-                  <th className="px-4 py-3 font-medium">Khoảng cách</th>
-                  <th className="px-4 py-3 font-medium">Trạng thái</th>
-                  <th className="px-4 py-3 text-right font-medium">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {loading ? (
+          <div className="rounded-xl border border-slate-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b bg-muted/50 text-muted-foreground uppercase text-[10px] tracking-wider">
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                      Đang tải dữ liệu...
-                    </td>
+                    <th className="px-4 py-3 font-medium">Trạm bus</th>
+                    <th className="px-4 py-3 font-medium">Ga liên kết</th>
+                    <th className="px-4 py-3 font-medium">Tuyến</th>
+                    <th className="px-4 py-3 font-medium">Khoảng cách</th>
+                    <th className="px-4 py-3 font-medium">Trạng thái</th>
+                    <th className="px-4 py-3 text-right font-medium">Thao tác</th>
                   </tr>
-                ) : busStops.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                      Chưa có trạm bus nào phù hợp với bộ lọc hiện tại.
-                    </td>
-                  </tr>
-                ) : (
-                  busStops.map((item) => (
-                    <tr key={item.id} className="transition-colors hover:bg-muted/30">
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-foreground">{item.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.code} · {item.address || "Chưa cập nhật địa chỉ"}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="font-medium">{item.station_name}</div>
-                        <div className="text-xs text-muted-foreground">{item.station_code}</div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex max-w-[280px] flex-wrap gap-1.5">
-                          {item.routes?.length ? (
-                            item.routes.map((route) => (
-                              <Badge key={route} variant="secondary">
-                                {route}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Chưa có</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-muted-foreground">
-                        {item.distance_to_station ? `${item.distance_to_station} m` : "Chưa có"}
-                      </td>
-                      <td className="px-4 py-4">
-                        <Badge variant={item.is_active ? "default" : "secondary"}>
-                          {item.is_active ? "Đang bật" : "Tạm ẩn"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(item)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                            onClick={() => handleOpenDelete(item)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                </thead>
+                <tbody className="divide-y font-medium">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                        Đang tải dữ liệu...
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : busStops.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                        Chưa có trạm bus nào phù hợp với bộ lọc hiện tại.
+                      </td>
+                    </tr>
+                  ) : (
+                    busStops.map((item) => (
+                      <tr key={item.id} className="transition-colors hover:bg-muted/30">
+                        <td className="px-4 py-4">
+                          <div className="font-bold text-foreground">{item.name}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {item.code} · {item.address || "Chưa cập nhật địa chỉ"}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="font-medium">{item.station_name}</div>
+                          <div className="text-xs text-muted-foreground">{item.station_code}</div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex max-w-[280px] flex-wrap gap-1.5">
+                            {item.routes?.length ? (
+                              item.routes.map((route) => (
+                                <Badge key={route} variant="secondary" className="text-[10px] font-bold">
+                                  {route}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Chưa có</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-muted-foreground text-xs font-mono">
+                          {item.distance_to_station ? `${item.distance_to_station} m` : "Chưa có"}
+                        </td>
+                        <td className="px-4 py-4">
+                          <Badge variant={item.is_active ? "default" : "secondary"} className="text-[10px] font-bold uppercase">
+                            {item.is_active ? "Hoạt động" : "Tạm ẩn"}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(item)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                              onClick={() => handleOpenDelete(item)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </CardContent>
       </Card>

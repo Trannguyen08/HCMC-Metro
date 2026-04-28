@@ -3,12 +3,29 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { feedbackService } from "../services/feedback-service";
 import { Feedback, FeedbackStatus, FeedbackType } from "../types";
+import { cn } from "@/lib/utils";
+
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          className={cn(
+            "h-3 w-3",
+            i <= rating ? "fill-amber-400 text-amber-400" : "text-slate-300"
+          )}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function FeedbackList() {
   const [feedbacks, setFeedbacks] = React.useState<Feedback[]>([]);
@@ -93,6 +110,9 @@ export function FeedbackList() {
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {format(new Date(fb.created_at), "HH:mm, dd MMMM yyyy", { locale: vi })}
+                  </div>
+                  <div className="pt-0.5">
+                    <StarRating rating={fb.rating} />
                   </div>
                 </div>
                 {getStatusBadge(fb.status)}

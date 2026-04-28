@@ -24,6 +24,8 @@ import { TYPE_COLORS, TYPE_LABELS } from "@/features/metro/constants/amenity";
 import type { AmenityType, MetroStation } from "@/types/amenity";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/admin/StatCard";
+import { accentInsensitiveSearch } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -196,16 +198,27 @@ export default function AdminAmenitiesPage() {
     const syncAmenities = async () => {
       try {
         const params: Record<string, string> = {};
-        if (searchQuery.trim()) params.search = searchQuery.trim();
+        // We'll handle search on client side for accent-insensitive if backend doesn't support it
+        // But let's see how the existing code does it.
+        // If searchQuery is present, we filter the results locally too.
         if (stationFilter !== "all") params.station = stationFilter;
         if (categoryFilter !== "all") params.category = categoryFilter;
         if (statusFilter !== "all") params.is_active = statusFilter;
 
         const response = await api.get<AdminAmenity[]>("/admin/amenities/", { params });
-        setAmenities(response.data);
+        let filtered = response.data;
+        
+        if (searchQuery.trim()) {
+          filtered = filtered.filter(item => 
+            accentInsensitiveSearch(item.name, searchQuery) ||
+            accentInsensitiveSearch(item.address || "", searchQuery) ||
+            accentInsensitiveSearch(item.station_name, searchQuery)
+          );
+        }
+        
+        setAmenities(filtered);
       } catch (error) {
         console.error("Refresh amenities failed:", error);
-        alert("Không thể tải danh sách tiện ích.");
       }
     };
 
@@ -356,49 +369,38 @@ export default function AdminAmenitiesPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tổng tiện ích</CardTitle>
-            <Store className="h-4 w-4 text-metro-blue" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{amenities.length}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Toàn bộ điểm tiện ích đang quản lý</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Đang hiển thị</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeCount}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Tiện ích đang bật trên hệ thống</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tạm ẩn</CardTitle>
-            <XCircle className="h-4 w-4 text-rose-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inactiveCount}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Tiện ích đã tắt hoặc tạm dừng</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Độ phủ nhà ga</CardTitle>
-            <MapPin className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stationCoverageCount}</div>
-            <p className="mt-1 text-xs text-muted-foreground">Số nhà ga đang có tiện ích liên kết</p>
-          </CardContent>
-        </Card>
+        <StatCard 
+          label="Tổng tiện ích" 
+          value={amenities.length} 
+          icon={Store} 
+          color="text-metro-blue"
+          bg="bg-blue-50"
+          description="Toàn bộ điểm tiện ích"
+        />
+        <StatCard 
+          label="Đang hiển thị" 
+          value={activeCount} 
+          icon={CheckCircle2} 
+          color="text-emerald-600"
+          bg="bg-emerald-50"
+          description="Tiện ích đang bật"
+        />
+        <StatCard 
+          label="Tạm ẩn" 
+          value={inactiveCount} 
+          icon={XCircle} 
+          color="text-rose-600"
+          bg="bg-rose-50"
+          description="Tiện ích đã tắt"
+        />
+        <StatCard 
+          label="Độ phủ nhà ga" 
+          value={stationCoverageCount} 
+          icon={MapPin} 
+          color="text-orange-500"
+          bg="bg-orange-50"
+          description="Nhà ga có tiện ích liên kết"
+        />
       </div>
 
       <Card className="border-none shadow-md">

@@ -124,9 +124,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="font-heading text-base font-bold text-slate-900">
             Hệ thống Quản trị HCMC Metro
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="text-xs text-muted-foreground">Phiên bản 1.0.0-beta</div>
-          </div>
+
         </header>
         <div className="px-5 py-5">{children}</div>
       </main>

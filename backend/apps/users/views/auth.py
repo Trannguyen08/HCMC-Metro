@@ -115,12 +115,24 @@ def logout(request):
     return Response({"detail": "Đã đăng xuất."})
 
 
-@api_view(["GET"])
+from django.core.cache import cache
+
+@api_view(["GET", "PATCH"])
 @permission_classes([IsAuthenticated])
 def me(request):
     user = request.user
     if not user or not getattr(user, "is_active", False):
         return Response({"detail": "Tài khoản không tồn tại."}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == "PATCH":
+        updated_user = auth_service.update_user_profile(user, request.data)
+        
+        # Reset feedback caches when profile changes (to update name in feedback lists)
+        cache.delete("public_feedback_list")
+        cache.delete("admin_feedback_list")
+        cache.delete(f"user_feedback_list_{user.id}")
+        
+        return Response(updated_user)
 
     return Response(auth_service.serialize_user(user))
 
