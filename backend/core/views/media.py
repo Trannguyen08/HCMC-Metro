@@ -2,6 +2,7 @@ from pathlib import Path
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from core.permissions import IsAdminUser
@@ -19,7 +20,7 @@ MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024
 
 
 @api_view(["POST"])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated])
 def upload_media(request):
     """Validate and upload an image to Cloudinary, then return the public URL."""
     if "file" not in request.FILES:

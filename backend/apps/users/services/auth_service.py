@@ -288,3 +288,32 @@ class AuthService:
         new_password_hash = self.hash_password(new_password)
         user.password_hash = new_password_hash
         user.save(update_fields=['password_hash', 'updated_at'])
+
+    def update_user_profile(self, user, data):
+        update_fields = []
+        if "full_name" in data:
+            user.full_name = data["full_name"]
+            update_fields.append("full_name")
+        if "phone" in data:
+            user.phone = data["phone"]
+            update_fields.append("phone")
+        if "date_of_birth" in data:
+            try:
+                if isinstance(data["date_of_birth"], str):
+                    from datetime import date
+                    user.date_of_birth = date.fromisoformat(data["date_of_birth"])
+                else:
+                    user.date_of_birth = data["date_of_birth"]
+                update_fields.append("date_of_birth")
+            except (ValueError, TypeError):
+                pass
+        if "avatar_url" in data:
+            user.avatar_url = data["avatar_url"]
+            update_fields.append("avatar_url")
+        
+        if update_fields:
+            update_fields.append("updated_at")
+            user.save(update_fields=update_fields)
+        
+        return self.serialize_user(user)
+

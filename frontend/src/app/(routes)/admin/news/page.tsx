@@ -10,7 +10,10 @@ import {
   CheckCircle, 
   AlertCircle,
   Upload,
-  Loader2
+  Loader2,
+  Newspaper,
+  FileText,
+  Send
 } from "lucide-react";
 import { 
   Card, 
@@ -36,6 +39,8 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { IMAGE_UPLOAD_ACCEPT, validateImageFile } from "@/lib/upload-validation";
 import { Pagination } from "@/components/admin/pagination";
+import { StatCard } from "@/components/admin/StatCard";
+import { accentInsensitiveSearch } from "@/lib/utils";
 import api from "@/lib/api";
 
 interface News {
@@ -61,6 +66,7 @@ export default function AdminNewsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   
@@ -225,10 +231,19 @@ export default function AdminNewsPage() {
     }
   };
 
-  const filteredNews = news.filter(item => 
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.summary.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredNews = news.filter(item => {
+    const matchesSearch = !searchQuery || 
+      accentInsensitiveSearch(item.title, searchQuery) ||
+      accentInsensitiveSearch(item.summary, searchQuery);
+    
+    const matchesCategory = categoryFilter === "all" || item.category.toString() === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const totalNews = news.length;
+  const publishedCount = news.filter(n => n.is_published).length;
+  const draftCount = news.filter(n => !n.is_published).length;
 
   return (
     <div className="space-y-6">
@@ -244,28 +259,69 @@ export default function AdminNewsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Tìm kiếm tin tức..." 
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard 
+          label="Tổng tin tức" 
+          value={totalNews} 
+          icon={Newspaper} 
+          description="Bài viết trong hệ thống"
+        />
+        <StatCard 
+          label="Đã xuất bản" 
+          value={publishedCount} 
+          icon={Send} 
+          color="text-emerald-600"
+          bg="bg-emerald-50"
+          description="Tin tức đang công khai"
+        />
+        <StatCard 
+          label="Bản nháp" 
+          value={draftCount} 
+          icon={FileText} 
+          color="text-orange-600"
+          bg="bg-orange-50"
+          description="Chờ chỉnh sửa/xác nhận"
+        />
       </div>
 
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+      <Card className="shadow-sm border-none ring-1 ring-border">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Tìm tiêu đề, nội dung (không dấu vẫn ra)..." 
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="w-full md:w-64">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Lọc theo danh mục" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả danh mục</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted/50 border-b text-muted-foreground font-medium">
+              <thead className="bg-[#0055a4] text-white font-bold uppercase text-[11px] tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Bài viết</th>
                   <th className="px-6 py-4">Danh mục</th>
-                  <th className="px-6 py-4">Trạng thái</th>
-                  <th className="px-6 py-4">Ngày tạo</th>
+                  <th className="px-6 py-4 text-center">Trạng thái</th>
+                  <th className="px-6 py-4 text-center">Ngày tạo</th>
                   <th className="px-6 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -298,20 +354,18 @@ export default function AdminNewsPage() {
                     <td className="px-6 py-4">
                       <Badge variant="outline">{item.category_name}</Badge>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       {item.is_published ? (
-                        <div className="flex items-center text-green-600 gap-1.5">
-                          <CheckCircle className="h-4 w-4" />
-                          <span>Công khai</span>
-                        </div>
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none shadow-none font-bold">
+                          Công khai
+                        </Badge>
                       ) : (
-                        <div className="flex items-center text-orange-500 gap-1.5">
-                          <AlertCircle className="h-4 w-4" />
-                          <span>Bản nháp</span>
-                        </div>
+                        <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-none shadow-none font-bold">
+                          Bản nháp
+                        </Badge>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">
+                    <td className="px-6 py-4 text-center text-muted-foreground">
                       {format(new Date(item.created_at), "dd/MM/yyyy", { locale: vi })}
                     </td>
                     <td className="px-6 py-4 text-right">

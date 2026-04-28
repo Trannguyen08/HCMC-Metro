@@ -9,7 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { authService } from "@/features/auth/services/auth-service";
 import api from "@/lib/api";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Loader2 } from "lucide-react";
 
 export default function ProfilePage() {
   const { user, isAuthenticated, updateProfile, logout } = useAuth();
@@ -18,6 +21,8 @@ export default function ProfilePage() {
   const [email, setEmail] = React.useState(user?.email ?? "");
   const [phone, setPhone] = React.useState(user?.phone ?? "");
   const [saved, setSaved] = React.useState(false);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setName(user?.full_name ?? "");
@@ -51,6 +56,21 @@ export default function ProfilePage() {
     loadProfile();
   }, [loadProfile]);
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const url = await authService.uploadAvatar(file);
+      await updateProfile({ avatar_url: url });
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <Card className="shadow-card">
@@ -77,14 +97,35 @@ export default function ProfilePage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3 rounded-xl border bg-background p-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <UserCircle2 className="h-7 w-7 text-muted-foreground" />
-          </div>
+          <Avatar className="h-14 w-14">
+            <AvatarImage src={user?.avatar_url} />
+            <AvatarFallback>
+              <UserCircle2 className="h-7 w-7 text-muted-foreground" />
+            </AvatarFallback>
+          </Avatar>
           <div className="flex-1">
             <div className="font-medium">{user?.full_name}</div>
             <div className="text-sm text-muted-foreground">{user?.email}</div>
           </div>
-          <Button variant="outline" size="sm" type="button" onClick={() => alert("Upload avatar (mock).")}>Tải ảnh</Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleFileChange}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            Tải ảnh
+          </Button>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">

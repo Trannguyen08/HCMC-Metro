@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/admin/pagination";
+import { StatCard } from "@/components/admin/StatCard";
+import { accentInsensitiveSearch } from "@/lib/utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/backend-api";
 
@@ -55,6 +57,7 @@ export default function AdminTicketsPage() {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraInfo, setCameraInfo] = useState<string>("Camera đang tắt");
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
   const isHandlingScanRef = useRef(false);
   const qrScannerRef = useRef<any>(null);
 
@@ -86,21 +89,21 @@ export default function AdminTicketsPage() {
   };
 
   const getStatusLabel = (status: string) => {
-    if (status === "active") return "Dang hoat dong";
-    if (status === "used") return "Da su dung";
-    if (status === "expired") return "Da het han";
-    if (status === "cancelled") return "Da huy";
-    if (status === "pending") return "Cho thanh toan";
+    if (status === "active") return "Đang hoạt động";
+    if (status === "used") return "Đã sử dụng";
+    if (status === "expired") return "Đã hết hạn";
+    if (status === "cancelled") return "Đã hủy";
+    if (status === "pending") return "Chờ thanh toán";
     return status;
   };
 
   const getStatusBadgeClassName = (status: string) => {
-    if (status === "active") return "border-transparent bg-emerald-100 text-emerald-700";
-    if (status === "used") return "border-transparent bg-sky-100 text-sky-700";
-    if (status === "expired") return "border-transparent bg-amber-100 text-amber-700";
-    if (status === "cancelled") return "border-transparent bg-rose-100 text-rose-700";
-    if (status === "pending") return "border-transparent bg-slate-100 text-slate-700";
-    return "border-transparent bg-slate-100 text-slate-700";
+    if (status === "active") return "border-emerald-200 bg-emerald-100 text-emerald-700";
+    if (status === "used") return "border-blue-200 bg-blue-100 text-blue-700";
+    if (status === "expired") return "border-rose-200 bg-rose-100 text-rose-700";
+    if (status === "cancelled") return "border-slate-300 bg-slate-200 text-slate-700";
+    if (status === "pending") return "border-amber-200 bg-amber-100 text-amber-700";
+    return "border-slate-200 bg-slate-100 text-slate-600";
   };
 
   const getStatusCellClassName = (status: string) => {
@@ -149,9 +152,19 @@ export default function AdminTicketsPage() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const res = await api.get("/admin/stats/");
+      setDashboardStats(res.data);
+    } catch (err) {
+      console.error("Failed to fetch stats", err);
+    }
+  };
+
   useEffect(() => {
     fetchTickets(page);
     fetchScanHistories();
+    fetchStats();
   }, [page]);
 
   const handleViewQR = async (ticketId: string) => {
@@ -339,7 +352,7 @@ export default function AdminTicketsPage() {
   }, [scanCard, scanMessage]);
 
   const filteredTickets = tickets.filter(
-    (t) => t.id.toLowerCase().includes(search.toLowerCase()) || t.ticket_type_name.toLowerCase().includes(search.toLowerCase())
+    (t) => accentInsensitiveSearch(t.id, search) || accentInsensitiveSearch(t.ticket_type_name, search)
   );
   const totalRevenue = tickets
     .filter((t) => t.status !== "cancelled")
@@ -358,98 +371,81 @@ export default function AdminTicketsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tong doanh thu</CardTitle>
-            <DollarSign className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-mono text-2xl font-black text-primary">{loading ? "..." : `${totalRevenue.toLocaleString("vi-VN")} VND`}</div>
-            <p className="text-xs text-muted-foreground">Tong gia tri ve da ban</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Luot dat ve</CardTitle>
-            <Ticket className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-mono text-2xl font-black">{loading ? "..." : tickets.length}</div>
-            <p className="text-xs text-muted-foreground">Tong so ve trong he thong</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ty le su dung</CardTitle>
-            <TrendingUp className="h-4 w-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-mono text-2xl font-black">-</div>
-            <p className="text-xs text-muted-foreground">Cap nhat theo du lieu quet</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Giao dich 24h</CardTitle>
-            <Calendar className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="font-mono text-2xl font-black">-</div>
-            <p className="text-xs text-muted-foreground">Dang hoat dong on dinh</p>
-          </CardContent>
-        </Card>
+        <StatCard 
+          label="Tổng doanh thu" 
+          value={`${totalRevenue.toLocaleString("vi-VN")} VND`} 
+          icon={DollarSign} 
+          description="Tổng giá trị vé đã bán"
+        />
+        <StatCard 
+          label="Lượt đặt vé" 
+          value={dashboardStats?.total_tickets ?? tickets.length} 
+          icon={Ticket} 
+          description="Số lượng vé trong hệ thống"
+        />
+        <StatCard 
+          label="Tỷ lệ sử dụng" 
+          value={dashboardStats ? `${dashboardStats.usage_rate}%` : "-"} 
+          icon={TrendingUp} 
+          color="text-emerald-500"
+          bg="bg-emerald-50"
+          description="Cập nhật theo dữ liệu quét"
+        />
+        <StatCard 
+          label="Giao dịch 24h" 
+          value={dashboardStats?.transactions_24h ?? "-"} 
+          icon={Calendar} 
+          description="Giao dịch trong 24 giờ qua"
+        />
       </div>
 
       <Card className="border-none shadow-md">
         <CardHeader>
-          <CardTitle>Quet QR soat ve bang camera</CardTitle>
-          <CardDescription>Bat camera va dua QR vao khung de he thong tu dong quet.</CardDescription>
+          <CardTitle>Quét QR soát vé bằng camera</CardTitle>
+          <CardDescription>Bật camera và đưa mã QR vào khung để hệ thống tự động quét.</CardDescription>
           <div className="flex flex-col gap-3 md:flex-row">
             <Button onClick={cameraActive ? stopCamera : startCamera} className="gap-2" variant={cameraActive ? "outline" : "default"}>
               <QrCode className="h-4 w-4" />
-              {cameraActive ? "Tat camera" : "Bat camera quet"}
+              {cameraActive ? "Tắt camera" : "Bật camera quét"}
             </Button>
-            <Input value={scanInput} readOnly placeholder="Thong tin tom tat ve se hien thi o day..." />
+            <Input value={scanInput} readOnly placeholder="Thông tin tóm tắt vé sẽ hiển thị ở đây..." />
           </div>
           {scanCard && (
             <div className="grid gap-3 rounded-xl border bg-slate-50/80 p-3 md:grid-cols-2">
               <div>
-                <div className="text-[11px] uppercase text-slate-500">Ma ve</div>
+                <div className="text-[11px] uppercase text-slate-500">Mã vé</div>
                 <div className="font-mono text-sm font-semibold">{scanCard.ticketId ? `#${scanCard.ticketId.slice(0, 8)}` : "-"}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-slate-500">Trang thai</div>
+                <div className="text-[11px] uppercase text-slate-500">Trạng thái</div>
                 <Badge variant="outline" className={getStatusBadgeClassName(scanCard.status)}>
                   {getStatusLabel(scanCard.status)}
                 </Badge>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-slate-500">Loai ve</div>
+                <div className="text-[11px] uppercase text-slate-500">Loại vé</div>
                 <div className="text-sm">{scanCard.ticketTypeName || "-"}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-slate-500">Luot con</div>
-                <div className="text-sm">{scanCard.usageRemaining === null ? "Vo han" : scanCard.usageRemaining}</div>
+                <div className="text-[11px] uppercase text-slate-500">Lượt còn</div>
+                <div className="text-sm">{scanCard.usageRemaining === null ? "Vô hạn" : scanCard.usageRemaining}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-slate-500">Lo trinh</div>
+                <div className="text-[11px] uppercase text-slate-500">Lộ trình</div>
                 <div className="text-sm">{scanCard.routeText || "-"}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-slate-500">Gia ve</div>
+                <div className="text-[11px] uppercase text-slate-500">Giá vé</div>
                 <div className="text-sm font-medium">
                   {scanCard.pricePaid ? `${parseInt(scanCard.pricePaid, 10).toLocaleString("vi-VN")} VND` : "-"}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-slate-500">Thoi gian quet</div>
+                <div className="text-[11px] uppercase text-slate-500">Thời gian quét</div>
                 <div className="text-sm">{scanCard.scannedAt ? new Date(scanCard.scannedAt).toLocaleString("vi-VN") : "-"}</div>
               </div>
               <div>
-                <div className="text-[11px] uppercase text-slate-500">Ngay quet</div>
+                <div className="text-[11px] uppercase text-slate-500">Ngày quét</div>
                 <div className="text-sm">{scanCard.scanDate || "-"}</div>
               </div>
             </div>
@@ -464,95 +460,89 @@ export default function AdminTicketsPage() {
               {scanMessage.text}
             </div>
           )}
-          {scanning && <div className="text-xs text-slate-500">Dang xu ly ket qua quet...</div>}
+          {scanning && <div className="text-xs text-slate-500">Đang xử lý kết quả quét...</div>}
         </CardHeader>
       </Card>
 
       <Card className="border-none shadow-md">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Danh sach giao dich</CardTitle>
-            <CardDescription>Hien thi cac ve gan nhat.</CardDescription>
+            <CardTitle>Danh sách giao dịch</CardTitle>
+            <CardDescription>Hiển thị các vé gần nhất.</CardDescription>
           </div>
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Tim ma ve hoac loai ve..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder="Tìm mã vé hoặc loại vé..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Dang tai du lieu...</p>
+              <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
             </div>
           ) : (
-            <div className="relative w-full overflow-auto">
-              <table className="w-full caption-bottom text-sm">
-                <thead>
-                  <tr className="border-b text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    <td className="h-12 px-4 align-middle">Ma ve</td>
-                    <td className="h-12 px-4 align-middle">Lộ trình</td>
-                    <td className="h-12 px-4 align-middle text-center">Loại vé</td>
-                    <td className="h-12 px-4 align-middle text-center">Giá tiền</td>
-                    <td className="h-12 px-4 align-middle text-center">Trang thai</td>
-                    <td className="h-12 px-4 align-middle text-center">Luot con</td>
-                    <td className="h-12 px-4 align-middle text-center">Ngày mua</td>
-                    <td className="h-12 px-4 align-middle text-center">QR</td>
-                  </tr>
-                </thead>
-                <tbody className="font-medium">
-                  {filteredTickets.map((ticket) => (
-                    <tr key={ticket.id} className="border-b transition-colors hover:bg-muted/50">
-                      <td className="p-4 align-middle font-mono text-xs text-muted-foreground">#{ticket.id.slice(0, 8)}</td>
-                      <td className="p-4 align-middle">
-                        <div className="flex flex-col">
-                          <span className="font-bold">{ticket.from_station_details?.name || "He thong"}</span>
-                          <span className="text-[10px] text-muted-foreground">{ticket.to_station_details?.name || "Tat ca ga"}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 align-middle text-center">
-                        <Badge variant="outline" className="border-none bg-primary/5 text-primary">
-                          {ticket.ticket_type_name}
-                        </Badge>
-                      </td>
-                      <td className="p-4 align-middle text-center font-mono font-bold">{parseInt(ticket.price_paid || "0", 10).toLocaleString("vi-VN")} VND</td>
-                      <td className="p-4 align-middle text-center">
-                        <Badge variant="outline" className={getStatusBadgeClassName(ticket.status)}>
-                          {getStatusLabel(ticket.status)}
-                        </Badge>
-                      </td>
-                      <td className="p-4 align-middle text-center">{ticket.usage_remaining === null || ticket.usage_remaining === undefined ? "Vo han" : ticket.usage_remaining}</td>
-                      <td className="p-4 align-middle text-center text-xs text-muted-foreground">{new Date(ticket.created_at).toLocaleString("vi-VN")}</td>
-                      <td className="p-4 align-middle text-center">
-                        <div className="flex gap-1 justify-center">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={() => handleViewQR(ticket.id)} title="Xem QR">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>QR ve #{ticket.id.slice(0, 8)}</DialogTitle>
-                              </DialogHeader>
-                              <div className="flex flex-col items-center justify-center gap-4 p-6">
-                                {selectedQR ? (
-                                  <img src={`data:image/png;base64,${selectedQR.base64}`} alt="QR" className="h-64 w-64 rounded-xl border bg-white p-2 shadow-sm" />
-                                ) : (
-                                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                                )}
-                                <div className="text-center">
-                                  <div className="text-lg font-bold">{ticket.ticket_type_name}</div>
-                                  <div className="text-sm text-muted-foreground">ID: {ticket.id}</div>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </td>
+            <div className="rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+              <div className="relative w-full overflow-auto">
+                <table className="w-full caption-bottom text-sm">
+                  <thead>
+                    <tr className="border-b bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <td className="h-12 px-4 align-middle">Mã vé</td>
+                      <td className="h-12 px-4 align-middle">Lộ trình</td>
+                      <td className="h-12 px-4 align-middle text-center">Loại vé</td>
+                      <td className="h-12 px-4 align-middle text-center">Giá tiền</td>
+                      <td className="h-12 px-4 align-middle text-center">Trạng thái</td>
+                      <td className="h-12 px-4 align-middle text-center">Lượt còn</td>
+                      <td className="h-12 px-4 align-middle text-center">Ngày mua</td>
+                      <td className="h-12 px-4 align-middle text-center">QR</td>
                     </tr>
-                  ))}
-                </tbody>
+                  </thead>
+                  <tbody className="font-medium divide-y">
+                    {filteredTickets.map((ticket) => (
+                      <tr key={ticket.id} className="transition-colors hover:bg-muted/50">
+                        <td className="p-4 align-middle font-mono text-xs text-muted-foreground">#{ticket.id.slice(0, 8)}</td>
+                        <td className="p-4 align-middle">
+                          <div className="flex flex-col">
+                            <span className="font-bold">{ticket.from_station_details?.name || "Hệ thống"}</span>
+                            <span className="text-[10px] text-muted-foreground">{ticket.to_station_details?.name || "Tất cả ga"}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 align-middle text-center">
+                          <Badge variant="outline" className="border-none bg-primary/5 text-primary text-[10px] font-bold uppercase">
+                            {ticket.ticket_type_name}
+                          </Badge>
+                        </td>
+                        <td className="p-4 align-middle text-center font-mono font-bold">{parseInt(ticket.price_paid || "0", 10).toLocaleString("vi-VN")} VND</td>
+                        <td className="p-4 align-middle text-center">
+                          <Badge variant="outline" className={getStatusBadgeClassName(ticket.status) + " text-[10px] font-bold uppercase"}>
+                            {getStatusLabel(ticket.status)}
+                          </Badge>
+                        </td>
+                        <td className="p-4 align-middle text-center text-xs">{ticket.usage_remaining === null || ticket.usage_remaining === undefined ? "Vô hạn" : ticket.usage_remaining}</td>
+                        <td className="p-4 align-middle text-center text-[10px] text-muted-foreground">{new Date(ticket.created_at).toLocaleString("vi-VN")}</td>
+                        <td className="p-4 align-middle text-center">
+                          <div className="flex gap-1 justify-center">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => handleViewQR(ticket.id)} title="Xem QR">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>QR vé #{ticket.id.slice(0, 8)}</DialogTitle>
+                                </DialogHeader>
+                                <div className="flex flex-col items-center justify-center gap-4 p-6">
+                                  {selectedQR ? (
+                                    <img src={`data:image/png;base64,${selectedQR.base64}`} alt="QR" className="h-64 w-64 rounded-xl border bg-white p-2 shadow-sm" />
+                                  ) : (
+                                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                  )}
+                                  <div className="text-center">
+                                    <div className="text-lg font-bold">{ticket.ticket_type_name}</div>
+                                    <div className="text-sm text-muted-foreground">ID: {ticket.id}</div>
+                                  </div>
+                                </div>
               </table>
               <Pagination 
                 currentPage={page} 
@@ -578,55 +568,57 @@ export default function AdminTicketsPage() {
           ) : scanHistories.length === 0 ? (
             <div className="py-8 text-sm text-muted-foreground">Chưa có lịch sử scan.</div>
           ) : (
-            <div className="relative w-full overflow-auto">
-              <table className="w-full caption-bottom text-sm">
-                <thead>
-                  <tr className="border-b text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    <td className="h-12 px-4 align-middle">Thời gian</td>
-                    <td className="h-12 px-4 align-middle">Mã vé</td>
-                    <td className="h-12 px-4 align-middle">Người quét</td>
-                    <td className="h-12 px-4 align-middle">Kết quả</td>
-                    <td className="h-12 px-4 align-middle">Nội dung</td>
-                    <td className="h-12 px-4 align-middle text-center">Trước → Sau</td>
-                  </tr>
-                </thead>
-                <tbody className="font-medium">
-                  {scanHistories.slice(0, 50).map((h) => (
-                    <tr key={h.id} className="border-b transition-colors hover:bg-muted/50">
-                      <td className="p-4 align-middle text-xs text-muted-foreground">
-                        {h.scanned_at ? new Date(h.scanned_at).toLocaleString("vi-VN") : "-"}
-                      </td>
-                      <td className="p-4 align-middle font-mono text-xs text-muted-foreground">
-                        {h.ticket ? `#${String(h.ticket).slice(0, 8)}` : "-"}
-                      </td>
-                      <td className="p-4 align-middle text-sm">{h.scanned_by_name || "System"}</td>
-                      <td className="p-4 align-middle">
-                        <Badge
-                          variant="outline"
-                          className={
-                            h.success
-                              ? "border-transparent bg-emerald-100 text-emerald-700"
-                              : "border-transparent bg-rose-100 text-rose-700"
-                          }
-                        >
-                          {h.success ? "Thành công" : "Thất bại"}
-                        </Badge>
-                      </td>
-                      <td className="p-4 align-middle text-sm">{h.message}</td>
-                      <td className="p-4 align-middle text-center text-xs text-muted-foreground">
-                        <span className="font-mono">{h.status_before ?? "-"}</span>
-                        {" -> "}
-                        <span className="font-mono">{h.status_after ?? "-"}</span>
-                        {h.usage_remaining_before !== null || h.usage_remaining_after !== null ? (
-                          <span className="ml-2 font-mono">
-                            ({h.usage_remaining_before ?? "-"}→{h.usage_remaining_after ?? "-"})
-                          </span>
-                        ) : null}
-                      </td>
+            <div className="rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+              <div className="relative w-full overflow-auto">
+                <table className="w-full caption-bottom text-sm">
+                  <thead>
+                    <tr className="border-b bg-slate-50/80 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      <td className="h-12 px-4 align-middle">Thời gian</td>
+                      <td className="h-12 px-4 align-middle">Mã vé</td>
+                      <td className="h-12 px-4 align-middle">Người quét</td>
+                      <td className="h-12 px-4 align-middle">Kết quả</td>
+                      <td className="h-12 px-4 align-middle">Nội dung</td>
+                      <td className="h-12 px-4 align-middle text-center">Trước → Sau</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="font-medium divide-y">
+                    {scanHistories.slice(0, 50).map((h) => (
+                      <tr key={h.id} className="border-b transition-colors hover:bg-muted/50">
+                        <td className="p-4 align-middle text-[10px] text-muted-foreground">
+                          {h.scanned_at ? new Date(h.scanned_at).toLocaleString("vi-VN") : "-"}
+                        </td>
+                        <td className="p-4 align-middle font-mono text-xs text-muted-foreground">
+                          {h.ticket ? `#${String(h.ticket).slice(0, 8)}` : "-"}
+                        </td>
+                        <td className="p-4 align-middle text-sm font-bold">{h.scanned_by_name || "System"}</td>
+                        <td className="p-4 align-middle">
+                          <Badge
+                            variant="outline"
+                            className={
+                              (h.success
+                                ? "border-transparent bg-emerald-100 text-emerald-700"
+                                : "border-transparent bg-rose-100 text-rose-700") + " text-[10px] font-bold uppercase"
+                            }
+                          >
+                            {h.success ? "Thành công" : "Thất bại"}
+                          </Badge>
+                        </td>
+                        <td className="p-4 align-middle text-sm">{h.message}</td>
+                        <td className="p-4 align-middle text-center text-xs text-muted-foreground">
+                          <span className="font-bold text-slate-700">{getStatusLabel(h.status_before ?? "")}</span>
+                          {" → "}
+                          <span className="font-bold text-primary">{getStatusLabel(h.status_after ?? "")}</span>
+                          {h.usage_remaining_before !== null || h.usage_remaining_after !== null ? (
+                            <span className="ml-2 font-mono opacity-60">
+                              ({h.usage_remaining_before ?? "-"}→{h.usage_remaining_after ?? "-"})
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </CardContent>

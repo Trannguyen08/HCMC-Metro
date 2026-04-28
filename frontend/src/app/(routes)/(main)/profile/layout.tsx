@@ -2,15 +2,28 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { cn } from "@/lib/utils";
 
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { logout, isAuthenticated } = useAuth();
-  
+  const router = useRouter();
+  const { logout, isAuthenticated, hasHydrated } = useAuth();
+
+  React.useEffect(() => {
+    if (hasHydrated && !isAuthenticated) {
+      router.push("/");
+    }
+  }, [isAuthenticated, hasHydrated, router]);
+
+  if (!hasHydrated) return null;
+
+  if (!isAuthenticated) {
+    return <div className="mx-auto max-w-2xl pt-10">{children}</div>;
+  }
+
   // Tabs configuration with trailing slashes
   const tabs = [
     { href: "/profile/", label: "Thông tin cá nhân" },
@@ -19,10 +32,6 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
     { href: "/profile/feedback/", label: "Góp ý & Khiếu nại" },
     { href: "/profile/security/", label: "Bảo mật" },
   ];
-
-  if (!isAuthenticated) {
-    return <div className="mx-auto max-w-2xl pt-10">{children}</div>;
-  }
 
   return (
     <div className="space-y-6">

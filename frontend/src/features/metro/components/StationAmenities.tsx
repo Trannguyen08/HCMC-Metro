@@ -95,6 +95,20 @@ const AmenitiesPage: React.FC = () => {
     resetFilters,
   } = useAmenities();
 
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const itemsPerPage = 12;
+
+  // Reset page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+
+  const totalPages = Math.ceil(amenities.length / itemsPerPage);
+  const paginatedAmenities = amenities.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f7fafc_0%,#eef5ff_26%,#ffffff_100%)] pb-16">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pt-2 pb-6 sm:px-6 lg:px-8 lg:pt-2 lg:pb-8">
@@ -157,26 +171,7 @@ const AmenitiesPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <StatCard
-            label="Kết quả đang hiển thị"
-            value={loading ? "--" : amenities.length.toString()}
-            hint="Số lượng thẻ đang hiện trên màn hình."
-            accentClass="bg-[#0055A5]"
-          />
-          <StatCard
-            label="Tổng điểm phù hợp"
-            value={loading ? "--" : total.toString()}
-            hint="Tổng kết quả trên toàn bộ hệ thống."
-            accentClass="bg-[#00A86B]"
-          />
-          <StatCard
-            label="Chế độ duyệt"
-            value={filters.stationId ? "Theo ga" : "Toàn mạng"}
-            hint="Chuyển nhanh xem tổng hợp hoặc theo ga."
-            accentClass="bg-amber-400"
-          />
-        </section>
+
 
         <AmenityFiltersBar
           search={filters.search}
@@ -198,9 +193,35 @@ const AmenitiesPage: React.FC = () => {
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
               <Store className="h-4 w-4 text-[#0055A5]" />
-              {loading ? "Đang tải dữ liệu..." : `${amenities.length} / ${total || amenities.length} kết quả`}
+              {loading ? "Đang tải dữ liệu..." : `${paginatedAmenities.length} / ${total || amenities.length} kết quả`}
             </div>
           </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="rounded-full"
+              >
+                Trước
+              </Button>
+              <div className="text-sm font-medium">
+                Trang {currentPage} / {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-full"
+              >
+                Sau
+              </Button>
+            </div>
+          )}
 
           {error ? (
             <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
@@ -213,7 +234,7 @@ const AmenitiesPage: React.FC = () => {
               ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
               : amenities.length === 0
                 ? <EmptyState onReset={resetFilters} type={filters.type} />
-                : amenities.map((amenity) => <AmenityCard key={amenity.id} amenity={amenity} />)}
+                : paginatedAmenities.map((amenity) => <AmenityCard key={amenity.id} amenity={amenity} />)}
           </div>
         </section>
 

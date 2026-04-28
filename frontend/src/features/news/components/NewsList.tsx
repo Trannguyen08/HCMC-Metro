@@ -46,11 +46,11 @@ function NewsCard({
       <article
         className={
           featured
-            ? "grid overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(15,23,42,0.09)] lg:grid-cols-[1.2fr_1fr]"
+            ? "grid overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(15,23,42,0.09)] lg:grid-cols-[1fr_3fr]"
             : "flex h-full flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
         }
       >
-        <div className={featured ? "relative min-h-[280px] lg:min-h-[360px]" : "relative aspect-[4/3]"}>
+        <div className={featured ? "relative min-h-[200px] lg:min-h-[280px]" : "relative aspect-[4/3]"}>
           <img
             src={item.thumbnail_url || FALLBACK_IMAGE}
             alt={item.title}

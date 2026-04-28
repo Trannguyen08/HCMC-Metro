@@ -10,6 +10,9 @@ import {
   Loader2,
   MessageSquare,
   Search,
+  CheckCircle,
+  Clock,
+  LayoutDashboard
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +27,8 @@ import {
 } from "@/components/ui/select";
 import { feedbackService } from "@/features/feedback/services/feedback-service";
 import { Feedback, FeedbackStatus, FeedbackType } from "@/features/feedback/types";
+import { StatCard } from "@/components/admin/StatCard";
+import { accentInsensitiveSearch } from "@/lib/utils";
 
 const STATUS_OPTIONS: Array<{ value: FeedbackStatus; label: string }> = [
   { value: "pending", label: "Chờ xử lý" },
@@ -128,11 +133,10 @@ export default function AdminFeedbackPage() {
   };
 
   const filteredFeedbacks = feedbacks.filter((fb) => {
-    const keyword = searchQuery.toLowerCase();
-    const matchesSearch =
-      fb.user_full_name.toLowerCase().includes(keyword) ||
-      fb.content.toLowerCase().includes(keyword) ||
-      (fb.train_detail?.train_number || "").toLowerCase().includes(keyword);
+    const matchesSearch = !searchQuery ||
+      accentInsensitiveSearch(fb.user_full_name, searchQuery) ||
+      accentInsensitiveSearch(fb.content, searchQuery) ||
+      accentInsensitiveSearch(fb.train_detail?.train_number || "", searchQuery);
 
     const matchesStatus = statusFilter === "all" || fb.status === statusFilter;
     const matchesType = typeFilter === "all" || fb.type === typeFilter;
@@ -157,50 +161,36 @@ export default function AdminFeedbackPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="shadow-sm border-none ring-1 ring-border">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <MessageSquare className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Tổng số</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-none ring-1 ring-border">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-              <MessageSquare className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Chờ xử lý</p>
-              <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-none ring-1 ring-border">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-              <AlertCircle className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Đang xử lý</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.processing}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm border-none ring-1 ring-border">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase">Đã giải quyết</p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.resolved}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard 
+          label="Tổng góp ý" 
+          value={stats.total} 
+          icon={MessageSquare} 
+          description="Phản hồi từ khách hàng"
+        />
+        <StatCard 
+          label="Chờ xử lý" 
+          value={stats.pending} 
+          icon={Clock} 
+          color="text-amber-600"
+          bg="bg-amber-50"
+          description="Góp ý mới chưa đọc"
+        />
+        <StatCard 
+          label="Đang xử lý" 
+          value={stats.processing} 
+          icon={LayoutDashboard} 
+          color="text-blue-600"
+          bg="bg-blue-50"
+          description="Đang được giải quyết"
+        />
+        <StatCard 
+          label="Đã giải quyết" 
+          value={stats.resolved} 
+          icon={CheckCircle} 
+          color="text-emerald-600"
+          bg="bg-emerald-50"
+          description="Phản hồi đã hoàn tất"
+        />
       </div>
 
       <Card className="shadow-sm border-none ring-1 ring-border">

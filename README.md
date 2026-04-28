@@ -302,19 +302,38 @@ docker compose up --build
 ### 3.1. Giao diện dành cho người dùng
 
 - **Trang chủ:**
-*(Thêm ảnh chụp trang chủ tại đây)*
+![Trang chủ 1](docs/images/Home1.png)
+![Trang chủ 2](docs/images/Home2.png)
+![Trang chủ 3](docs/images/Home3.png)
+![Trang chủ 4](docs/images/Home4.png)
+![Trang chủ 5](docs/images/Home5.png)
 
 - **Bản đồ số Metro:**
-*(Thêm ảnh chụp bản đồ Metro tại đây)*
+![Bản đồ Metro](docs/images/Map.png)
 
 - **Tra cứu lộ trình & ga Metro:**
-*(Thêm ảnh chụp tra cứu tại đây)*
+![Tra cứu 1](docs/images/Route1.png)
+![Tra cứu 2](docs/images/Route2.png)
+![Thông tin ga](docs/images/Info.png)
+
+- **Tiện ích quanh Ga:**
+![Tiện ích 1](docs/images/Amenity1.png)
+![Tiện ích 2](docs/images/Amenity2.png)
+![Tiện ích 3](docs/images/Amenity3.png)
 
 - **Quy trình đặt vé & thanh toán:**
-*(Thêm ảnh chụp đặt vé tại đây)*
+![Đặt vé 1](docs/images/TicketBooking1.png)
+![Đặt vé 2](docs/images/TicketBooking2.png)
+![Thanh toán PayOS](docs/images/PayOS.png)
+![Đặt vé thành công](docs/images/TicketBookingSuccess.png)
 
 - **Trang cá nhân & quản lý vé:**
-*(Thêm ảnh chụp quản lý vé tại đây)*
+![Lịch sử đặt vé](docs/images/TicketHistory.png)
+![Vé đang hoạt động](docs/images/ActiveTicket.png)
+![Đổi mật khẩu](docs/images/ChangePassword.png)
+![Góp ý](docs/images/Feedback.png)
+![Đăng nhập](docs/images/Login.png)
+![Đăng ký](docs/images/Register.png)
 
 ### 3.2. Giao diện dành cho quản trị viên
 

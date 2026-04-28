@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder="Tìm tên quán, dịch vụ hoặc địa chỉ..."
-              className="h-12 rounded-2xl border-slate-200 bg-slate-50/80 pl-11 pr-11 shadow-none focus-visible:ring-[#0055A5]/20"
+              className="h-11 rounded-2xl border-slate-200 bg-slate-50/80 pl-11 pr-11 shadow-none focus-visible:ring-[#0055A5]/20"
             />
             {search ? (
               <button
@@ -68,9 +68,9 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
             ) : null}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] lg:min-w-[360px] lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <Select value={stationId || "all"} onValueChange={(value) => onStationChange(value === "all" ? "" : value)}>
-              <SelectTrigger className="h-12 rounded-2xl border-slate-200 bg-slate-50/80 shadow-none">
+              <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-slate-50/80 shadow-none lg:min-w-[240px]">
                 <div className="flex items-center gap-2 text-slate-700">
                   <MapPin className="h-4 w-4 text-[#0055A5]" />
                   <SelectValue placeholder="Tất cả nhà ga" />
@@ -86,7 +86,7 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
               </SelectContent>
             </Select>
 
-            {hasActiveFilters ? (
+            {hasActiveFilters && (
               <Button
                 type="button"
                 variant="outline"
@@ -95,14 +95,10 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
                   onStationChange("");
                   onTypeChange("all");
                 }}
-                className="h-12 rounded-2xl border-slate-200 px-4"
+                className="h-11 rounded-2xl border-slate-200 px-4"
               >
                 Đặt lại
               </Button>
-            ) : (
-              <div className="hidden h-12 items-center rounded-2xl border border-dashed border-slate-200 px-4 text-sm text-slate-400 lg:flex">
-                Bộ lọc sạch
-              </div>
             )}
           </div>
         </div>

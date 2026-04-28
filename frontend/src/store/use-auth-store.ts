@@ -24,7 +24,7 @@ interface AuthState {
   }) => Promise<{ email: string; verification_token: string }>;
   verifyEmailOtp: (input: { verification_token: string; otp: string }) => Promise<AuthUser>;
   logout: () => Promise<void>;
-  updateProfile: (patch: Partial<Omit<AuthUser, "id">>) => void;
+  updateProfile: (patch: Partial<Omit<AuthUser, "id">>) => Promise<void>;
   setError: (error: string | null) => void;
   setPendingBooking: (booking: any | null) => void;
   setHasHydrated: (value: boolean) => void;
@@ -152,10 +152,17 @@ export const useAuthStore = create<AuthState>()(
         toast.info("Đã đăng xuất.");
       },
 
-      updateProfile: (patch) => {
-        const { user } = get();
-        if (user) {
-          set({ user: { ...user, ...patch } });
+      updateProfile: async (patch) => {
+        set({ isLoading: true, error: null });
+        try {
+          const updatedUser = await authService.updateProfile(patch);
+          set({ user: updatedUser, isLoading: false });
+          toast.success("Cập nhật hồ sơ thành công!");
+        } catch (err) {
+          const msg = getApiErrorMessage(err, "Cap nhat ho so that bai.");
+          set({ error: msg, isLoading: false });
+          toast.error(msg);
+          throw new Error(msg);
         }
       },
 
