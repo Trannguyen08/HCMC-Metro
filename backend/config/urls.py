@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/admin/bus-stops/<int:pk>/", metro_admin_views.admin_bus_stop_detail, name="admin_api_bus_stop_detail"),
     path("api/admin/trains/", metro_admin_views.admin_train_list, name="admin_api_train_list"),
     path("api/admin/trains/<int:pk>/", metro_admin_views.admin_train_detail, name="admin_api_train_detail"),
+    path("api/admin/train-logs/", metro_admin_views.admin_train_logs_list, name="admin_api_train_logs_list"),
 
     # App-specific APIs
     path("api/", include("apps.users.urls")),

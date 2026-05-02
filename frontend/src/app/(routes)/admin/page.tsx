@@ -31,7 +31,9 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  BarChart,
+  Bar
 } from "recharts";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -184,7 +186,12 @@ export default function AdminDashboard() {
                     fill="url(#colorRev)" 
                   />
                 </AreaChart>
-              <        <Card className="lg:col-span-3 border-none shadow-sm flex flex-col">
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-3 border-none shadow-sm flex flex-col">
           <CardHeader>
             <CardTitle>Cơ cấu loại vé</CardTitle>
             <CardDescription>Phân bổ theo số lượng đã bán</CardDescription>
@@ -298,12 +305,6 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
             </div>
-          </div>
-        </CardContent>
-      </Card>                </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </CardContent>
       </Card>

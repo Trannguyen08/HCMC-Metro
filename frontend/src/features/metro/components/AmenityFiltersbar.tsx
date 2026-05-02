@@ -24,13 +24,24 @@ interface AmenityFiltersBarProps {
   onTypeChange: (value: AmenityType) => void;
 }
 
-const TYPE_OPTIONS: Array<{ value: AmenityType; label: string }> = [
-  { value: "all", label: "Tất cả" },
-  { value: "cafe", label: TYPE_LABELS.cafe },
-  { value: "restaurant", label: TYPE_LABELS.restaurant },
-  { value: "shopping", label: TYPE_LABELS.shopping },
-  { value: "hotel", label: TYPE_LABELS.hotel },
-  { value: "service", label: TYPE_LABELS.service },
+import { 
+  Coffee, 
+  Utensils, 
+  ShoppingBag, 
+  Bed, 
+  Wrench, 
+  LayoutGrid,
+  Bus,
+  HeartPulse
+} from "lucide-react";
+
+const TYPE_OPTIONS: Array<{ value: AmenityType; label: string; icon: React.ElementType }> = [
+  { value: "all", label: "Tất cả", icon: LayoutGrid },
+  { value: "cafe", label: TYPE_LABELS.cafe, icon: Coffee },
+  { value: "restaurant", label: TYPE_LABELS.restaurant, icon: Utensils },
+  { value: "shopping", label: TYPE_LABELS.shopping, icon: ShoppingBag },
+  { value: "hotel", label: TYPE_LABELS.hotel, icon: Bed },
+  { value: "service", label: TYPE_LABELS.service, icon: Wrench },
 ];
 
 export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
@@ -111,18 +122,20 @@ export const AmenityFiltersBar: React.FC<AmenityFiltersBarProps> = ({
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {TYPE_OPTIONS.map((option) => {
               const active = option.value === type;
+              const Icon = option.icon;
               return (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => onTypeChange(option.value)}
                   className={cn(
-                    "whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-all",
+                    "flex items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition-all",
                     active
                       ? "border-[#0055A5] bg-[#0055A5] text-white shadow-[0_8px_20px_rgba(0,85,165,0.24)]"
                       : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900",
                   )}
                 >
+                  <Icon className="h-4 w-4" />
                   {option.label}
                 </button>
               );

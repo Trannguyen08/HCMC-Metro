@@ -42,7 +42,7 @@ function NewsCard({
   featured?: boolean;
 }) {
   return (
-    <Link href={`/tin-tuc/${item.slug}`} className="group block">
+    <Link href={`/tin-tuc/${item.id}-${item.slug || "metro"}`} className="group block">
       <article
         className={
           featured

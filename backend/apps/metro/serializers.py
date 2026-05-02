@@ -355,3 +355,36 @@ class AdminTrainSerializer(serializers.ModelSerializer):
         if obj.direction == "outbound":
             return f"{first_st} → {last_st}"
         return f"{last_st} → {first_st}"
+
+
+class AdminTrainStationLogSerializer(serializers.ModelSerializer):
+    train_number = serializers.CharField(source="train.train_number", read_only=True)
+    station_name = serializers.CharField(source="station.name", read_only=True)
+    direction_display = serializers.CharField(source="get_direction_display", read_only=True)
+
+    class Meta:
+        from apps.metro.models import TrainStationLog
+        model = TrainStationLog
+        fields = [
+            "id", "train_number", "station_name", "direction", 
+            "direction_display", "trip_run", "arrived_at", 
+            "departed_at", "created_at"
+        ]
+        read_only_fields = fields
+
+
+
+class AdminTrainStationLogSerializer(serializers.ModelSerializer):
+    train_number = serializers.CharField(source="train.train_number", read_only=True)
+    station_name = serializers.CharField(source="station.name", read_only=True)
+    direction_display = serializers.CharField(source="get_direction_display", read_only=True)
+
+    class Meta:
+        from apps.metro.models import TrainStationLog
+        model = TrainStationLog
+        fields = [
+            "id", "train_number", "station_name", "direction", 
+            "direction_display", "trip_run", "arrived_at", 
+            "departed_at", "created_at"
+        ]
+        read_only_fields = fields

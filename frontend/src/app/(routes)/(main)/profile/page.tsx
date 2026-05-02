@@ -15,12 +15,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, updateProfile, logout } = useAuth();
-
+  const { user, isAuthenticated, updateProfile, logout, syncSession } = useAuth();
+  
   const [name, setName] = React.useState(user?.full_name ?? "");
   const [email, setEmail] = React.useState(user?.email ?? "");
   const [phone, setPhone] = React.useState(user?.phone ?? "");
-  const [saved, setSaved] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -30,31 +29,11 @@ export default function ProfilePage() {
     setPhone(user?.phone ?? "");
   }, [user]);
 
-  const loadProfile = React.useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      const meRes = await api.get("/auth/me/");
-      const me = meRes.data;
-      updateProfile({
-        full_name: me.full_name,
-        email: me.email,
-        phone: me.phone,
-        date_of_birth: me.date_of_birth,
-        avatar_url: me.avatar_url,
-        email_verified: me.email_verified,
-        is_admin: me.is_admin,
-      });
-    } catch (err: any) {
-      if (err?.response?.status === 401) {
-        await logout();
-      }
-      console.error("Failed to load profile", err);
-    }
-  }, [isAuthenticated, updateProfile, logout]);
-
   React.useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    if (isAuthenticated) {
+      syncSession();
+    }
+  }, [isAuthenticated, syncSession]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -148,13 +127,10 @@ export default function ProfilePage() {
             type="button"
             onClick={() => {
               updateProfile({ full_name: name, email, phone });
-              setSaved(true);
-              window.setTimeout(() => setSaved(false), 1200);
             }}
           >
             Lưu thay đổi
           </Button>
-          {saved && <span className="text-sm text-metro-green">Đã lưu!</span>}
         </div>
       </CardContent>
     </Card>

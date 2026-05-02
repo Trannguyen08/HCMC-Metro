@@ -65,6 +65,15 @@ export default function BookingPage() {
   const [stations, setStations] = useState<UiStation[]>([]);
   const [isBooking, setIsBooking] = useState(false);
 
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentHour(new Date().getHours()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const isOperatingHours = currentHour >= 5 && currentHour < 23;
+
   useEffect(() => {
     fetchInitialData();
     api
@@ -270,23 +279,40 @@ export default function BookingPage() {
               <div className="space-y-3">
                 <Label>Lựa chọn loại vé</Label>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-                  {ticketTypes.map((type) => (
+                  {ticketTypes.map((type) => {
+                    const isSingle = type.type === "single";
+                    const isDisabled = isSingle && !isOperatingHours;
+                    return (
                     <div
                       key={type.id}
-                      onClick={() => setTicketType(type.id)}
+                      onClick={() => {
+                        if (!isDisabled) setTicketType(type.id);
+                      }}
                       className={`
-                        flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 p-3 text-center transition-all
-                        ${ticketTypeId === type.id ? "border-primary bg-primary/5" : "border-muted bg-muted/5 hover:border-primary/50"}
+                        flex flex-col items-center justify-center gap-2 rounded-xl border-2 p-3 text-center transition-all
+                        ${isDisabled ? "opacity-50 cursor-not-allowed border-muted bg-muted" : "cursor-pointer"}
+                        ${!isDisabled && ticketTypeId === type.id ? "border-primary bg-primary/5" : ""}
+                        ${!isDisabled && ticketTypeId !== type.id ? "border-muted bg-muted/5 hover:border-primary/50" : ""}
                       `}
                     >
-                      <div className={`rounded-lg p-2 ${ticketTypeId === type.id ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
+                      <div className={`rounded-lg p-2 ${ticketTypeId === type.id && !isDisabled ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
                         <Ticket className="h-5 w-5" />
                       </div>
                       <div className="text-sm font-bold">{type.name}</div>
                       <div className="text-[10px] text-muted-foreground">{type.duration_days > 0 ? `${type.duration_days} ngày` : "Theo chặng"}</div>
                     </div>
-                  ))}
+                  )})}
                 </div>
+                {!isOperatingHours && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="mt-0.5 h-5 w-5 text-rose-500" />
+                      <p className="text-sm text-rose-600">
+                        Hệ thống tàu hiện đang ngừng hoạt động (23:00 - 05:00). Bạn không thể đặt <strong>vé lượt</strong> trong khung giờ này. Vui lòng chọn các loại vé khác (vé ngày, tuần, tháng) hoặc quay lại sau 5h sáng.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {isSingleTicket && (
                   <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
                     <div className="flex items-start gap-3">
@@ -351,12 +377,14 @@ export default function BookingPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Giá gốc:</span>
                     <span className="font-mono text-muted-foreground line-through">
-                      {calculation?.base_price ? `${parseInt(calculation.base_price, 10).toLocaleString("vi-VN")} đ` : "0 đ"}
+                      {calculation?.base_price != null && calculation.base_price !== "0"
+                        ? `${parseInt(String(calculation.base_price), 10).toLocaleString("vi-VN")} đ`
+                        : "---"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-rose-600">
                     <span className="text-sm">Giảm giá:</span>
-                    <span className="font-medium">-{calculation?.discount_rate ? `${parseFloat(calculation.discount_rate) * 100}%` : "0%"}</span>
+                    <span className="font-medium">-{calculation?.discount_rate != null ? `${parseFloat(String(calculation.discount_rate)) * 100}%` : "0%"}</span>
                   </div>
                 </div>
 
@@ -364,7 +392,15 @@ export default function BookingPage() {
                   <span className="font-bold">Thành tiền</span>
                   <div className="text-right">
                     <div className="font-mono text-2xl font-black leading-none text-primary">
-                      {calculation?.total_price ? `${parseInt(calculation.total_price, 10).toLocaleString("vi-VN")} đ` : "0 đ"}
+                      {calculation?.loading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : calculation?.total_price != null && calculation.total_price !== "0" ? (
+                        `${parseInt(String(calculation.total_price), 10).toLocaleString("vi-VN")} đ`
+                      ) : isSingleTicket ? (
+                        <span className="text-sm text-muted-foreground">Chọn ga để tính giá</span>
+                      ) : (
+                        "---"
+                      )}
                     </div>
                   </div>
                 </div>
@@ -373,13 +409,15 @@ export default function BookingPage() {
                 <Button
                   className="h-12 w-full text-lg font-bold shadow-lg"
                   onClick={handleBook}
-                  disabled={isBooking || (isSingleTicket && (!fromStationId || !toStationId || sameStationSelected))}
+                  disabled={isBooking || (isSingleTicket && (!isOperatingHours || !fromStationId || !toStationId || sameStationSelected))}
                 >
                   {isBooking ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Đang xử lý...
                     </>
+                  ) : (!isOperatingHours && isSingleTicket) ? (
+                     "Ngoài giờ hoạt động"
                   ) : isAuthenticated ? (
                      "Tiến hành thanh toán"
                   ) : (

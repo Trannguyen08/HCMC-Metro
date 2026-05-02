@@ -197,8 +197,22 @@ const AmenitiesPage: React.FC = () => {
             </div>
           </div>
 
+          {error ? (
+            <div className="mb-4 rounded-[28px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {loading
+              ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
+              : amenities.length === 0
+                ? <EmptyState onReset={resetFilters} type={filters.type} />
+                : paginatedAmenities.map((amenity) => <AmenityCard key={amenity.id} amenity={amenity} />)}
+          </div>
+
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pb-2">
+            <div className="mt-8 flex items-center justify-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -222,20 +236,6 @@ const AmenitiesPage: React.FC = () => {
               </Button>
             </div>
           )}
-
-          {error ? (
-            <div className="rounded-[28px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {loading
-              ? Array.from({ length: 6 }).map((_, index) => <SkeletonCard key={index} />)
-              : amenities.length === 0
-                ? <EmptyState onReset={resetFilters} type={filters.type} />
-                : paginatedAmenities.map((amenity) => <AmenityCard key={amenity.id} amenity={amenity} />)}
-          </div>
         </section>
 
         <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">

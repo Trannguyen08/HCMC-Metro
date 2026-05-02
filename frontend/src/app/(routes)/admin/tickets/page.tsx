@@ -543,7 +543,15 @@ export default function AdminTicketsPage() {
                                     <div className="text-sm text-muted-foreground">ID: {ticket.id}</div>
                                   </div>
                                 </div>
-              </table>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <Pagination 
                 currentPage={page} 
                 totalPages={totalPages} 

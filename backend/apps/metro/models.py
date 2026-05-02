@@ -169,3 +169,49 @@ class BusStop(models.Model):
     class Meta:
         db_table = "bus_stops"
         managed = True
+
+
+class TrainStationLog(models.Model):
+    """
+    Records each time a simulated train arrives at and departs from a station.
+    One row per (train, station, trip_run) — arrival is written first,
+    then departed_at is filled in when the train leaves.
+    """
+    DIRECTION_CHOICES = [
+        ("outbound", "Lượt đi (BT → ST)"),
+        ("inbound", "Lượt về (ST → BT)"),
+    ]
+
+    train = models.ForeignKey(
+        Train,
+        on_delete=models.CASCADE,
+        related_name="station_logs",
+        db_column="train_id",
+    )
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE,
+        related_name="train_logs",
+        db_column="station_id",
+    )
+    direction = models.CharField(max_length=20, choices=DIRECTION_CHOICES)
+    # A unique string per one-way trip, e.g. "MT-L1-OU-1_2026-05-03_run3"
+    trip_run = models.CharField(max_length=100, db_index=True)
+    arrived_at = models.DateTimeField(null=True, blank=True)
+    departed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "train_station_logs"
+        managed = True
+        # Prevent duplicate rows for the same train/station/trip
+        unique_together = [("train", "station", "trip_run")]
+        ordering = ["-arrived_at"]
+
+    def __str__(self):
+        arrived = self.arrived_at.strftime("%H:%M:%S") if self.arrived_at else "--"
+        departed = self.departed_at.strftime("%H:%M:%S") if self.departed_at else "..."
+        return (
+            f"{self.train.train_number} | {self.station.name} | "
+            f"{self.get_direction_display()} | {arrived} → {departed}"
+        )

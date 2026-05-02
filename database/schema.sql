@@ -274,6 +274,7 @@ CREATE TABLE IF NOT EXISTS feedbacks (
     content         TEXT NOT NULL,
     train_id        INT REFERENCES trains(id) ON DELETE SET NULL,
     status          VARCHAR(30) DEFAULT 'pending', -- pending, processing, resolved, rejected
+    rating          INT DEFAULT 5,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );

@@ -2,7 +2,7 @@ import math
 from datetime import datetime, time, timedelta
 from typing import List, Dict, Any, Optional
 from django.utils import timezone
-from ..models import Station, Train
+from ..models import Station, Train, TrainStationLog
 
 class TrackingService:
     """
@@ -10,12 +10,15 @@ class TrackingService:
     Assumption: Constant speed between stations and fixed dwell times.
     """
     
-    AVERAGE_SPEED_KPH = 45.0  # Average speed including acceleration/deceleration
-    DWELL_TIME_SECONDS = 30   # Time spent at each station
-    START_TIME_DAILY = time(5, 0, 0)  # Service starts at 5 AM
-    TRAIN_INTERVAL_MINUTES = 5 # 5 minutes between trains in the same direction
+    AVERAGE_SPEED_KPH = 45.0
+    DWELL_TIME_SECONDS = 30
+    TURNAROUND_TIME_SECONDS = 300
+    START_TIME_DAILY = time(5, 0, 0)
+    END_TIME_DAILY = time(23, 0, 0)
+    TRAIN_INTERVAL_MINUTES = 5
     
     def __init__(self):
+        # ... existing init ...
         # Cache stations to avoid repeat DB hits
         self.stations = list(Station.objects.filter(is_active=True).order_by('sequence_order'))
         self.total_stations = len(self.stations)
@@ -50,9 +53,10 @@ class TrackingService:
         now = timezone.localtime()
         # Today's baseline start
         baseline = timezone.make_aware(datetime.combine(now.date(), self.START_TIME_DAILY))
+        endline = timezone.make_aware(datetime.combine(now.date(), self.END_TIME_DAILY))
         
-        # If before service starts, show all trains at terminal
-        if now < baseline:
+        # If before service starts or after service ends, show all trains at terminal
+        if now < baseline or now >= endline:
             return self._get_static_positions("idle")
             
         results = []
@@ -61,19 +65,19 @@ class TrackingService:
         
         for direction in directions:
             for i in range(3):
-                # Offset each train by 5 minutes
-                # For a more natural distribution, we can offset them differently
-                # Train 0: 0min, Train 1: 10min, Train 2: 20min...
-                offset = timedelta(minutes=i * self.TRAIN_INTERVAL_MINUTES)
+                # Offset each train
+                train_offset = i * self.TRAIN_INTERVAL_MINUTES
+                offset = timedelta(minutes=train_offset)
                 
-                # For 'inbound' trains, we can start them at a different baseline or offset
-                # so they aren't all clumped at the same time as outbound
                 if direction == 'inbound':
-                    offset += timedelta(minutes=self.one_way_duration / 60 / 2) # Start half-way through
+                    # Offset inbound trains to start at the Suối Tiên terminal (Phase 3)
+                    offset += timedelta(seconds=self.one_way_duration + self.TURNAROUND_TIME_SECONDS)
                 
                 train_state = self._calculate_train_position(now, baseline, offset, direction)
                 if train_state:
-                    train_state['train_number'] = f"SIM-{direction[:2].upper()}-{i+1}"
+                    train_number = f"MT-L1-{direction[:2].upper()}-{i+1}"
+                    train_state['train_number'] = train_number
+                    train_state['trip_run'] = f"{train_number}_{now.strftime('%Y-%m-%d')}_run{train_state['run_number']}"
                     results.append(train_state)
         
         # Sync to DB
@@ -115,7 +119,7 @@ class TrackingService:
         elapsed_seconds = (now - (baseline + offset)).total_seconds()
         
         # Full Cycle logic: Trip A -> Rest -> Trip B -> Rest
-        turnaround_time = 300 # 5 minutes rest at terminal
+        turnaround_time = self.TURNAROUND_TIME_SECONDS
         
         # Total cycle duration for ONE train
         cycle_duration = 2 * (self.one_way_duration + turnaround_time)
@@ -124,30 +128,33 @@ class TrackingService:
         relative_time = elapsed_seconds % cycle_duration
         
         # State determination
-        # Phase 1: Outbound Trip (Suối Tiên -> Bến Thành)
+        # Phase 1: Outbound Trip (Bến Thành -> Suối Tiên)
         if relative_time < self.one_way_duration:
-            order = list(reversed(self.stations))
+            order = self.stations
             current_direction = 'outbound'
             progress = relative_time
             is_trip = True
-        # Phase 2: Rest at Bến Thành
+        # Phase 2: Rest at Suối Tiên
         elif relative_time < self.one_way_duration + turnaround_time:
-            order = list(reversed(self.stations))
+            order = self.stations
             current_direction = 'outbound'
             progress = self.one_way_duration # Just reached end
             is_trip = False
-        # Phase 3: Inbound Trip (Bến Thành -> Suối Tiên)
+        # Phase 3: Inbound Trip (Suối Tiên -> Bến Thành)
         elif relative_time < 2 * self.one_way_duration + turnaround_time:
-            order = self.stations
+            order = list(reversed(self.stations))
             current_direction = 'inbound'
             progress = relative_time - (self.one_way_duration + turnaround_time)
             is_trip = True
-        # Phase 4: Rest at Suối Tiên
+        # Phase 4: Rest at Bến Thành
         else:
-            order = self.stations
+            order = list(reversed(self.stations))
             current_direction = 'inbound'
             progress = self.one_way_duration # Just reached end
             is_trip = False
+
+        cycle_number = int(elapsed_seconds // cycle_duration)
+        run_number = cycle_number * 2 + (1 if current_direction == 'inbound' else 0)
 
         # If not moving (in rest phase)
         if not is_trip:
@@ -160,7 +167,8 @@ class TrackingService:
                 'progress_to_next': 0,
                 'time_to_next_seconds': 0,
                 'latitude': float(last_station.latitude),
-                'longitude': float(last_station.longitude)
+                'longitude': float(last_station.longitude),
+                'run_number': run_number
             }
             
         # Finding where the train is between stations
@@ -179,14 +187,15 @@ class TrackingService:
             # Phase 1: At Station s1 (Dwell)
             if progress < accumulated_time + self.DWELL_TIME_SECONDS:
                 return {
-                    'direction': direction,
+                    'direction': current_direction,
                     'status': 'stopped',
                     'current_station': self._station_to_dict(s1),
                     'next_station': self._station_to_dict(s2),
                     'progress_to_next': 0,
                     'time_to_next_seconds': int((accumulated_time + self.DWELL_TIME_SECONDS - progress) + seg_travel_time),
                     'latitude': float(s1.latitude),
-                    'longitude': float(s1.longitude)
+                    'longitude': float(s1.longitude),
+                    'run_number': run_number
                 }
             accumulated_time += self.DWELL_TIME_SECONDS
             
@@ -196,27 +205,29 @@ class TrackingService:
                 lat = float(s1.latitude) + (float(s2.latitude) - float(s1.latitude)) * seg_progress
                 lon = float(s1.longitude) + (float(s2.longitude) - float(s1.longitude)) * seg_progress
                 return {
-                    'direction': direction,
+                    'direction': current_direction,
                     'status': 'moving',
                     'current_station': self._station_to_dict(s1),
                     'next_station': self._station_to_dict(s2),
                     'progress_to_next': seg_progress,
                     'time_to_next_seconds': int(accumulated_time + seg_travel_time - progress),
                     'latitude': lat,
-                    'longitude': lon
+                    'longitude': lon,
+                    'run_number': run_number
                 }
             accumulated_time += seg_travel_time
             
         # Fallback to last station
         return {
-            'direction': direction,
+            'direction': current_direction,
             'status': 'stopped',
             'current_station': self._station_to_dict(order[-1]),
             'next_station': None,
             'progress_to_next': 0,
             'time_to_next_seconds': 0,
             'latitude': float(order[-1].latitude),
-            'longitude': float(order[-1].longitude)
+            'longitude': float(order[-1].longitude),
+            'run_number': run_number
         }
 
     def sync_trains_to_db(self, live_trains: List[Dict[str, Any]]):
@@ -243,6 +254,31 @@ class TrackingService:
                 train.current_station_id = st_id
                 
                 train.save()
+
+                # Handle TrainStationLog
+                if state['status'] == 'stopped':
+                    # Train is at a station, record arrival
+                    log, created_log = TrainStationLog.objects.get_or_create(
+                        train=train,
+                        station_id=st_id,
+                        trip_run=state['trip_run'],
+                        defaults={
+                            'direction': train.direction,
+                            'arrived_at': timezone.now()
+                        }
+                    )
+                else:
+                    # Train is moving, meaning it has departed the current_station
+                    # Let's find the log for this station and trip_run and set departed_at if not set
+                    log = TrainStationLog.objects.filter(
+                        train=train,
+                        station_id=st_id,
+                        trip_run=state['trip_run'],
+                        departed_at__isnull=True
+                    ).first()
+                    if log:
+                        log.departed_at = timezone.now()
+                        log.save()
             except Exception as e:
                 print(f"Error syncing train {train_num}: {e}")
 
@@ -320,7 +356,7 @@ class TrackingService:
             start_station = self.stations[-1] if direction == 'outbound' else self.stations[0]
             for i in range(3):
                 results.append({
-                    'train_number': f"SIM-{direction[:2].upper()}-{i+1}",
+                    'train_number': f"MT-L1-{direction[:2].upper()}-{i+1}",
                     'direction': direction,
                     'status': status,
                     'current_station': self._station_to_dict(start_station),

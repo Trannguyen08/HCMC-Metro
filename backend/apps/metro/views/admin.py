@@ -230,3 +230,12 @@ def admin_train_detail(request, pk):
     train.is_active = False
     train.save(update_fields=["is_active"])
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_train_logs_list(request):
+    from apps.metro.models import TrainStationLog
+    from apps.metro.serializers import AdminTrainStationLogSerializer
+    logs = TrainStationLog.objects.select_related('train', 'station').order_by('-arrived_at')[:100]
+    serializer = AdminTrainStationLogSerializer(logs, many=True)
+    return Response(serializer.data)

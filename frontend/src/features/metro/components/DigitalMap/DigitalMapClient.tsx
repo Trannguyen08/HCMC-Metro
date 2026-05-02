@@ -272,7 +272,15 @@ export default function DigitalMapClient() {
 
         {initData.lines.map((line) => {
           if (!line.geojson_coordinates) return null;
-          const positions: [number, number][] = line.geojson_coordinates.map((coordinate) => [coordinate[1], coordinate[0]]);
+          
+          // Hỗ trợ cả mảng trực tiếp hoặc object GeoJSON {type: "LineString", coordinates: [...]}
+          const coords = Array.isArray(line.geojson_coordinates) 
+            ? line.geojson_coordinates 
+            : line.geojson_coordinates.coordinates;
+            
+          if (!Array.isArray(coords)) return null;
+          
+          const positions: [number, number][] = coords.map((coordinate: any) => [coordinate[1], coordinate[0]]);
           return (
             <div key={line.id}>
               <Polyline

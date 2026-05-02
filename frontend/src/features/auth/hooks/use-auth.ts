@@ -14,6 +14,7 @@ export const useAuth = () => {
     logout,
     updateProfile,
     setError,
+    syncSession,
   } = useAuthStore();
 
   return {
@@ -29,5 +30,6 @@ export const useAuth = () => {
     logout,
     updateProfile,
     setError,
+    syncSession,
   };
 };

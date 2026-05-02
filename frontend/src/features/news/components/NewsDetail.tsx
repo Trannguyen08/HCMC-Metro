@@ -151,7 +151,7 @@ export function NewsDetail() {
 
           {news.slug && (
             <Button variant="outline" className="rounded-full shadow-sm" asChild>
-              <a href={`/tin-tuc/${news.slug}`} target="_blank" rel="noopener noreferrer">
+              <a href={`/tin-tuc/${news.id}-${news.slug || "metro"}`} target="_blank" rel="noopener noreferrer">
                 Xem bài viết đầy đủ
               </a>
             </Button>
@@ -182,7 +182,7 @@ export function NewsDetail() {
               <div
                 key={item.id}
                 className="group cursor-pointer rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden hover:shadow-md transition-all"
-                onClick={() => router.push(`/tin-tuc/${item.slug}`)}
+                onClick={() => router.push(`/tin-tuc/${item.id}-${item.slug || "metro"}`)}
               >
                 {item.thumbnail_url && (
                   <div className="relative aspect-video overflow-hidden bg-muted">

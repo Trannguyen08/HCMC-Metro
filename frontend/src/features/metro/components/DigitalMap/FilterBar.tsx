@@ -1,3 +1,4 @@
+import { LayoutGrid, Bus } from "lucide-react";
 import { AmenityCategoryMap } from "@/types/map";
 import { cn } from "@/lib/utils";
 
@@ -13,23 +14,25 @@ export function FilterBar({ categories, selectedCategory, onSelectCategory }: Fi
       <button
         onClick={() => onSelectCategory("all")}
         className={cn(
-          "rounded-xl px-4 py-2 text-sm font-medium transition-all",
+          "flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all",
           selectedCategory === "all"
             ? "bg-primary text-primary-foreground shadow-md"
             : "bg-white text-slate-700 hover:bg-slate-100"
         )}
       >
+        <LayoutGrid className="h-4 w-4" />
         Tất cả
       </button>
       <button
         onClick={() => onSelectCategory("bus")}
         className={cn(
-          "rounded-xl px-4 py-2 text-sm font-medium transition-all",
+          "flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all",
           selectedCategory === "bus"
             ? "bg-cyan-600 text-white shadow-md"
             : "bg-cyan-50 text-cyan-700 hover:bg-cyan-100"
         )}
       >
+        <Bus className="h-4 w-4" />
         Trạm bus
       </button>
       {categories.map((cat) => (
