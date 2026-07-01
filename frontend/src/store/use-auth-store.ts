@@ -1,7 +1,9 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import { AuthUser } from "@/features/auth/types";
+import { createJSONStorage, persist } from "zustand/middleware";
+
 import { authService, getApiErrorMessage } from "@/features/auth/services/auth-service";
+import { AuthUser } from "@/features/auth/types";
+import { toast } from "@/store/use-toast-store";
 
 interface AuthState {
   user: AuthUser | null;
@@ -9,8 +11,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   hasHydrated: boolean;
-
-  // Actions
+  pendingBooking: any | null;
   setUser: (user: AuthUser | null) => void;
   login: (input: { identifier: string; password: string }) => Promise<AuthUser>;
   loginWithGoogle: (payload: { access_token?: string; credential?: string }) => Promise<AuthUser>;
@@ -23,11 +24,11 @@ interface AuthState {
   }) => Promise<{ email: string; verification_token: string }>;
   verifyEmailOtp: (input: { verification_token: string; otp: string }) => Promise<AuthUser>;
   logout: () => Promise<void>;
-  updateProfile: (patch: Partial<Omit<AuthUser, "id">>) => void;
+  updateProfile: (patch: Partial<Omit<AuthUser, "id">>) => Promise<void>;
   setError: (error: string | null) => void;
   setPendingBooking: (booking: any | null) => void;
-  pendingBooking: any | null;
   setHasHydrated: (value: boolean) => void;
+  syncSession: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -38,10 +39,16 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       hasHydrated: false,
+      pendingBooking: null,
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
 
-      setError: (error) => set({ error }),
+      setError: (error) => {
+        set({ error });
+        if (error) {
+          toast.error(error);
+        }
+      },
 
       login: async (input) => {
         set({ isLoading: true, error: null });
@@ -50,7 +57,6 @@ export const useAuthStore = create<AuthState>()(
           if (data.user?.is_admin) {
             sessionStorage.setItem("metro.admin.access", data.access);
             sessionStorage.setItem("metro.admin.refresh", data.refresh);
-            // Never persist admin tokens to localStorage
             localStorage.removeItem("metro.access");
             localStorage.removeItem("metro.refresh");
           } else {
@@ -58,10 +64,12 @@ export const useAuthStore = create<AuthState>()(
             localStorage.setItem("metro.refresh", data.refresh);
           }
           set({ user: data.user, isAuthenticated: true, isLoading: false });
+          toast.success("Đăng nhập thành công!");
           return data.user;
         } catch (err) {
           const msg = getApiErrorMessage(err, "Dang nhap that bai.");
           set({ error: msg, isLoading: false });
+          toast.error(msg);
           throw new Error(msg);
         }
       },
@@ -80,10 +88,12 @@ export const useAuthStore = create<AuthState>()(
             localStorage.setItem("metro.refresh", data.refresh);
           }
           set({ user: data.user, isAuthenticated: true, isLoading: false });
+          toast.success("Đăng nhập Google thành công!");
           return data.user;
         } catch (err) {
           const msg = getApiErrorMessage(err, "Dang nhap Google that bai.");
           set({ error: msg, isLoading: false });
+          toast.error(msg);
           throw new Error(msg);
         }
       },
@@ -93,10 +103,12 @@ export const useAuthStore = create<AuthState>()(
         try {
           const data = await authService.register(input);
           set({ isLoading: false });
+          toast.success("Đăng ký thành công! Vui lòng xác thực email.");
           return data;
         } catch (err) {
           const msg = getApiErrorMessage(err, "Dang ky that bai.");
           set({ error: msg, isLoading: false });
+          toast.error(msg);
           throw new Error(msg);
         }
       },
@@ -115,10 +127,12 @@ export const useAuthStore = create<AuthState>()(
             localStorage.setItem("metro.refresh", data.refresh);
           }
           set({ user: data.user, isAuthenticated: true, isLoading: false });
+          toast.success("Xác thực email thành công!");
           return data.user;
         } catch (err) {
           const msg = getApiErrorMessage(err, "Xac thuc OTP that bai.");
           set({ error: msg, isLoading: false });
+          toast.error(msg);
           throw new Error(msg);
         }
       },
@@ -131,31 +145,81 @@ export const useAuthStore = create<AuthState>()(
         } catch {}
         localStorage.removeItem("metro.access");
         localStorage.removeItem("metro.refresh");
+        localStorage.removeItem("metro.user");
         sessionStorage.removeItem("metro.admin.access");
         sessionStorage.removeItem("metro.admin.refresh");
         set({ user: null, isAuthenticated: false });
+        toast.info("Đã đăng xuất.");
       },
 
-      updateProfile: (patch) => {
-        const { user } = get();
-        if (user) {
-          set({ user: { ...user, ...patch } });
+      updateProfile: async (patch) => {
+        set({ isLoading: true, error: null });
+        try {
+          const updatedUser = await authService.updateProfile(patch);
+          set({ user: updatedUser, isLoading: false });
+          toast.success("Cập nhật hồ sơ thành công!");
+        } catch (err) {
+          const msg = getApiErrorMessage(err, "Cap nhat ho so that bai.");
+          set({ error: msg, isLoading: false });
+          toast.error(msg);
+          throw new Error(msg);
         }
       },
 
       setPendingBooking: (booking) => set({ pendingBooking: booking }),
-      pendingBooking: null,
-      setHasHydrated: (value) => set({ hasHydrated: value }),
-    }),
 
+      setHasHydrated: (value) => set({ hasHydrated: value }),
+
+      syncSession: async () => {
+        if (typeof window === "undefined") return;
+
+        const adminAccess = sessionStorage.getItem("metro.admin.access");
+        const adminRefresh = sessionStorage.getItem("metro.admin.refresh");
+        const userAccess = localStorage.getItem("metro.access");
+        const userRefresh = localStorage.getItem("metro.refresh");
+
+        const hasAdminSession = !!(adminAccess || adminRefresh);
+        const hasUserSession = !!(userAccess || userRefresh);
+        const hasAnySession = hasAdminSession || hasUserSession;
+        const currentUser = get().user;
+
+        const clearAuthState = () => {
+          localStorage.removeItem("metro.access");
+          localStorage.removeItem("metro.refresh");
+          localStorage.removeItem("metro.user");
+          sessionStorage.removeItem("metro.admin.access");
+          sessionStorage.removeItem("metro.admin.refresh");
+          set({ user: null, isAuthenticated: false, error: null, isLoading: false });
+        };
+
+        if (!hasAnySession) {
+          if (currentUser || get().isAuthenticated) {
+            clearAuthState();
+          }
+          return;
+        }
+
+        if (currentUser?.is_admin && !hasAdminSession) {
+          clearAuthState();
+          return;
+        }
+
+        if (currentUser && !currentUser.is_admin && !hasUserSession) {
+          clearAuthState();
+          return;
+        }
+
+        try {
+          const user = await authService.getMe();
+          set({ user, isAuthenticated: true, error: null, isLoading: false });
+        } catch {
+          clearAuthState();
+        }
+      },
+    }),
     {
       name: "metro.user",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => {
-        // Never persist admin user in localStorage
-        if (state.user?.is_admin) return { user: null, isAuthenticated: false };
-        return { user: state.user, isAuthenticated: state.isAuthenticated };
-      },
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

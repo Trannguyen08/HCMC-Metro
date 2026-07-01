@@ -1,5 +1,5 @@
 from django.urls import path
-from apps.metro.views import admin, aminity, map_views, tracking_views
+from apps.metro.views import admin, amenity, map_views, tracking_views
 
 urlpatterns = [
     # Map feature API
@@ -14,9 +14,12 @@ urlpatterns = [
     path("admin/amenities/", admin.admin_amenity_list, name="admin_amenity_list"),
     path("admin/amenities/create/", admin.admin_amenity_create, name="admin_amenity_create"),
     path("admin/amenities/<uuid:pk>/", admin.admin_amenity_detail, name="admin_amenity_detail"),
-    path("stations/", aminity.station_list, name="station-list"),
-    path("amenities/", aminity.amenity_list, name="amenity-list"),
-    path("amenities/<str:id_slug>/", aminity.amenity_detail, name="amenity-detail"),
+    path("admin/bus-stops/", admin.admin_bus_stop_list, name="admin_bus_stop_list"),
+    path("admin/bus-stops/<int:pk>/", admin.admin_bus_stop_detail, name="admin_bus_stop_detail"),
+    path("stations/", amenity.station_list, name="station-list"),
+    path("trains/", amenity.train_list, name="train-list"),
+    path("amenities/", amenity.amenity_list, name="amenity-list"),
+    path("amenities/<str:id_slug>/", amenity.amenity_detail, name="amenity-detail"),
 
     # Tracking & Real-time API
     path("tracking/live/", tracking_views.LiveTrainTrackingView.as_view(), name="live_tracking"),

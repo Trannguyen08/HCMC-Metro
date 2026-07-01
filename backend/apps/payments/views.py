@@ -177,10 +177,28 @@ class PayOSVerifyReturnAPIView(APIView):
         # Trigger background processing
         process_payment_status_update_task.delay(order_code, payload.get("status"))
 
+        # Find the ticket_id to return to frontend for navigation
+        payment = Payment.objects.filter(transaction_ref=str(order_code)).first()
+        ticket_id = str(payment.ticket_id) if payment else None
+        
+        status_value = payload.get("status")
+        is_success = PayOSService.is_success_status(status_value)
+
+        if is_success and ticket_id:
+            return Response(
+                {
+                    "success": True, 
+                    "detail": "Thanh toan thanh cong.",
+                    "ticket_id": ticket_id,
+                    "orderCode": order_code
+                },
+                status=status.HTTP_200_OK,
+            )
+
         return Response(
             {
-                "success": True, 
-                "detail": "Yeu cau xac thuc dang duoc xu ly ngam.",
+                "success": False,
+                "detail": f"Thanh toan khong thanh cong. Trang thai: {status_value}",
                 "orderCode": order_code
             },
             status=status.HTTP_200_OK,

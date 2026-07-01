@@ -1,4 +1,4 @@
-import api from "@/services/api-client";
+import api from "@/lib/api";
 import axios from "axios";
 import { AuthUser, LoginResponse, RegisterResponse } from "../types";
 
@@ -61,4 +61,21 @@ export const authService = {
     const { data } = await api.get<AuthUser>("/auth/me/");
     return data;
   },
+
+  updateProfile: async (patch: Partial<AuthUser>): Promise<AuthUser> => {
+    const { data } = await api.patch<AuthUser>("/auth/me/", patch);
+    return data;
+  },
+
+  uploadAvatar: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post<{ url: string }>("/media/upload/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return data.url;
+  },
 };
+

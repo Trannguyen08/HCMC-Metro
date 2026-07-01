@@ -43,7 +43,7 @@ export interface AmenityMap {
   station_code: string | null;
 }
 
-export interface BusStopCacheMap {
+export interface BusStopMap {
   id: number;
   name: string;
   code: string;
@@ -51,7 +51,11 @@ export interface BusStopCacheMap {
   longitude: number;
   address: string | null;
   routes: string[] | null;
+  station_code: string | null;
+  station_name: string | null;
   distance_to_station: number | null;
+  stop_type: string | null;
+  note: string | null;
 }
 
 export interface BusSchedule {

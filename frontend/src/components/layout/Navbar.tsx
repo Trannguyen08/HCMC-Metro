@@ -74,16 +74,18 @@ export function Navbar() {
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-6 lg:flex">
+        <nav className="hidden items-center gap-3 lg:flex">
           {navLinks.map((l) => {
-            const active = pathname === l.href;
+            const active = pathname === l.href || pathname.startsWith(`${l.href}/`);
             return (
               <Link
                 key={l.href}
                 href={l.href}
                 className={cn(
-                  "text-sm font-medium transition-colors duration-300 ease-smooth hover:text-foreground",
-                  active ? "text-foreground" : "text-muted-foreground"
+                  "rounded-full px-3 py-2 text-sm font-semibold transition-all duration-300 ease-smooth",
+                  active
+                    ? "bg-primary/10 text-primary shadow-sm"
+                    : "text-muted-foreground hover:bg-slate-100 hover:text-foreground"
                 )}
               >
                 {l.label}
@@ -105,14 +107,17 @@ export function Navbar() {
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button
+                  variant="outline"
+                  className="gap-2 border-primary bg-primary text-white hover:bg-primary/90 hover:text-white"
+                >
                   <Avatar className="h-7 w-7">
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-white/15 text-white">
                       {user?.full_name?.slice(0, 1)?.toUpperCase() ?? "U"}
                     </AvatarFallback>
                   </Avatar>
                   <span className="max-w-[140px] truncate text-sm">{user?.full_name}</span>
-                  <ChevronDown className="h-4 w-4 opacity-60" />
+                  <ChevronDown className="h-4 w-4 text-white/80" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -162,18 +167,23 @@ export function Navbar() {
       >
         <div className="mx-auto max-w-6xl px-4 py-3">
           <div className="flex flex-col gap-1">
-            {navLinks.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={cn(
-                  "rounded-md px-3 py-2 text-sm font-medium transition-colors duration-300 ease-smooth hover:bg-accent",
-                  pathname === l.href ? "bg-accent text-foreground" : "text-muted-foreground"
-                )}
-              >
-                {l.label}
-              </Link>
-            ))}
+            {navLinks.map((l) => {
+              const active = pathname === l.href || pathname.startsWith(`${l.href}/`);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-sm font-medium transition-colors duration-300 ease-smooth",
+                    active
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent"
+                  )}
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
           </div>
 
           <div className="mt-3 flex gap-2">

@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, CreditCard, Loader2, Ticket } from "lucide-react";
 
-import api from "@/services/api-client";
+import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/store/use-toast-store";
 
 type TicketDetail = {
   id: string;
@@ -28,7 +29,6 @@ export default function BookingPaymentPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const formattedPrice = useMemo(() => {
     if (!ticket?.price_paid) return "0 đ";
@@ -38,7 +38,7 @@ export default function BookingPaymentPage() {
   useEffect(() => {
     const loadTicket = async () => {
       if (!ticketId) {
-        setError("Thiếu mã vé.");
+        toast.error("Thiếu mã vé.");
         setLoading(false);
         return;
       }
@@ -47,10 +47,10 @@ export default function BookingPaymentPage() {
         const res = await api.get(`/ticketing/my-tickets/${ticketId}/`);
         setTicket(res.data);
         if (res.data?.status !== "pending") {
-          setError("Vé này không còn ở trạng thái chờ thanh toán.");
+          toast.error("Vé này không còn ở trạng thái chờ thanh toán.");
         }
       } catch (err: any) {
-        setError(err.response?.data?.detail || "Không tải được thông tin vé.");
+        toast.error(err.response?.data?.detail || "Không tải được thông tin vé.");
       } finally {
         setLoading(false);
       }
@@ -62,16 +62,15 @@ export default function BookingPaymentPage() {
   const handleContinuePayment = async () => {
     if (!ticketId) return;
     setProcessing(true);
-    setError(null);
     try {
       const res = await api.post("/payments/payos/continue/", { ticket_id: ticketId });
       if (!res.data?.payment_url) {
-        setError("Không tạo được liên kết thanh toán.");
+        toast.error("Không tạo được liên kết thanh toán.");
         return;
       }
       window.location.href = res.data.payment_url;
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Không thể tiếp tục thanh toán.");
+      toast.error(err.response?.data?.detail || "Không thể tiếp tục thanh toán.");
     } finally {
       setProcessing(false);
     }
@@ -80,12 +79,11 @@ export default function BookingPaymentPage() {
   const handleCancelTicket = async () => {
     if (!ticketId) return;
     setProcessing(true);
-    setError(null);
     try {
       await api.post(`/ticketing/my-tickets/${ticketId}/cancel/`);
       router.replace("/profile");
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Không thể hủy vé.");
+      toast.error(err.response?.data?.detail || "Không thể hủy vé.");
     } finally {
       setProcessing(false);
     }
@@ -138,13 +136,6 @@ export default function BookingPaymentPage() {
                 <span className="text-sm text-muted-foreground">Số tiền</span>
                 <span className="font-bold text-primary">{formattedPrice}</span>
               </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="flex items-center gap-2 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">
-              <AlertCircle className="h-4 w-4" />
-              {error}
             </div>
           )}
 

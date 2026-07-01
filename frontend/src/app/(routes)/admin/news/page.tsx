@@ -4,15 +4,16 @@ import React, { useEffect, useState } from "react";
 import { 
   Plus, 
   Search, 
-  MoreVertical, 
   Edit, 
   Trash2, 
   Eye, 
   CheckCircle, 
-  XCircle,
   AlertCircle,
   Upload,
-  Loader2
+  Loader2,
+  Newspaper,
+  FileText,
+  Send
 } from "lucide-react";
 import { 
   Card, 
@@ -23,14 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Dialog, 
   DialogContent, 
@@ -41,11 +35,13 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import axios from "axios";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { IMAGE_UPLOAD_ACCEPT, validateImageFile } from "@/lib/upload-validation";
+import { Pagination } from "@/components/admin/pagination";
+import { StatCard } from "@/components/admin/StatCard";
+import { accentInsensitiveSearch } from "@/lib/utils";
+import api from "@/lib/api";
 
 interface News {
   id: string;
@@ -70,6 +66,9 @@ export default function AdminNewsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   
   // Upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -91,15 +90,19 @@ export default function AdminNewsPage() {
     is_published: false
   });
 
-  const fetchNews = async () => {
+  const fetchNews = async (p = page) => {
     setLoading(true);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem("metro.access") : "";
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/admin/news/`, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setNews(res.data);
+      const res = await api.get("/admin/news/", {
+        params: { page: p }
+      });
+      if (res.data.results) {
+        setNews(res.data.results);
+        setTotalPages(res.data.total_pages || 1);
+      } else {
+        setNews(Array.isArray(res.data) ? res.data : []);
+        setTotalPages(1);
+      }
     } catch (err) {
       console.error("Fetch news failed:", err);
     } finally {
@@ -109,8 +112,7 @@ export default function AdminNewsPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/news/categories/`);
-      console.log(res.data);
+      const res = await api.get("/news/categories/");
       setCategories(res.data);
     } catch (err) {
       console.error("Fetch categories failed:", err);
@@ -118,9 +120,9 @@ export default function AdminNewsPage() {
   };
 
   useEffect(() => {
-    fetchNews();
+    fetchNews(page);
     fetchCategories();
-  }, []);
+  }, [page]);
 
   const handleOpenCreate = () => {
     setEditingItem(null);
@@ -185,17 +187,9 @@ export default function AdminNewsPage() {
       if (selectedFile) {
         const uploadFormData = new FormData();
         uploadFormData.append("file", selectedFile);
-        const token = typeof window !== 'undefined' ? localStorage.getItem("metro.access") : "";
-        const uploadRes = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/upload/`, 
-          uploadFormData, 
-          {
-            headers: { 
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+        const uploadRes = await api.post("/upload/", uploadFormData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
         finalThumbnailUrl = uploadRes.data.url;
       }
 
@@ -208,14 +202,10 @@ export default function AdminNewsPage() {
       };
 
       // 3. Save news
-      const token = typeof window !== 'undefined' ? localStorage.getItem("metro.access") : "";
-      const headers = { Authorization: `Bearer ${token}` };
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      
       if (editingItem) {
-        await axios.put(`${baseUrl}/admin/news/${editingItem.id}/`, payload, { headers });
+        await api.put(`/admin/news/${editingItem.id}/`, payload);
       } else {
-        await axios.post(`${baseUrl}/admin/news/create/`, payload, { headers });
+        await api.post("/admin/news/create/", payload);
       }
 
       setIsDialogOpen(false);
@@ -232,11 +222,7 @@ export default function AdminNewsPage() {
   const handleDelete = async () => {
     if (!itemToDelete) return;
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem("metro.access") : "";
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-      await axios.delete(`${baseUrl}/admin/news/${itemToDelete.id}/`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/admin/news/${itemToDelete.id}/`);
       setIsDeleteDialogOpen(false);
       fetchNews();
     } catch (err) {
@@ -245,10 +231,19 @@ export default function AdminNewsPage() {
     }
   };
 
-  const filteredNews = news.filter(item => 
-    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.summary.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredNews = news.filter(item => {
+    const matchesSearch = !searchQuery || 
+      accentInsensitiveSearch(item.title, searchQuery) ||
+      accentInsensitiveSearch(item.summary, searchQuery);
+    
+    const matchesCategory = categoryFilter === "all" || item.category.toString() === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const totalNews = news.length;
+  const publishedCount = news.filter(n => n.is_published).length;
+  const draftCount = news.filter(n => !n.is_published).length;
 
   return (
     <div className="space-y-6">
@@ -264,28 +259,69 @@ export default function AdminNewsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Tìm kiếm tin tức..." 
-            className="pl-9"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard 
+          label="Tổng tin tức" 
+          value={totalNews} 
+          icon={Newspaper} 
+          description="Bài viết trong hệ thống"
+        />
+        <StatCard 
+          label="Đã xuất bản" 
+          value={publishedCount} 
+          icon={Send} 
+          color="text-emerald-600"
+          bg="bg-emerald-50"
+          description="Tin tức đang công khai"
+        />
+        <StatCard 
+          label="Bản nháp" 
+          value={draftCount} 
+          icon={FileText} 
+          color="text-orange-600"
+          bg="bg-orange-50"
+          description="Chờ chỉnh sửa/xác nhận"
+        />
       </div>
 
-      <Card className="shadow-sm">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+      <Card className="shadow-sm border-none ring-1 ring-border">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Tìm tiêu đề, nội dung (không dấu vẫn ra)..." 
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="w-full md:w-64">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Lọc theo danh mục" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả danh mục</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-sm text-left">
-              <thead className="bg-muted/50 border-b text-muted-foreground font-medium">
+              <thead className="bg-[#0055a4] text-white font-bold uppercase text-[11px] tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Bài viết</th>
                   <th className="px-6 py-4">Danh mục</th>
-                  <th className="px-6 py-4">Trạng thái</th>
-                  <th className="px-6 py-4">Ngày tạo</th>
+                  <th className="px-6 py-4 text-center">Trạng thái</th>
+                  <th className="px-6 py-4 text-center">Ngày tạo</th>
                   <th className="px-6 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -318,53 +354,60 @@ export default function AdminNewsPage() {
                     <td className="px-6 py-4">
                       <Badge variant="outline">{item.category_name}</Badge>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 text-center">
                       {item.is_published ? (
-                        <div className="flex items-center text-green-600 gap-1.5">
-                          <CheckCircle className="h-4 w-4" />
-                          <span>Công khai</span>
-                        </div>
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none shadow-none font-bold">
+                          Công khai
+                        </Badge>
                       ) : (
-                        <div className="flex items-center text-orange-500 gap-1.5">
-                          <AlertCircle className="h-4 w-4" />
-                          <span>Bản nháp</span>
-                        </div>
+                        <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-none shadow-none font-bold">
+                          Bản nháp
+                        </Badge>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">
+                    <td className="px-6 py-4 text-center text-muted-foreground">
                       {format(new Date(item.created_at), "dd/MM/yyyy", { locale: vi })}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem asChild>
-                             <a href={`/tin-tuc/${item.slug}`} target="_blank" className="cursor-pointer">
-                               <Eye className="mr-2 h-4 w-4" /> Xem thử
-                             </a>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleOpenEdit(item)}>
-                            <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-rose-600 focus:text-rose-600"
-                            onClick={() => handleOpenDelete(item)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          asChild
+                        >
+                          <a href={`/tin-tuc/${item.slug}`} target="_blank">
+                            <Eye className="h-4 w-4" />
+                          </a>
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          onClick={() => handleOpenEdit(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                          onClick={() => handleOpenDelete(item)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <Pagination 
+              currentPage={page} 
+              totalPages={totalPages} 
+              onPageChange={(p) => setPage(p)} 
+              className="mt-4 px-6"
+            />
           </div>
         </CardContent>
       </Card>
@@ -416,7 +459,7 @@ export default function AdminNewsPage() {
                   id="slug" 
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                  placeholder="vd: khai-truong-metro-so-1"
+                  placeholder="ví dụ: khai-truong-metro-so-1"
                   required
                 />
               </div>

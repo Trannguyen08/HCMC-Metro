@@ -89,7 +89,7 @@ export function VerifyEmailForm() {
             />
           </div>
 
-          {authError && <p className="text-sm text-rose-600">{authError}</p>}
+
 
           <Button className="w-full" type="submit" disabled={loading}>
             {loading ? "Đang xác thực..." : "Xác thực email"}

@@ -46,7 +46,7 @@ class TicketTypeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TicketType
-        fields = ["id", "type", "name", "name_en", "duration_days", "price", "description", "description_en"]
+        fields = ["id", "type", "name", "duration_days", "price", "description"]
 
     def get_name(self, obj: TicketType) -> str:
         if obj.type == "single":
