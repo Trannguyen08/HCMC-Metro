@@ -299,8 +299,6 @@ docker compose up --build
 
 ## Phần 3. Giao diện hệ thống
 
-### 3.1. Giao diện dành cho người dùng
-
 - **Trang chủ:**
 ![Trang chủ 1](docs/images/Home1.png)
 ![Trang chủ 2](docs/images/Home2.png)
@@ -335,13 +333,3 @@ docker compose up --build
 ![Đăng nhập](docs/images/Login.png)
 ![Đăng ký](docs/images/Register.png)
 
-### 3.2. Giao diện dành cho quản trị viên
-
-- **Dashboard thống kê:**
-*(Thêm ảnh chụp dashboard tại đây)*
-
-- **Quản lý dữ liệu hệ thống Metro:**
-*(Thêm ảnh chụp quản lý ga, tuyến tại đây)*
-
-- **Quản lý vé & doanh thu:**
-*(Thêm ảnh chụp quản lý vé tại đây)*
