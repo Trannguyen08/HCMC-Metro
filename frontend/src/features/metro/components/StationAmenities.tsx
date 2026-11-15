@@ -186,9 +186,9 @@ const AmenitiesPage: React.FC = () => {
         <section className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Danh sách tiện ích</h2>
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Danh sách tiện ích quanh ga</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Ảnh trong thẻ giữ cùng tỉ lệ để dễ xem hơn.
+                Đầy đủ giờ mở cửa, khoảng cách đi bộ, hotline và chỉ đường Google Maps cho từng điểm dừng.
               </p>
             </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm">
@@ -260,15 +260,15 @@ const AmenitiesPage: React.FC = () => {
           <Card className="rounded-[30px] border-slate-200/80 bg-slate-950 text-white shadow-[0_24px_60px_rgba(15,23,42,0.12)]">
             <CardContent className="flex h-full flex-col justify-between gap-5 p-6">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-white/70">Trải nghiệm tốt hơn</p>
-                <h3 className="text-2xl font-semibold tracking-tight">Ảnh card đồng đều, nội dung dễ quét, bộ lọc dễ dùng.</h3>
+                <p className="text-sm font-medium text-white/70">Kết nối hành trình</p>
+                <h3 className="text-2xl font-semibold tracking-tight">Mọi điểm dừng thiết yếu ngay sát lối lên xuống nhà ga.</h3>
                 <p className="text-sm leading-7 text-white/75">
-                  Giao diện mới ưu tiên tính rõ ràng và giữ nhịp thị giác ổn định trên desktop lẫn mobile.
+                  Từ cà phê buổi sáng, cửa hàng tiện lợi 24/7 đến cây ATM và siêu thị mini, tất cả đều sẵn sàng trong bán kính vài phút đi bộ.
                 </p>
               </div>
               <div className="inline-flex items-center gap-2 text-sm font-medium text-white">
                 <ArrowRight className="h-4 w-4" />
-                Mở từng thẻ để xem thông tin chi tiết và chỉ đường.
+                Mở từng thẻ để xem giờ mở cửa, hotline và chỉ đường Google Maps.
               </div>
             </CardContent>
           </Card>

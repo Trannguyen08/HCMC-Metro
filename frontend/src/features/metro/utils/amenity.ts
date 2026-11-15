@@ -1,4 +1,4 @@
-﻿import { Amenity } from '@/types/amenity';
+import { Amenity } from '@/types/amenity';
 
 export function formatDistance(distanceMeters?: number) {
   if (!distanceMeters) {
@@ -18,10 +18,11 @@ export function buildGoogleMapsUrl(amenity: Amenity) {
 }
 
 export function buildAmenityDetail(amenity: Amenity): Amenity {
-  const heroImage = amenity.thumbnailUrl || amenity.imageUrl;
+  const heroImage = amenity.thumbnailUrl || amenity.imageUrl || '/images/amenities/7-eleven.jpg';
 
   return {
     ...amenity,
+    imageUrl: amenity.imageUrl || heroImage,
     thumbnailUrl: heroImage,
     overview:
       amenity.overview ||
@@ -30,7 +31,7 @@ export function buildAmenityDetail(amenity: Amenity): Amenity {
     featuredImages:
       amenity.featuredImages && amenity.featuredImages.length > 0
         ? amenity.featuredImages
-        : [heroImage, amenity.imageUrl, heroImage].filter(Boolean) as string[],
+        : [heroImage],
     panoramaEmbedUrl:
       amenity.panoramaEmbedUrl ||
       `https://www.google.com/maps?q=${encodeURIComponent(amenity.address || amenity.name)}&output=embed`,

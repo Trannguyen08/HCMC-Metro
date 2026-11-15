@@ -268,13 +268,18 @@ class NewsService:
         result = []
         for n in qs:
             result.append({
-                "id": n.pk,
+                "id": str(n.pk),
                 "title": n.title,
                 "slug": n.slug,
                 "summary": n.summary,
-                "image_url": n.image_url if hasattr(n, "image_url") else None,
+                "content": n.content,
+                "author": n.author,
+                "source_name": n.source_name,
+                "source_url": n.source_url,
+                "thumbnail_url": n.thumbnail_url,
                 "published_at": n.published_at.isoformat() if n.published_at else None,
-                "category_id": n.category_id,
+                "created_at": n.created_at.isoformat() if n.created_at else None,
+                "category": n.category_id,
                 "category_name": n.category.name if n.category_id else None,
             })
         return result

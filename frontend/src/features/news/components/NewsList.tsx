@@ -1,20 +1,22 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
-  ArrowRight,
-  Clock3,
+  ArrowUpRight,
+  Calendar,
+  Clock,
+  ExternalLink,
   Filter,
   Newspaper,
   Search,
-  Sparkles,
+  User,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -22,119 +24,184 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { newsService } from "../services/news-service";
 import { News, NewsCategory } from "../types";
-import { useDebounce } from "@/hooks/use-debounce";
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200";
+const PAGE_SIZE = 10;
+const FALLBACK_NEWS_IMAGE = "/images/news/metro-line-1-train.jpg";
 
-function formatNewsDate(value?: string) {
-  if (!value) return "Mới cập nhật";
-  return format(new Date(value), "dd/MM/yyyy");
+function formatPublishedDate(dateValue?: string) {
+  if (!dateValue) return "Mới cập nhật";
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) return "Mới cập nhật";
+  return format(parsed, "dd/MM/yyyy");
 }
 
-function NewsCard({
-  item,
-  featured = false,
-}: {
-  item: News;
-  featured?: boolean;
-}) {
-  return (
-    <Link href={`/tin-tuc/${item.id}-${item.slug || "metro"}`} className="group block">
-      <article
-        className={
-          featured
-            ? "grid overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_70px_rgba(15,23,42,0.09)] lg:grid-cols-[1fr_3fr]"
-            : "flex h-full flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]"
-        }
+function estimateReadingMinutes(item: News) {
+  const words = `${item.summary || ""} ${item.content || ""}`.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(2, Math.ceil(words / 180));
+}
+
+function NewsCard({ item, featured = false }: { item: News; featured?: boolean }) {
+  const [imgSrc, setImgSrc] = useState(item.thumbnail_url || FALLBACK_NEWS_IMAGE);
+  const articleHref = `/tin-tuc/${item.id}-${item.slug || "metro"}`;
+  const categoryName = item.category_name || "Tin tức chung";
+  const publishedDate = formatPublishedDate(item.published_at || item.created_at);
+  const readMinutes = estimateReadingMinutes(item);
+
+  if (featured) {
+    return (
+      <Link
+        href={articleHref}
+        className="group grid overflow-hidden rounded-[30px] border border-slate-200/90 bg-white shadow-[0_20px_55px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#0055A5]/30 hover:shadow-[0_24px_60px_rgba(0,85,165,0.12)] lg:grid-cols-[1.18fr_1fr]"
       >
-        <div className={featured ? "relative min-h-[200px] lg:min-h-[280px]" : "relative aspect-[4/3]"}>
+        <div className="relative min-h-[280px] overflow-hidden bg-slate-100 lg:min-h-[380px]">
           <img
-            src={item.thumbnail_url || FALLBACK_IMAGE}
+            src={imgSrc}
             alt={item.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-            onError={(event) => {
-              event.currentTarget.onerror = null;
-              event.currentTarget.src = FALLBACK_IMAGE;
+            referrerPolicy="no-referrer"
+            onError={() => {
+              if (imgSrc !== FALLBACK_NEWS_IMAGE) setImgSrc(FALLBACK_NEWS_IMAGE);
             }}
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent lg:hidden" />
+          <div className="absolute left-5 top-5 flex items-center gap-2">
+            <Badge className="rounded-full bg-[#0055A5] px-3.5 py-1 text-xs font-semibold text-white shadow-sm hover:bg-[#0055A5]">
+              Tin nổi bật
+            </Badge>
+            <Badge className="rounded-full border border-white/25 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-800 backdrop-blur-md hover:bg-white">
+              {categoryName}
+            </Badge>
+          </div>
         </div>
 
-        <div className={featured ? "flex flex-col justify-between p-6 sm:p-8" : "flex flex-1 flex-col p-5"}>
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <Badge className="rounded-full border-0 bg-primary/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-primary hover:bg-primary/10">
-                {item.category_name || "Tin tức"}
-              </Badge>
-              {featured ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Nổi bật
-                </span>
-              ) : null}
+        <div className="flex flex-col justify-between p-6 sm:p-8 lg:p-10">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500">
+              <span className="inline-flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-[#0055A5]" />
+                {publishedDate}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-emerald-600" />
+                {readMinutes} phút đọc
+              </span>
             </div>
 
-            <h2
-              className={
-                featured
-                  ? "max-w-xl text-2xl font-bold leading-tight tracking-tight text-slate-900 transition-colors group-hover:text-primary sm:text-[32px]"
-                  : "line-clamp-2 text-lg font-bold leading-snug text-slate-900 transition-colors group-hover:text-primary"
-              }
-            >
+            <h2 className="text-2xl font-bold leading-snug tracking-tight text-slate-950 transition-colors group-hover:text-[#0055A5] sm:text-3xl">
               {item.title}
             </h2>
 
-            <p
-              className={
-                featured
-                  ? "mt-4 max-w-xl text-[15px] leading-7 text-slate-600"
-                  : "mt-3 line-clamp-3 text-sm leading-6 text-slate-600"
-              }
-            >
+            <p className="line-clamp-4 text-sm leading-7 text-slate-600 sm:text-base">
               {item.summary}
             </p>
           </div>
 
-          <div className="mt-6 flex items-center justify-between gap-4">
-            <div className="inline-flex items-center gap-2 text-sm text-slate-500">
-              <Clock3 className="h-4 w-4" />
-              {formatNewsDate(item.published_at)}
-            </div>
-
-            {featured ? (
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                Xem chi tiết
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+          <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5">
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <User className="h-3.5 w-3.5 text-slate-400" />
+              <span className="font-medium text-slate-700">
+                {item.source_name ? `${item.source_name}${item.author ? ` · ${item.author}` : ""}` : (item.author || "Ban biên tập HCMC Metro")}
               </span>
-            ) : null}
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-4 py-2 text-xs font-semibold text-[#0055A5] transition-colors group-hover:bg-[#0055A5] group-hover:text-white">
+              Đọc chi tiết
+              <ArrowUpRight className="h-4 w-4" />
+            </span>
           </div>
         </div>
-      </article>
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href={articleHref}
+      className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-slate-200/85 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.04)] transition-all duration-300 hover:-translate-y-1 hover:border-[#0055A5]/30 hover:shadow-[0_20px_50px_rgba(0,85,165,0.1)]"
+    >
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
+        <img
+          src={imgSrc}
+          alt={item.title}
+          referrerPolicy="no-referrer"
+          onError={() => {
+            if (imgSrc !== FALLBACK_NEWS_IMAGE) setImgSrc(FALLBACK_NEWS_IMAGE);
+          }}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+        <Badge className="absolute left-3.5 top-3.5 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-slate-800 shadow-sm backdrop-blur-md hover:bg-white">
+          {categoryName}
+        </Badge>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-between p-5">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-xs text-slate-500">
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-[#0055A5]" />
+              {publishedDate}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-3 w-3 text-slate-400" />
+              {readMinutes} phút
+            </span>
+          </div>
+
+          <h3 className="line-clamp-2 text-lg font-bold leading-snug text-slate-900 transition-colors group-hover:text-[#0055A5]">
+            {item.title}
+          </h3>
+
+          <p className="line-clamp-3 text-sm leading-relaxed text-slate-600">
+            {item.summary}
+          </p>
+        </div>
+
+        <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3.5 text-xs font-semibold text-[#0055A5]">
+          <span className="truncate text-slate-500 font-normal">
+            {item.source_name || "HCMC Metro Portal"}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1 group-hover:underline">
+            Đọc tiếp
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
+        </div>
+      </div>
     </Link>
   );
 }
 
 export function NewsList() {
+  const router = useRouter();
   const [news, setNews] = useState<News[]>([]);
   const [categories, setCategories] = useState<NewsCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 500);
-
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const PAGE_SIZE = 7;
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [debouncedSearch, setDebouncedSearch] = useState<string>("");
+  const [offset, setOffset] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   useEffect(() => {
-    newsService
-      .getCategories()
-      .then(setCategories)
-      .catch((err) => console.error("Fetch categories failed:", err));
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const data = await newsService.getCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Failed to fetch news categories:", err);
+      }
+    };
+    void fetchCats();
   }, []);
 
   useEffect(() => {
@@ -191,31 +258,61 @@ export function NewsList() {
   const remainingNews = useMemo(() => news.slice(1), [news]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16 pt-4">
-      <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_58%)] px-6 py-8 shadow-sm sm:px-8 sm:py-10">
-        <div className="pointer-events-none absolute right-0 top-0 h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-0 left-0 h-32 w-32 rounded-full bg-sky-100 blur-3xl" />
+    <div className="mx-auto max-w-6xl space-y-8 px-4 pb-16 pt-4">
+      <section className="relative overflow-hidden rounded-[32px] border border-slate-200 bg-[linear-gradient(135deg,#f0f7ff_0%,#ffffff_55%,#f8fafc_100%)] px-6 py-8 shadow-sm sm:px-9 sm:py-10">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rounded-full bg-[#0055A5]/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 left-10 h-40 w-40 rounded-full bg-sky-200/40 blur-3xl" />
 
         <div className="relative space-y-6">
-          <div className="max-w-3xl space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-              <Newspaper className="h-3.5 w-3.5" />
-              Bản tin metro
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+            <div className="max-w-3xl space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#0055A5]/20 bg-white px-3.5 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#0055A5] shadow-xs">
+                <Newspaper className="h-3.5 w-3.5" />
+                Bản tin Metro TP.HCM
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+                Tin tức vận hành & cập nhật hệ thống
+              </h1>
+              <p className="text-sm leading-7 text-slate-600 sm:text-base">
+                Tổng hợp thông tin chính thức về tuyến Metro số 1 (Bến Thành – Suối Tiên), mạng lưới 17 tuyến buýt điện kết nối, chính sách giá vé và quy hoạch đô thị TOD tại TP.HCM.
+              </p>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Tin tức và cập nhật hệ thống
-            </h1>
-            <p className="text-sm leading-7 text-slate-600 sm:text-base">
-              Theo dõi các thông báo vận hành, tin tức dịch vụ và những cập nhật mới nhất từ HCMC Metro trong một giao diện gọn, dễ đọc và tập trung vào nội dung.
-            </p>
+
+            <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+              <a
+                href="https://hurc.vn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-2xl border border-[#0055A5]/25 bg-[#0055A5] px-4 py-3 text-xs font-semibold text-white shadow-sm transition hover:bg-[#004488]"
+              >
+                Trang tin chính thức HURC1
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <a
+                href="https://maur.hochiminhcity.gov.vn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-[#0055A5]/40 hover:text-[#0055A5]"
+              >
+                Cổng thông tin MAUR
+                <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-2.5 shadow-xs">
+                <div>
+                  <p className="text-[11px] text-slate-500">Bản tin uy tín</p>
+                  <p className="text-base font-bold text-slate-950">{loading ? "..." : `${news.length} bài viết`}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-3 rounded-[24px] border border-slate-200 bg-white/95 p-3 shadow-[0_12px_40px_rgba(15,23,42,0.04)] md:grid-cols-[minmax(0,1fr)_240px]">
+          {/* Search + Dropdown */}
+          <div className="grid gap-3 rounded-[24px] border border-slate-200 bg-white/95 p-3 shadow-[0_12px_35px_rgba(15,23,42,0.04)] md:grid-cols-[minmax(0,1fr)_240px]">
             <div className="flex h-12 items-center rounded-2xl bg-slate-50 px-4">
               <Search className="mr-3 h-4 w-4 shrink-0 text-slate-400" />
               <input
                 type="text"
-                placeholder="Tìm kiếm tiêu đề bài viết..."
+                placeholder="Tìm kiếm bài viết theo tiêu đề hoặc nội dung..."
                 className="h-full w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -225,12 +322,12 @@ export function NewsList() {
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="h-12 rounded-2xl border-0 bg-slate-50 px-4 text-sm shadow-none focus:ring-0">
                 <div className="flex items-center gap-2 text-slate-700">
-                  <Filter className="h-4 w-4 text-slate-400" />
-                  <SelectValue placeholder="Tất cả" />
+                  <Filter className="h-4 w-4 text-[#0055A5]" />
+                  <SelectValue placeholder="Tất cả chuyên mục" />
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="all">Tất cả chuyên mục</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.slug || cat.id.toString()}>
                     {cat.name}
@@ -239,10 +336,45 @@ export function NewsList() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Quick Category Pills */}
+          {categories.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory("all")}
+                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                  selectedCategory === "all"
+                    ? "bg-[#0055A5] text-white shadow-sm"
+                    : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                }`}
+              >
+                Tất cả
+              </button>
+              {categories.map((cat) => {
+                const value = cat.slug || cat.id.toString();
+                const isActive = selectedCategory === value;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setSelectedCategory(value)}
+                    className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                      isActive
+                        ? "bg-[#0055A5] text-white shadow-sm"
+                        : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       </section>
 
-      <section className="mt-8 space-y-6">
+      <section className="space-y-7">
         {loading ? (
           <>
             <div className="grid overflow-hidden rounded-[28px] border border-slate-200 bg-white lg:grid-cols-[1.2fr_1fr]">
@@ -253,19 +385,17 @@ export function NewsList() {
                 <Skeleton className="h-10 w-2/3" />
                 <Skeleton className="h-5 w-full" />
                 <Skeleton className="h-5 w-11/12" />
-                <Skeleton className="h-5 w-3/4" />
               </div>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, index) => (
                 <div key={index} className="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-5">
-                  <Skeleton className="aspect-[4/3] w-full rounded-2xl" />
+                  <Skeleton className="aspect-[16/10] w-full rounded-2xl" />
                   <Skeleton className="mt-4 h-5 w-24 rounded-full" />
                   <Skeleton className="mt-4 h-6 w-full" />
                   <Skeleton className="mt-2 h-6 w-4/5" />
                   <Skeleton className="mt-4 h-4 w-full" />
-                  <Skeleton className="mt-2 h-4 w-5/6" />
                 </div>
               ))}
             </div>
@@ -275,7 +405,7 @@ export function NewsList() {
             <NewsCard item={featuredNews} featured />
 
             {remainingNews.length > 0 ? (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {remainingNews.map((item) => (
                   <NewsCard key={item.id} item={item} />
                 ))}
@@ -288,7 +418,7 @@ export function NewsList() {
                   variant="outline"
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="h-11 rounded-full border-slate-300 px-6 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-primary"
+                  className="h-11 rounded-full border-slate-300 px-6 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-[#0055A5]"
                 >
                   {loadingMore ? "Đang tải..." : "Xem thêm bài viết"}
                 </Button>
@@ -300,7 +430,7 @@ export function NewsList() {
             <div className="mx-auto max-w-md space-y-3">
               <h2 className="text-xl font-semibold text-slate-900">Chưa tìm thấy bài viết phù hợp</h2>
               <p className="text-sm leading-6 text-slate-500">
-                Hãy thử đổi từ khóa hoặc đưa bộ lọc về trạng thái mặc định để xem thêm các bản tin khác.
+                Hãy thử đổi từ khóa hoặc chọn lại chuyên mục để xem thêm các bản tin khác.
               </p>
               <Button
                 variant="outline"
@@ -308,6 +438,7 @@ export function NewsList() {
                 onClick={() => {
                   setSearchQuery("");
                   setSelectedCategory("all");
+                  router.refresh();
                 }}
               >
                 Xóa bộ lọc

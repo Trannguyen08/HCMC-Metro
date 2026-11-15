@@ -151,6 +151,7 @@ class BusStop(models.Model):
     longitude = models.DecimalField(max_digits=11, decimal_places=8)
     address = models.CharField(max_length=500, null=True, blank=True)
     routes = models.JSONField(null=True, blank=True)
+    schedules = models.JSONField(null=True, blank=True)
     station = models.ForeignKey(
         Station,
         on_delete=models.SET_NULL,

@@ -78,6 +78,11 @@ class PayOSCreatePaymentAPIView(APIView):
             if from_st.id == to_st.id:
                 return Response({"detail": "Ga di va ga den khong duoc trung nhau."}, status=status.HTTP_400_BAD_REQUEST)
 
+        try:
+            BookingService.validate_ticket_upgrade(request.user, ticket_type)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
         valid_from = data.get("valid_from")
         is_round_trip = data.get("is_round_trip", False)
         return_url = request.build_absolute_uri("/api/payments/payos/return/")

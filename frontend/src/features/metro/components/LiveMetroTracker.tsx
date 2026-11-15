@@ -22,26 +22,76 @@ const LiveMetroTracker: React.FC = () => {
 
         loadInitialData();
 
+        const unsubscribe = TrackingService.subscribeToLiveTrains(
+            (data) => {
+                setTrains(data);
+                setLoading(false);
+            }
+        );
+
+        // Fallback safety poll in case SSE drops
         const interval = setInterval(async () => {
             const data = await TrackingService.getLiveTrains();
             setTrains(data);
-        }, 10000); // Update every 10 seconds
+        }, 15000);
 
-        return () => clearInterval(interval);
+        return () => {
+            unsubscribe();
+            clearInterval(interval);
+        };
     }, []);
 
     if (loading) return <div className="text-center p-4">Đang tải dữ liệu thực tế...</div>;
 
+    const isStreamLive = trains.some((t) => t.source === 'telemetry_stream');
+    const isClosedHours = trains.length > 0 && trains.every((t) => t.status === 'idle' || t.is_operating === false);
+
     return (
         <div className="bg-white/80 backdrop-blur-md border border-gray-200 rounded-3xl p-6 shadow-xl mb-8">
+            {isClosedHours && (
+                <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-900 px-5 py-4 text-white shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                            <Clock className="w-5 h-5 text-amber-300" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold">Hệ thống Metro tạm ngừng vận hành (23:00 – 05:00)</p>
+                            <p className="text-xs text-slate-300">Chuyến tàu cuối trong ngày đã kết thúc lúc 23:00. Tuyến hoạt động trở lại từ 05:00 sáng.</p>
+                        </div>
+                    </div>
+                    <span className="inline-flex items-center self-start sm:self-center rounded-full bg-amber-400/20 px-3 py-1 text-xs font-bold text-amber-200 border border-amber-300/30 whitespace-nowrap">
+                        Ngoài giờ hoạt động
+                    </span>
+                </div>
+            )}
+
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <Navigation className="w-6 h-6 text-blue-600 animate-pulse" />
+                        <Navigation className={`w-6 h-6 ${isClosedHours ? 'text-slate-400' : 'text-blue-600 animate-pulse'}`} />
                         Trạng thái Tàu Real-time
+                        <span
+                            className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                isClosedHours
+                                    ? 'bg-slate-100 text-slate-600'
+                                    : isStreamLive
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : 'bg-amber-100 text-amber-700'
+                            }`}
+                        >
+                            {isClosedHours
+                                ? 'NGỪNG CHẠY (23:00 – 05:00)'
+                                : isStreamLive
+                                    ? 'LIVE STREAM (Redis Pub/Sub)'
+                                    : 'Mô phỏng dự phòng'}
+                        </span>
                     </h2>
                     <p className="text-sm text-gray-500 mt-1">
-                        Vị trí giả lập dựa trên khoảng cách và thời gian thực tế
+                        {isClosedHours
+                            ? 'Tất cả các đoàn tàu đã về ga đầu/cuối và ngừng vận hành từ 23:00 đến 05:00.'
+                            : isStreamLive
+                                ? 'Đang nhận telemetry mỗi 3 giây qua SSE + Redis Pub/Sub'
+                                : 'Vị trí giả lập dựa trên khoảng cách và thời gian thực tế'}
                     </p>
                 </div>
                 <div className="flex gap-4 text-sm font-medium">
@@ -131,14 +181,21 @@ const LiveMetroTracker: React.FC = () => {
 
                                     {/* Status Badge - Now Highlighted Above Train */}
                                     <div className={`absolute -top-12 px-3 py-1 rounded-xl shadow-lg border-2 border-white flex items-center gap-1.5 whitespace-nowrap text-[10px] font-black uppercase tracking-wider text-white ring-2 ring-white/50 ${
-                                        train.status === 'moving' 
-                                            ? (train.direction === 'outbound' ? 'bg-blue-600' : 'bg-green-600') 
-                                            : 'bg-amber-500'
+                                        train.status === 'moving'
+                                            ? (train.direction === 'outbound' ? 'bg-blue-600' : 'bg-green-600')
+                                            : train.status === 'idle'
+                                                ? 'bg-slate-600'
+                                                : 'bg-amber-500'
                                     }`}>
                                         {train.status === 'moving' ? (
                                             <>
                                                 <Navigation className="w-3 h-3 animate-pulse" />
                                                 <span>Đang di chuyển</span>
+                                            </>
+                                        ) : train.status === 'idle' ? (
+                                            <>
+                                                <Clock className="w-3 h-3 text-white" />
+                                                <span>Ngoài giờ</span>
                                             </>
                                         ) : (
                                             <>
@@ -150,7 +207,11 @@ const LiveMetroTracker: React.FC = () => {
 
                                     {/* Train Icon Circle */}
                                     <div className={`p-2 rounded-full shadow-lg border-2 border-white text-white ${
-                                        train.direction === 'outbound' ? 'bg-blue-500' : 'bg-green-500'
+                                        train.status === 'idle'
+                                            ? 'bg-slate-500'
+                                            : train.direction === 'outbound'
+                                                ? 'bg-blue-500'
+                                                : 'bg-green-500'
                                     }`}>
                                         <Train className={`w-5 h-5 ${train.direction === 'inbound' ? 'rotate-180' : ''}`} />
                                     </div>

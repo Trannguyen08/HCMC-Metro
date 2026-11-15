@@ -12,6 +12,7 @@ from django.conf import settings
 
 from apps.chatbox.config.blocklist import OUTPUT_SENSITIVE_KEYWORDS
 from apps.chatbox.config.system_prompt import METRO_SYSTEM_PROMPT
+from apps.chatbox.services.route_planner import build_route_context_if_applicable
 from apps.metro.models import Station, MetroLine
 
 logger = logging.getLogger(__name__)
@@ -75,8 +76,13 @@ def build_full_system_prompt() -> str:
 
 
 def build_messages(history: list[dict], user_message: str) -> list[dict]:
-    """Tạo danh sách message gửi cho AI với đầy đủ lịch sử (không cắt ngắn)."""
-    messages = [{"role": "system", "content": build_full_system_prompt()}]
+    """Tạo danh sách message gửi cho AI với đầy đủ lịch sử và dữ liệu lộ trình thực tế (nếu có)."""
+    system_prompt = build_full_system_prompt()
+    route_context = build_route_context_if_applicable(history, user_message)
+    if route_context:
+        system_prompt = f"{system_prompt}\n{route_context}"
+
+    messages = [{"role": "system", "content": system_prompt}]
 
     recent_history = history[-HISTORY_WINDOW:] if len(history) > HISTORY_WINDOW else history
     for msg in recent_history:
