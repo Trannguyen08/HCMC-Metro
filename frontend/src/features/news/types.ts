@@ -4,6 +4,10 @@ export interface News {
   category?: number;
   title: string;
   summary: string;
+  content?: string | null;
+  author?: string | null;
+  source_name?: string | null;
+  source_url?: string | null;
   thumbnail_url?: string;
   image_url?: string;
   slug: string;

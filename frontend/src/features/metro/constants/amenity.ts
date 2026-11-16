@@ -1,11 +1,11 @@
 import { AmenityType } from '@/types/amenity';
 
 export const TYPE_LABELS: Record<Exclude<AmenityType, 'all'>, string> = {
-  cafe: 'Ca phe',
-  restaurant: 'Nha hang',
-  shopping: 'Mua sam',
-  hotel: 'Khach san',
-  service: 'Dich vu',
+  cafe: 'Cà phê',
+  restaurant: 'Nhà hàng',
+  shopping: 'Mua sắm',
+  hotel: 'Khách sạn',
+  service: 'Dịch vụ',
 };
 
 export const TYPE_COLORS: Record<Exclude<AmenityType, 'all'>, string> = {

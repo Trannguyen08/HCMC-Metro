@@ -63,7 +63,9 @@ const LiveTrainTable: React.FC<LiveTrainTableProps> = ({ trains }) => {
                   <span className="text-xs font-semibold text-gray-600">{train.current_station.name}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {train.next_station ? (
+                  {train.status === 'idle' ? (
+                    <span className="text-xs text-slate-400 italic">Kết thúc chuyến cuối</span>
+                  ) : train.next_station ? (
                     <div className="flex items-center gap-2 text-xs text-gray-500 italic">
                       <ArrowRight className="w-3 h-3" />
                       {train.next_station.name}
@@ -73,16 +75,32 @@ const LiveTrainTable: React.FC<LiveTrainTableProps> = ({ trains }) => {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-1.5 font-mono text-sm font-bold text-blue-600">
+                  <div className={`flex items-center gap-1.5 font-mono text-sm font-bold ${train.status === 'idle' ? 'text-slate-400' : 'text-blue-600'}`}>
                     <Clock className="w-3 h-3" />
-                    {formatTime(train.time_to_next_seconds)}
+                    {train.status === 'idle' ? '--:--' : formatTime(train.time_to_next_seconds)}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${train.status === 'moving' ? 'bg-blue-500 animate-pulse' : 'bg-amber-400'}`} />
-                    <span className={`text-xs font-medium ${train.status === 'moving' ? 'text-blue-600' : 'text-amber-600'}`}>
-                      {train.status === 'moving' ? 'Đang di chuyển' : 'Đang dừng ga'}
+                    <div className={`w-2 h-2 rounded-full ${
+                      train.status === 'moving'
+                        ? 'bg-blue-500 animate-pulse'
+                        : train.status === 'idle'
+                          ? 'bg-slate-400'
+                          : 'bg-amber-400'
+                    }`} />
+                    <span className={`text-xs font-medium ${
+                      train.status === 'moving'
+                        ? 'text-blue-600'
+                        : train.status === 'idle'
+                          ? 'text-slate-500'
+                          : 'text-amber-600'
+                    }`}>
+                      {train.status === 'moving'
+                        ? 'Đang di chuyển'
+                        : train.status === 'idle'
+                          ? 'Ngừng vận hành (23:00–05:00)'
+                          : 'Đang dừng ga'}
                     </span>
                   </div>
                 </td>

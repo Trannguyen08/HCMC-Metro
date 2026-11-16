@@ -1,4 +1,4 @@
-﻿import { create } from "zustand";
+import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import api from "@/lib/api";
 
@@ -71,7 +71,11 @@ export const useBookingStore = create<BookingState>()(
       fetchInitialData: async () => {
         try {
           const typesRes = await api.get(`/ticketing/types/`);
-          set({ ticketTypes: typesRes.data.results || typesRes.data });
+          const types = typesRes.data.results || typesRes.data;
+          set({ ticketTypes: types });
+          // After loading types, recalculate with the current ticketTypeId
+          // This ensures prices show for non-single tickets on page load
+          get().calculatePrice();
         } catch (err) {
           console.error("Failed to fetch booking data", err);
         }
@@ -82,14 +86,15 @@ export const useBookingStore = create<BookingState>()(
         if (!ticketTypeId) return;
 
         const selectedType = ticketTypes.find((t) => t.id === ticketTypeId);
-        const isSingleTicket = selectedType?.type === "single";
+        if (!selectedType) return;
 
+        const isSingleTicket = selectedType.type === "single";
+
+        // For single tickets, stations are required before we can calculate
         if (isSingleTicket && (!fromStationId || !toStationId || fromStationId === toStationId)) {
-          set((state) => ({
-            calculation: state.calculation
-              ? { ...state.calculation, loading: false }
-              : { base_price: "0", discount_rate: "0", total_price: "0", loading: false },
-          }));
+          set({
+            calculation: { base_price: "0", discount_rate: "0", total_price: "0", loading: false },
+          });
           return;
         }
 
@@ -100,16 +105,26 @@ export const useBookingStore = create<BookingState>()(
         }));
 
         try {
+          // For non-single tickets, don't send station IDs (flat price, no distance calculation)
           const res = await api.post(`/ticketing/booking/calculate/`, {
             ticket_type_id: ticketTypeId,
-            from_station_id: fromStationId,
-            to_station_id: toStationId,
+            from_station_id: isSingleTicket ? fromStationId : null,
+            to_station_id: isSingleTicket ? toStationId : null,
             is_round_trip: isSingleTicket ? isRoundTrip : false,
           });
           set({ calculation: { ...res.data, loading: false } });
         } catch (err) {
           console.error("Price calculation failed", err);
-          set((state) => ({ calculation: state.calculation ? { ...state.calculation, loading: false } : null }));
+          // On error, show the flat price from ticket type data as fallback
+          const flatPrice = selectedType.price || "0";
+          set({
+            calculation: {
+              base_price: flatPrice,
+              discount_rate: "0",
+              total_price: flatPrice,
+              loading: false,
+            },
+          });
         }
       },
 

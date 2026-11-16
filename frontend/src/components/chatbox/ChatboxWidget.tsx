@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Message {
@@ -33,21 +33,315 @@ function newSessionToken(): string {
   return token;
 }
 
-/** Chuyển markdown cơ bản (bold, bullet) sang HTML an toàn */
-function parseMarkdown(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/^- (.+)$/gm, "<li>$1</li>")
-    .replace(/(<li>[\s\S]*?<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
-    .replace(/\n/g, "<br />");
+/** Render inline markdown (**bold**, `code`, [link](url), URLs) cleanly */
+function renderInline(text: string): React.ReactNode[] {
+  const normalized = text
+    .replace(/\$\\rightarrow\$/g, "→")
+    .replace(/\\rightarrow/g, "→");
+  const tokenRegex = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s)]+)/g;
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  while ((match = tokenRegex.exec(normalized)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(normalized.slice(lastIndex, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith("**") && token.endsWith("**")) {
+      nodes.push(
+        <strong key={key++} className="font-semibold text-slate-950">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith("`") && token.endsWith("`")) {
+      nodes.push(
+        <code
+          key={key++}
+          className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[12px] font-semibold text-[#0055A5]"
+        >
+          {token.slice(1, -1)}
+        </code>
+      );
+    } else if (token.startsWith("[")) {
+      const m = token.match(/^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/);
+      if (m) {
+        nodes.push(
+          <a
+            key={key++}
+            href={m[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[#0055A5] underline decoration-[#0055A5]/40 underline-offset-2 hover:text-[#004488]"
+          >
+            {m[1]}
+          </a>
+        );
+      } else {
+        nodes.push(token);
+      }
+    } else {
+      nodes.push(
+        <a
+          key={key++}
+          href={token}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="break-all font-medium text-[#0055A5] underline decoration-[#0055A5]/40 underline-offset-2 hover:text-[#004488]"
+        >
+          {token}
+        </a>
+      );
+    }
+    lastIndex = match.index + token.length;
+  }
+  if (lastIndex < normalized.length) {
+    nodes.push(normalized.slice(lastIndex));
+  }
+  return nodes;
+}
+
+function parseTableRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function isSeparatorRow(line: string): boolean {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|")) return false;
+  const cells = parseTableRow(trimmed);
+  return cells.length > 0 && cells.every((c) => /^:?-{2,}:?$/.test(c));
+}
+
+/** Render markdown có bảng, phân đoạn chặng, danh sách, divider chuẩn UI hiện đại */
+function ChatMessageContent({ content }: { content: string }) {
+  const cleaned = content.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  if (!cleaned) return null;
+
+  const lines = cleaned.split("\n");
+  const blocks: React.ReactNode[] = [];
+  let i = 0;
+  let blockKey = 0;
+
+  while (i < lines.length) {
+    const rawLine = lines[i];
+    const trimmed = rawLine.trim();
+
+    if (!trimmed) {
+      i += 1;
+      continue;
+    }
+
+    // Horizontal rule (---, ***, ___)
+    if (/^([-*_])\1{2,}$/.test(trimmed)) {
+      blocks.push(<div key={blockKey++} className="my-2.5 h-px w-full bg-slate-200/75" />);
+      i += 1;
+      continue;
+    }
+
+    // Markdown Table block
+    if (trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.includes("|", 1)) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        tableLines.push(lines[i].trim());
+        i += 1;
+      }
+      if (tableLines.length >= 2) {
+        const hasSep = isSeparatorRow(tableLines[1]);
+        const headers = parseTableRow(tableLines[0]);
+        const bodyRows = tableLines
+          .slice(hasSep ? 2 : 1)
+          .filter((r) => !isSeparatorRow(r))
+          .map(parseTableRow);
+
+        blocks.push(
+          <div
+            key={blockKey++}
+            className="my-2 overflow-x-auto rounded-xl border border-slate-200/90 bg-white shadow-2xs"
+          >
+            <table className="w-full border-collapse text-left text-[12px]">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/95">
+                  {headers.map((h, idx) => (
+                    <th
+                      key={idx}
+                      className="whitespace-nowrap px-3 py-2 font-bold text-slate-700"
+                    >
+                      {renderInline(h)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {bodyRows.map((row, rIdx) => (
+                  <tr key={rIdx} className="hover:bg-sky-50/40">
+                    {row.map((cell, cIdx) => (
+                      <td
+                        key={cIdx}
+                        className="px-3 py-2 font-medium text-slate-700"
+                      >
+                        {renderInline(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+        continue;
+      }
+    }
+
+    // Markdown heading (## / ###) or Emoji Route/Stage header (🚇, 1️⃣, 2️⃣, 3️⃣, Chặng X)
+    const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      blocks.push(
+        <div
+          key={blockKey++}
+          className={
+            level <= 2
+              ? "mt-2 mb-1 rounded-xl border border-[#0055A5]/15 bg-gradient-to-r from-[#0055A5]/10 via-sky-50 to-white px-3 py-2 text-[13.5px] font-bold text-slate-950"
+              : "mt-2.5 mb-1 border-l-[3px] border-[#0055A5] pl-2.5 text-[13px] font-bold text-slate-900"
+          }
+        >
+          {renderInline(headingMatch[2])}
+        </div>
+      );
+      i += 1;
+      continue;
+    }
+
+    if (/^(?:🚇|📍|🚆)/.test(trimmed)) {
+      blocks.push(
+        <div
+          key={blockKey++}
+          className="mb-1.5 rounded-xl border border-[#0055A5]/15 bg-gradient-to-r from-[#0055A5]/10 via-sky-50 to-white px-3 py-2 text-[13.5px] font-bold text-slate-950"
+        >
+          {renderInline(trimmed)}
+        </div>
+      );
+      i += 1;
+      continue;
+    }
+
+    if (/^(?:[1-9]️⃣|Chặng\s+\d+|Option\s+\d+|Phương án\s+\d+)/i.test(trimmed)) {
+      blocks.push(
+        <div
+          key={blockKey++}
+          className="mt-2.5 mb-1 flex items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50/90 px-3 py-1.5 text-[13px] font-bold text-slate-900"
+        >
+          {renderInline(trimmed)}
+        </div>
+      );
+      i += 1;
+      continue;
+    }
+
+    // Bullet list items (-, •, *, +)
+    if (/^[-•*+]\s+/.test(trimmed)) {
+      const items: { text: string; nested: boolean }[] = [];
+      while (i < lines.length) {
+        const cur = lines[i];
+        const curTrim = cur.trim();
+        if (/^[-•*+]\s+/.test(curTrim)) {
+          const leadingSpaces = cur.search(/\S/);
+          items.push({
+            text: curTrim.replace(/^[-•*+]\s+/, ""),
+            nested: leadingSpaces >= 2 || curTrim.startsWith("+ "),
+          });
+          i += 1;
+        } else {
+          break;
+        }
+      }
+      blocks.push(
+        <ul key={blockKey++} className="my-1.5 space-y-1.5">
+          {items.map((item, idx) => (
+            <li
+              key={idx}
+              className={`flex items-start gap-2 text-[13px] leading-relaxed text-slate-700 ${
+                item.nested ? "pl-4 text-[12.5px] text-slate-600" : ""
+              }`}
+            >
+              <span
+                className={`mt-2 shrink-0 rounded-full ${
+                  item.nested ? "h-1 w-1 bg-slate-400" : "h-1.5 w-1.5 bg-[#0055A5]"
+                }`}
+              />
+              <span className="min-w-0 flex-1">{renderInline(item.text)}</span>
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
+    }
+
+    // Numbered list items (1. , 2. )
+    if (/^\d+\.\s+/.test(trimmed)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^\d+\.\s+/, ""));
+        i += 1;
+      }
+      blocks.push(
+        <ol key={blockKey++} className="my-1.5 space-y-1.5">
+          {items.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2 text-[13px] leading-relaxed text-slate-700">
+              <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#0055A5]/10 text-[10.5px] font-bold text-[#0055A5]">
+                {idx + 1}
+              </span>
+              <span className="min-w-0 flex-1">{renderInline(item)}</span>
+            </li>
+          ))}
+        </ol>
+      );
+      continue;
+    }
+
+    // Standard paragraph (collapse consecutive plain lines until blank or special block)
+    const paraLines: string[] = [];
+    while (i < lines.length) {
+      const curTrim = lines[i].trim();
+      if (
+        !curTrim ||
+        /^([-*_])\1{2,}$/.test(curTrim) ||
+        (curTrim.startsWith("|") && curTrim.endsWith("|")) ||
+        /^#{1,3}\s+/.test(curTrim) ||
+        /^(?:🚇|📍|🚆|[1-9]️⃣|Chặng\s+\d+|Option\s+\d+|Phương án\s+\d+)/i.test(curTrim) ||
+        /^[-•*+]\s+/.test(curTrim) ||
+        /^\d+\.\s+/.test(curTrim)
+      ) {
+        break;
+      }
+      paraLines.push(curTrim);
+      i += 1;
+    }
+    blocks.push(
+      <p key={blockKey++} className="text-[13px] leading-relaxed text-slate-700">
+        {paraLines.map((line, lIdx) => (
+          <React.Fragment key={lIdx}>
+            {lIdx > 0 ? <br /> : null}
+            {renderInline(line)}
+          </React.Fragment>
+        ))}
+      </p>
+    );
+  }
+
+  return <div className="space-y-1.5">{blocks}</div>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export function ChatboxWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -314,8 +608,10 @@ export function ChatboxWidget() {
             : "pointer-events-none scale-95 opacity-0"
         }`}
         style={{
-          width: "360px",
-          height: "520px",
+          width: isExpanded ? "min(50vw, 720px)" : "360px",
+          height: isExpanded ? "82vh" : "520px",
+          maxWidth: "calc(100vw - 2rem)",
+          maxHeight: "calc(100vh - 7rem)",
           background: "#ffffff",
           border: "1px solid rgba(0,0,0,0.08)",
           transformOrigin: "bottom right",
@@ -340,6 +636,30 @@ export function ChatboxWidget() {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            {/* Nút phóng to / thu nhỏ nửa màn hình */}
+            <button
+              id="chatbox-expand-btn"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              title={isExpanded ? "Thu gọn khung chat" : "Phóng to nửa màn hình"}
+              aria-label={isExpanded ? "Thu gọn khung chat" : "Phóng to nửa màn hình"}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-white/75 transition hover:bg-white/20 hover:text-white"
+            >
+              {isExpanded ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 14 10 14 10 20" />
+                  <polyline points="20 10 14 10 14 4" />
+                  <line x1="14" y1="10" x2="21" y2="3" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              )}
+            </button>
             {/* Nút cuộc trò chuyện mới */}
             <button
               id="chatbox-new-conversation-btn"
@@ -371,26 +691,32 @@ export function ChatboxWidget() {
           className="flex-1 overflow-y-auto px-3 py-3 space-y-3"
           style={{ background: "#F8FAFC" }}
         >
-          {messages.map((msg) => (
+          {messages.map((msg) => {
+            if (msg.role === "assistant" && msg.isStreaming && !msg.content) {
+              return null;
+            }
+            return (
             <div
               key={msg.id}
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {/* Bot avatar */}
               {msg.role === "assistant" && (
-                <div className="mr-2 mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-sm"
-                  style={{ background: "#EFF6FF" }}>
+                <div
+                  className="mr-2 mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-sky-100 text-sm shadow-2xs"
+                  style={{ background: "#EFF6FF" }}
+                >
                   🚇
                 </div>
               )}
 
               <div
-                className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                className={`rounded-2xl text-sm leading-relaxed ${
                   msg.role === "user"
-                    ? "rounded-tr-sm text-white"
+                    ? "max-w-[78%] rounded-tr-sm px-3.5 py-2.5 text-white shadow-sm"
                     : msg.isError
-                    ? "rounded-tl-sm border border-red-100 bg-red-50 text-red-700"
-                    : "rounded-tl-sm border border-gray-100 bg-white text-gray-800 shadow-sm"
+                    ? "max-w-[88%] rounded-tl-sm border border-red-100 bg-red-50 px-4 py-3 text-red-700"
+                    : "max-w-[88%] rounded-tl-sm border border-slate-200/80 bg-white px-4 py-3 text-slate-800 shadow-[0_2px_10px_rgba(15,23,42,0.05)]"
                 }`}
                 style={
                   msg.role === "user"
@@ -400,9 +726,7 @@ export function ChatboxWidget() {
               >
                 {msg.role === "assistant" ? (
                   <>
-                    <span
-                      dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.content) }}
-                    />
+                    <ChatMessageContent content={msg.content} />
                     {/* Cursor nhấp nháy khi đang stream */}
                     {msg.isStreaming && (
                       <span
@@ -419,7 +743,8 @@ export function ChatboxWidget() {
                 )}
               </div>
             </div>
-          ))}
+          );
+          })}
 
           {/* Typing indicator - chỉ hiện khi đang stream nhưng content rỗng */}
           {isLoading && messages[messages.length - 1]?.isStreaming && messages[messages.length - 1]?.content === "" && (

@@ -98,7 +98,12 @@ class TicketEmailService:
                     </tr>
                 </table>
 
-                <div style="text-align:center;margin-top:30px;padding:20px;background-color:#f8fafc;border-radius:10px;">
+                <div style="margin:20px 0;padding:14px 16px;background-color:#eff6ff;border-left:4px solid #0055A5;border-radius:8px;color:#1e3a8a;font-size:13px;line-height:1.6;">
+                    <p style="margin:0 0 6px 0;"><strong>Lưu ý giờ hoạt động Metro:</strong> Tuyến Metro số 1 chỉ hoạt động từ <strong>05:00 đến 23:00</strong> hàng ngày (chuyến tàu cuối kết thúc lúc 23:00).</p>
+                    {"<p style='margin:0;'><strong>Thời hạn vé lượt:</strong> Vé lượt có giá trị sử dụng trong vòng <strong>2 ngày</strong> kể từ thời điểm đặt; quá 2 ngày chưa sử dụng hệ thống sẽ tự động hủy vé.</p>" if ticket.ticket_type.type == "single" else "<p style='margin:0;'>Vé có hiệu lực không giới hạn số lượt trong khung giờ tàu chạy từ 05:00 – 23:00 trong thời hạn của vé.</p>"}
+                </div>
+
+                <div style="text-align:center;margin-top:24px;padding:20px;background-color:#f8fafc;border-radius:10px;">
                     <p style="margin-bottom:15px;">Vui lòng quét mã QR này tại cổng kiểm soát:</p>
                     <img src="cid:ticket_qr" alt="Mã QR vé" style="width:200px;height:200px;">
                     <p style="font-size:12px;color:#64748b;margin-top:10px;">Mã QR: {context['qr_code']}</p>

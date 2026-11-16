@@ -7,6 +7,7 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   ChevronRight,
+  Clock,
   History,
   Info,
   Loader2,
@@ -32,6 +33,32 @@ type UiStation = {
   name: string;
   code: string;
 };
+
+type ActiveTierInfo = {
+  has_active_ticket: boolean;
+  ticket_id?: string;
+  ticket_type_id?: number;
+  type?: string;
+  name?: string;
+  tier_rank: number;
+  valid_until?: string | null;
+};
+
+const TICKET_TIER_RANK: Record<string, number> = {
+  single: 1,
+  day: 2,
+  "3day": 3,
+  week: 3,
+  month: 4,
+};
+
+function getTicketTierRank(ticket?: { type?: string; duration_days?: number } | null): number {
+  if (!ticket) return 0;
+  if (ticket.type && TICKET_TIER_RANK[ticket.type] !== undefined) {
+    return TICKET_TIER_RANK[ticket.type];
+  }
+  return 10 + Number(ticket.duration_days || 0);
+}
 
 function calculateAge(dateOfBirth?: string | null): number | null {
   if (!dateOfBirth) return null;
@@ -64,6 +91,7 @@ export default function BookingPage() {
 
   const [stations, setStations] = useState<UiStation[]>([]);
   const [isBooking, setIsBooking] = useState(false);
+  const [activeTier, setActiveTier] = useState<ActiveTierInfo | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -73,16 +101,43 @@ export default function BookingPage() {
       .catch((err) => console.error("Error fetching stations", err));
   }, [fetchInitialData]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setActiveTier(null);
+      return;
+    }
+    api
+      .get(`/ticketing/my-tickets/active-tier/`)
+      .then((res) => setActiveTier(res.data))
+      .catch(() => setActiveTier(null));
+  }, [isAuthenticated]);
+
   const selectedTicketType = useMemo(
     () => ticketTypes.find((t) => t.id === ticketTypeId),
     [ticketTypes, ticketTypeId]
   );
+
+  useEffect(() => {
+    if (!activeTier?.has_active_ticket || !ticketTypes.length) return;
+    const currentType = ticketTypes.find((t) => t.id === ticketTypeId);
+    if (currentType && getTicketTierRank(currentType) < activeTier.tier_rank) {
+      const upgradeCandidate = ticketTypes.find((t) => getTicketTierRank(t) >= activeTier.tier_rank);
+      if (upgradeCandidate) {
+        setTicketType(upgradeCandidate.id);
+      }
+    }
+  }, [activeTier, ticketTypes, ticketTypeId, setTicketType]);
 
   const age = useMemo(() => calculateAge(user?.date_of_birth), [user?.date_of_birth]);
   const passengerGroup = age !== null && age <= 22 ? "hssv" : "normal";
 
   const isSingleTicket = selectedTicketType?.type === "single";
   const sameStationSelected = !!fromStationId && !!toStationId && fromStationId === toStationId;
+  const selectedDowngradeBlocked = Boolean(
+    selectedTicketType &&
+      activeTier?.has_active_ticket &&
+      getTicketTierRank(selectedTicketType) < (activeTier?.tier_rank || 0)
+  );
 
   const fromStations = useMemo(() => stations.filter((s) => s.id !== toStationId), [stations, toStationId]);
   const toStations = useMemo(() => stations.filter((s) => s.id !== fromStationId), [stations, fromStationId]);
@@ -127,6 +182,13 @@ export default function BookingPage() {
     }
 
     if (!ticketTypeId) return;
+
+    if (selectedDowngradeBlocked) {
+      toast.error(
+        `Bạn đang sở hữu ${activeTier?.name || "vé hạng cao hơn"} còn hiệu lực. Chỉ có thể đặt cùng hạng hoặc nâng cấp hạng vé.`
+      );
+      return;
+    }
 
     // Chi bat buoc chon ga doi voi ve luot
     if (isSingleTicket && (!fromStationId || !toStationId)) {
@@ -270,23 +332,70 @@ export default function BookingPage() {
               <div className="space-y-3">
                 <Label>Lựa chọn loại vé</Label>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-                  {ticketTypes.map((type) => (
+                  {ticketTypes.map((type) => {
+                    const isDowngradeBlocked = Boolean(
+                      activeTier?.has_active_ticket &&
+                        getTicketTierRank(type) < (activeTier?.tier_rank || 0)
+                    );
+                    const isSelected = ticketTypeId === type.id && !isDowngradeBlocked;
+                    return (
                     <div
                       key={type.id}
-                      onClick={() => setTicketType(type.id)}
+                      onClick={() => {
+                        if (isDowngradeBlocked) {
+                          toast.error(
+                            `Bạn đang có ${activeTier?.name} còn hiệu lực. Chỉ có thể nâng cấp hoặc mua cùng hạng vé.`
+                          );
+                          return;
+                        }
+                        setTicketType(type.id);
+                      }}
                       className={`
-                        flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 p-3 text-center transition-all
-                        ${ticketTypeId === type.id ? "border-primary bg-primary/5" : "border-muted bg-muted/5 hover:border-primary/50"}
+                        flex flex-col items-center justify-center gap-2 rounded-xl border-2 p-3 text-center transition-all
+                        ${isDowngradeBlocked ? "opacity-50 cursor-not-allowed border-muted bg-muted/60" : "cursor-pointer"}
+                        ${isSelected ? "border-primary bg-primary/5" : ""}
+                        ${!isDowngradeBlocked && ticketTypeId !== type.id ? "border-muted bg-muted/5 hover:border-primary/50" : ""}
                       `}
                     >
-                      <div className={`rounded-lg p-2 ${ticketTypeId === type.id ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
+                      <div className={`rounded-lg p-2 ${isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}>
                         <Ticket className="h-5 w-5" />
                       </div>
                       <div className="text-sm font-bold">{type.name}</div>
-                      <div className="text-[10px] text-muted-foreground">{type.duration_days > 0 ? `${type.duration_days} ngày` : "Theo chặng"}</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {type.duration_days > 0 ? `${type.duration_days} ngày` : "Hạn dùng 2 ngày"}
+                      </div>
+                      {isDowngradeBlocked && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+                          Chỉ hỗ trợ nâng cấp
+                        </span>
+                      )}
                     </div>
-                  ))}
+                  )})}
                 </div>
+
+                <div className="rounded-xl border border-sky-200 bg-sky-50/80 p-4">
+                  <div className="flex items-start gap-3">
+                    <Clock className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
+                    <div className="space-y-1 text-sm text-sky-900">
+                      <p className="font-semibold">Đặt vé trực tuyến 24/7 — Metro vận hành 05:00 – 23:00 hằng ngày</p>
+                      <p className="text-xs leading-relaxed text-sky-800/90">
+                        Bạn có thể đặt tất cả các loại vé bất kỳ lúc nào (kể cả ngoài khung giờ tàu chạy). Email xác nhận vé sẽ đính kèm lưu ý giờ tàu hoạt động (05:00 – 23:00). Lưu ý: <strong>Vé lượt</strong> chưa sử dụng sẽ tự động hủy sau <strong>2 ngày</strong> kể từ khi đặt.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {activeTier?.has_active_ticket && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                      <p className="text-sm text-amber-900">
+                        Bạn đang sở hữu <strong>{activeTier.name}</strong> còn hiệu lực
+                        {activeTier.valid_until ? ` (đến ${new Date(activeTier.valid_until).toLocaleDateString("vi-VN")})` : ""}. Hệ thống chỉ cho phép đặt vé cùng hạng hoặc <strong>nâng cấp lên hạng cao hơn</strong>.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {isSingleTicket && (
                   <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
                     <div className="flex items-start gap-3">
@@ -351,12 +460,14 @@ export default function BookingPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Giá gốc:</span>
                     <span className="font-mono text-muted-foreground line-through">
-                      {calculation?.base_price ? `${parseInt(calculation.base_price, 10).toLocaleString("vi-VN")} đ` : "0 đ"}
+                      {calculation?.base_price != null && calculation.base_price !== "0"
+                        ? `${parseInt(String(calculation.base_price), 10).toLocaleString("vi-VN")} đ`
+                        : "---"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-rose-600">
                     <span className="text-sm">Giảm giá:</span>
-                    <span className="font-medium">-{calculation?.discount_rate ? `${parseFloat(calculation.discount_rate) * 100}%` : "0%"}</span>
+                    <span className="font-medium">-{calculation?.discount_rate != null ? `${parseFloat(String(calculation.discount_rate)) * 100}%` : "0%"}</span>
                   </div>
                 </div>
 
@@ -364,7 +475,15 @@ export default function BookingPage() {
                   <span className="font-bold">Thành tiền</span>
                   <div className="text-right">
                     <div className="font-mono text-2xl font-black leading-none text-primary">
-                      {calculation?.total_price ? `${parseInt(calculation.total_price, 10).toLocaleString("vi-VN")} đ` : "0 đ"}
+                      {calculation?.loading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : calculation?.total_price != null && calculation.total_price !== "0" ? (
+                        `${parseInt(String(calculation.total_price), 10).toLocaleString("vi-VN")} đ`
+                      ) : isSingleTicket ? (
+                        <span className="text-sm text-muted-foreground">Chọn ga để tính giá</span>
+                      ) : (
+                        "---"
+                      )}
                     </div>
                   </div>
                 </div>
@@ -373,15 +492,21 @@ export default function BookingPage() {
                 <Button
                   className="h-12 w-full text-lg font-bold shadow-lg"
                   onClick={handleBook}
-                  disabled={isBooking || (isSingleTicket && (!fromStationId || !toStationId || sameStationSelected))}
+                  disabled={
+                    isBooking ||
+                    selectedDowngradeBlocked ||
+                    (isSingleTicket && (!fromStationId || !toStationId || sameStationSelected))
+                  }
                 >
                   {isBooking ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Đang xử lý...
                     </>
+                  ) : selectedDowngradeBlocked ? (
+                    "Không thể hạ hạng vé"
                   ) : isAuthenticated ? (
-                     "Tiến hành thanh toán"
+                    "Tiến hành thanh toán"
                   ) : (
                     "Đăng nhập để đặt vé"
                   )}

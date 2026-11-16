@@ -1,347 +1,232 @@
-# HCMC Metro
+# HCMC Metro — Hệ thống Vé điện tử, Giám sát Tàu Real-time & Trợ lý AI
 
-## Phần 1. Giới thiệu và mô tả chức năng hệ thống
-
-### 1.1. Giới thiệu dự án
-HCMC Metro là hệ thống web hỗ trợ tra cứu, trải nghiệm và quản trị dịch vụ Metro TP.HCM. Dự án được xây dựng theo mô hình fullstack với:
-
-- `Frontend`: Next.js, React, TypeScript, Tailwind CSS
-- `Backend`: Django, Django REST Framework
-- `Database`: PostgreSQL
-- `Cache`: Redis
-- `Message Broker / Background Jobs`: RabbitMQ, Celery
-
-Hệ thống phục vụ đồng thời 2 nhóm người dùng:
-
-- `Người dùng cuối`: tra cứu thông tin Metro, đặt vé, theo dõi vé, gửi góp ý, xem tin tức và tiện ích
-- `Quản trị viên`: quản lý dữ liệu vận hành, người dùng, tin tức, vé, doanh thu và phản hồi khách hàng
-
-### 1.2. Chức năng chính của hệ thống
-
-#### A. Chức năng dành cho người dùng
-
-1. `Đăng ký / Đăng nhập`
-- Đăng ký tài khoản bằng email
-- Xác thực email bằng OTP
-- Đăng nhập bằng email/mật khẩu
-- Đăng nhập bằng Google
-- Quên mật khẩu và đặt lại mật khẩu
-
-2. `Tra cứu thông tin Metro`
-- Xem bản đồ số Metro
-- Xem tuyến, ga và lộ trình di chuyển
-- Theo dõi thông tin liên quan đến hệ thống Metro
-
-3. `Đặt vé và thanh toán`
-- Chọn loại vé
-- Thực hiện quy trình đặt vé
-- Thanh toán vé
-- Xem trạng thái thanh toán và kết quả đặt vé
-
-4. `Quản lý tài khoản cá nhân`
-- Xem thông tin hồ sơ
-- Xem vé đang hoạt động
-- Xem lịch sử vé
-- Cập nhật thông tin cá nhân
-- Đổi mật khẩu
-
-5. `Tiện ích và tin tức`
-- Xem danh sách tiện ích trong hệ thống Metro
-- Xem chi tiết từng tiện ích
-- Đọc danh sách tin tức
-- Xem chi tiết bài viết tin tức
-
-6. `Góp ý và phản hồi`
-- Gửi góp ý về trải nghiệm, cơ sở vật chất hoặc lỗi hệ thống
-- Theo dõi trạng thái xử lý góp ý trong trang cá nhân
-
-7. `Chatbox hỗ trợ`
-- Hỗ trợ người dùng tra cứu thông tin liên quan đến Metro
-
-#### B. Chức năng dành cho quản trị viên
-
-1. `Dashboard quản trị`
-- Xem thống kê tổng quan về hệ thống
-- Theo dõi một số chỉ số hoạt động
-
-2. `Quản lý người dùng`
-- Xem danh sách người dùng
-- Theo dõi thông tin tài khoản
-
-3. `Quản lý hệ thống Metro`
-- Quản lý dữ liệu tuyến, ga, tàu và thành phần liên quan
-
-4. `Quản lý trạm bus và tiện ích`
-- Quản lý trạm bus liên kết với ga Metro
-- Quản lý dữ liệu tiện ích
-
-5. `Quản lý vé và doanh thu`
-- Theo dõi vé đã bán
-- Kiểm tra trạng thái vé
-- Xem dữ liệu doanh thu
-
-6. `Quản lý tin tức`
-- Tạo, cập nhật, hiển thị và quản lý bài viết tin tức
-
-7. `Quản lý góp ý khách hàng`
-- Xem danh sách góp ý từ người dùng
-- Cập nhật trạng thái xử lý góp ý
-
-### 1.3. Kiến trúc triển khai
-Dự án được tổ chức theo 2 thư mục chính:
-
-- `frontend/`: giao diện người dùng và admin
-- `backend/`: API, xử lý nghiệp vụ, xác thực, thanh toán, tác vụ nền
-
-Ngoài ra hệ thống còn sử dụng:
-
-- `database/schema.sql`: khởi tạo dữ liệu cơ sở dữ liệu
-- `docker-compose.yml`: cấu hình chạy toàn bộ hệ thống bằng Docker
-
-#### Sơ đồ kiến trúc tổng quan
-
-```mermaid
-graph TD
-    Client([Client / Trình duyệt])
-    
-    subgraph Frontend [Frontend - Next.js]
-        WebUI[Giao diện Người dùng & Admin]
-    end
-    
-    subgraph Backend [Backend - Django DRF]
-        API[REST API]
-        Worker[Celery Worker]
-        Beat[Celery Beat]
-    end
-    
-    subgraph Infrastructure [Hạ tầng dữ liệu & Message]
-        DB[(PostgreSQL)]
-        Cache[(Redis)]
-        MQ{RabbitMQ}
-    end
-    
-    Client <-->|HTTP/HTTPS| WebUI
-    WebUI <-->|REST API| API
-    
-    API <--> DB
-    API <--> Cache
-    
-    API -->|Đẩy Task| MQ
-    Beat -->|Task định kỳ| MQ
-    MQ -->|Nhận Task| Worker
-    Worker <--> DB
-    Worker <--> Cache
-```
+Nền tảng web toàn diện phục vụ hành khách và công tác vận hành cho tuyến **Metro số 1 TP.HCM (Bến Thành – Bến xe Suối Tiên)**, tích hợp theo dõi đoàn tàu thời gian thực, đặt vé điện tử 24/7 qua **PayOS**, bản đồ số **Leaflet**, hệ thống tin tức cập nhật tự động và trợ lý **AI** tìm đường đa phương thức.
 
 ---
 
-## Phần 2. Hướng dẫn clone và chạy project
+## 1. Bối cảnh & Mục đích dự án
 
-### 2.1. Yêu cầu môi trường
-Trước khi chạy project, cần cài đặt:
+### Bối cảnh
+Khi tuyến đường sắt đô thị đầu tiên của TP.HCM (Bến Thành – Suối Tiên, 14 nhà ga) đi vào vận hành thương mại cùng mạng lưới xe buýt điện gom khách và các tiện ích đô thị dọc Xa lộ Hà Nội – Võ Nguyên Giáp, nhu cầu chuyển đổi từ phương tiện cá nhân sang giao thông công cộng tăng nhanh. Tuy nhiên, hành khách (đặc biệt là sinh viên, người đi làm và khách vãng lai) thường gặp rào cản khi thông tin bị phân mảnh: khó ước lượng chính xác thời gian tàu cập ga, thiếu chỉ dẫn kết hợp từ điểm xuất phát → ga Metro → xe buýt/chặng cuối, và quy trình mua/nâng hạng vé trực tuyến chưa gắn kết đồng bộ với giờ vận hành.
 
-- `Git`
-- `Docker`
-- `Docker Compose`
+### Mục đích
+**HCMC Metro** được xây dựng nhằm hợp nhất toàn bộ hành trình trải nghiệm của hành khách và quy trình quản trị của đơn vị vận hành vào một nền tảng duy nhất:
+- **Với hành khách:** Tra cứu vị trí tàu chạy trực tiếp theo từng giây, xem bản đồ số 14 ga kèm trạm xe buýt và tiện ích lân cận, đặt vé điện tử 24/7 với chính sách giá minh bạch (tự động giảm 30% cho học sinh – sinh viên), nhận mã QR qua email và hỏi đáp lộ trình đa phương thức với trợ lý AI.
+- **Với quản trị viên:** Quản lý tập trung dữ liệu tuyến, ga, tàu, xe buýt, tiện ích, tin tức, tiếp nhận góp ý và soát vé QR trực tiếp tại cổng ga theo thời gian thực.
 
-Khuyến nghị:
+---
 
-- RAM tối thiểu `8 GB`
-- Docker Desktop đã được bật trước khi chạy
+## 2. Công nghệ sử dụng — Lý do lựa chọn & Giá trị mang lại
 
-### 2.2. Clone source code
-Chạy các lệnh sau:
+| Thành phần | Công nghệ lựa chọn | Lý do lựa chọn (Why) | Giá trị cho dự án (Impact) |
+|---|---|---|---|
+| **Frontend** | **Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Zustand** | Hỗ trợ SSR/App Router tối ưu SEO cho trang tin tức & tiện ích; TypeScript giảm lỗi runtime ở các luồng đặt vé/map phức tạp; Zustand quản lý state chọn ga/loại vé gọn nhẹ. | Trải nghiệm mượt mà, responsive đa thiết bị, duy trì giỏ đặt vé khi chuyển trang đăng nhập và tự động render bảng/thẻ lộ trình AI trực quan. |
+| **Backend API** | **Django 5.0, Django REST Framework, SimpleJWT, Gunicorn** | Ecosystem chặt chẽ cho ORM, bảo mật xác thực JWT/Google OAuth, Validation rõ ràng và dễ tách Service Layer (`BookingService`, `TrackingService`). | Chuẩn hóa hơn 30+ endpoint REST & SSE, tích hợp sẵn OpenAPI/Swagger (`/api/schema/swagger-ui/`), dễ bảo trì và mở rộng. |
+| **Database** | **PostgreSQL 16** | Đảm bảo tính toàn vẹn ACID cho giao dịch tài chính (`Ticket`, `Payment`), hỗ trợ `UUID`, `SELECT ... FOR UPDATE` chống race-condition khi xử lý webhook PayOS. | Không xảy ra trùng lặp kích hoạt vé hoặc sai lệch doanh thu khi PayOS gửi đồng thời webhook và return URL. |
+| **Cache & Realtime Bus** | **Redis 7 (`django-redis`, Pub/Sub)** | Tốc độ đọc/ghi in-memory cực nhanh cho dữ liệu thay đổi liên tục và hỗ trợ sẵn mô hình Publisher/Subscriber. | Giảm ~90% độ trễ API đọc tin tức (từ ~49 ms xuống ~5 ms ở benchmark local), cache cự ly ga 24h và phát vị trí 6 đoàn tàu mỗi 3 giây tới mọi client SSE. |
+| **Async & Scheduler** | **RabbitMQ 3.12, Celery Worker, Celery Beat** | Tách biệt các tác vụ chậm (gửi email QR, gọi verify PayOS) và tác vụ định kỳ (quét vé hết hạn) khỏi luồng HTTP request chính. | API thanh toán và đặt vé phản hồi ngay lập tức không bị nghẽn bởi SMTP; hệ thống tự động hủy vé lượt chưa sử dụng quá 2 ngày mỗi 15 phút. |
+| **Thanh toán** | **PayOS SDK & HMAC-SHA256** | Hỗ trợ VietQR ngân hàng nội địa chuẩn xác, có API tạo link, verify return và webhook ký chữ ký điện tử. | Hành khách quét QR ngân hàng thanh toán tức thì, tự động kích hoạt vé và nhận email vé điện tử trong vài giây. |
+| **Bản đồ số GIS** | **Leaflet (`react-leaflet`), OpenStreetMap** | Nhẹ, mã nguồn mở, tùy biến hoàn toàn marker icon, nhãn cố định trên bản đồ và đồng bộ nhiều lớp dữ liệu cùng lúc. | Hiển thị trực quan 14 ga (kèm nhãn tên cố định), 23 trạm bus, 36 tiện ích và chuyển động 6 đoàn tàu theo tọa độ thực. |
+| **Trợ lý AI** | **Groq API (`llama-3.3-70b-versatile`), SSE, Nominatim OSM** | Groq cho tốc độ sinh token streaming rất nhanh; kết hợp tự điển `HCMC_LANDMARKS` nội bộ giúp định vị địa danh tức thì không phụ thuộc hoàn toàn API ngoài. | Trợ lý phản hồi streaming từng chữ mượt mà qua SSE, tự tính chi phí thực tế cho cả chặng Metro, xe buýt và xe ôm công nghệ. |
+| **Hạ tầng** | **Docker & Docker Compose (9 services)** | Đóng gói đồng nhất 9 container (`frontend`, `backend`, `db`, `redis`, `rabbitmq`, `celery_worker`, `celery_beat`, `train_simulator`, `pgadmin`). | Dựng toàn bộ hệ thống ổn định chỉ bằng một câu lệnh, loại bỏ sai khác môi trường giữa máy phát triển và triển khai. |
 
-```bash
-git clone <link-repository>
-cd HCMC-Metro
+---
+
+## 3. Kiến trúc tổng thể hệ thống
+
+Hệ thống được thiết kế theo kiến trúc phân tầng tách biệt rõ giữa **Presentation (Next.js)**, **API/Domain Services (Django DRF)**, **Background Daemons (Celery Worker, Celery Beat, Train Simulator)** và **Data/Broker Infrastructure (PostgreSQL, Redis, RabbitMQ)**:
+
+### Sơ đồ kiến trúc tổng thể
+
+```mermaid
+flowchart TD
+    Client(["Người dùng & Quản trị viên (Browser)"])
+
+    subgraph FE["Frontend — Next.js 14 (:3000)"]
+        WebUI["App Router UI: Đặt vé · Bản đồ số Leaflet · Tracking · Tin tức · Admin · ChatboxWidget"]
+    end
+
+    subgraph BE["Backend API — Django 5 + DRF (:8000)"]
+        API["REST API & SSE Streams (Gunicorn)"]
+        Guard["ChatboxGuardMiddleware & Route Planner"]
+    end
+
+    subgraph Daemons["Background & Telemetry Daemons"]
+        Sim["train_simulator (3s/tick)"]
+        Worker["celery_worker (PayOS Webhook & Email)"]
+        Beat["celery_beat (Auto-cancel 15 phút)"]
+    end
+
+    subgraph Infra["Hạ tầng Dữ liệu & Message Broker"]
+        DB[("PostgreSQL 16")]
+        Redis[("Redis 7 (Cache & Pub/Sub)")]
+        MQ{"RabbitMQ 3.12 (AMQP)"}
+    end
+
+    subgraph Ext["Dịch vụ bên ngoài"]
+        PayOS["PayOS Gateway"]
+        Groq["Groq LLM API"]
+        ThirdParty["Google OAuth2 · SMTP · OSM Nominatim"]
+    end
+
+    Client <-->|"HTTP/HTTPS · SSE"| WebUI
+    WebUI <-->|"REST API (JWT)"| API
+    WebUI <-->|"SSE (Tracking & AI Chat)"| API
+    WebUI -->|"AI Requests"| Guard
+    Guard --> API
+
+    API <-->|"ACID ORM Queries"| DB
+    API <-->|"Cache Hit/Miss & Pub/Sub"| Redis
+    API -->|"Đẩy Task nền"| MQ
+    Beat -->|"Lịch định kỳ 900s"| MQ
+    MQ -->|"Consume Task"| Worker
+
+    Worker <--> DB
+    Worker --> ThirdParty
+    Sim -->|"Publish 6 tàu (05:00–23:00)"| Redis
+    Sim -->|"Sync Train DB"| DB
+
+    API <-->|"HMAC Link & Webhook"| PayOS
+    API <-->|"SSE Token Stream"| Groq
+    API <--> ThirdParty
 ```
 
-Nếu bạn đã có repository trên máy thì chỉ cần di chuyển vào thư mục project:
+### Các kênh giao tiếp chính
+1. **HTTP/REST + JWT:** Xử lý nghiệp vụ người dùng, đặt vé, tính giá, quản trị, tin tức và bản đồ tĩnh.
+2. **Server-Sent Events (SSE) + Redis Pub/Sub:** Stream hai luồng dữ liệu tức thời là vị trí đoàn tàu (`/api/metro/tracking/stream/`) và câu trả lời AI từng token (`/api/chatbox/message/`).
+3. **AMQP Tasks (RabbitMQ → Celery):** Thực thi bất đồng bộ xử lý trạng thái thanh toán PayOS, gửi email QR/OTP/cảnh báo quét vé và chạy cronjob mỗi 15 phút để thu hồi vé lượt quá hạn 2 ngày.
 
-```bash
-cd HCMC-Metro
-```
+---
 
-### 2.3. Cấu hình biến môi trường
-Project sử dụng file `.env` ở thư mục gốc để cấu hình cho Docker, backend và frontend.
+## 4. Các chức năng chính của hệ thống
 
-Bạn cần kiểm tra hoặc bổ sung các biến quan trọng như:
+### Dành cho Người dùng cuối
+- **Xác thực & Hồ sơ cá nhân:** Đăng ký qua email kèm OTP xác thực, đăng nhập JWT hoặc **Google OAuth2**, quên/đổi mật khẩu, quản lý thông tin cá nhân và ngày sinh phục vụ xét đối tượng học sinh – sinh viên.
+- **Theo dõi tàu Real-time (`/lo-trinh`):** Sơ đồ vận hành trực quan 14 nhà ga, bảng trạng thái 6 đoàn tàu, tra cứu 3 tàu sắp cập ga (ETA) và tự động chuyển trạng thái ngừng vận hành đúng khung **23:00 – 05:00** giờ Việt Nam (`Asia/Ho_Chi_Minh`).
+- **Bản đồ số tương tác (`/ban-do-so`):** Hiển thị 14 ga (nhãn tên ga cố định trên icon), vị trí tàu di chuyển trực tiếp, trạm xe buýt kết nối kèm lịch chạy và các tiện ích lân cận kèm panel chi tiết bên phải.
+- **Đặt vé 24/7 & Thanh toán PayOS (`/dat-ve`):** Đặt vé lượt (1 chiều/khứ hồi), vé 1 ngày, vé 3 ngày, vé tháng; tự động tính giá theo khoảng cách ga và giảm **30%** cho hành khách `<= 22` tuổi; khóa hạ hạng vé nếu đang sở hữu vé hạng cao còn hạn; thanh toán PayOS và nhận vé QR qua email kèm ghi chú giờ chạy `05:00 – 23:00`.
+- **Trợ lý AI tìm đường đa phương thức:** Widget chat hỗ trợ thu gọn hoặc phóng to nửa màn hình, tư vấn lộ trình 3 chặng (Điểm đi → Ga Metro → Đích đến bằng xe ôm công nghệ hoặc xe buýt thực tế trong DB).
+- **Tiện ích quanh ga & Tin tức chính thống:** Tra cứu 36 điểm dịch vụ/ăn uống/mua sắm quanh ga (`/tien-ich`) và đọc tin tức cập nhật từ VnExpress, Tuổi Trẻ, Thanh Niên kèm liên kết tới bài gốc và cổng chính thức HURC1/MAUR (`/tin-tuc`).
+- **Góp ý & Theo dõi xử lý:** Gửi phản hồi chất lượng dịch vụ kèm theo dõi trạng thái xử lý từ ban quản trị.
 
-```env
-DB_NAME=
-DB_USER=
-DB_PASSWORD=
-PGADMIN_DEFAULT_EMAIL=
-PGADMIN_DEFAULT_PASSWORD=
+### Dành cho Quản trị viên (`/admin`)
+- **Dashboard thống kê:** Theo dõi doanh thu, sản lượng vé và trạng thái hệ thống.
+- **Soát vé QR tại cổng:** Quét mã QR từ camera/dữ liệu thô (`admin/bookings/scan/`), tự động kiểm tra hiệu lực, trừ `usage_remaining` và lưu `TicketScanHistory`.
+- **Quản trị dữ liệu Metro:** CRUD tuyến, nhà ga, đoàn tàu, trạm xe buýt, tiện ích quanh ga, bài viết tin tức, tài khoản người dùng và xử lý góp ý.
 
-SECRET_KEY=
+---
 
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+## 5. Mô tả chi tiết các module trọng tâm
 
-EMAIL_HOST=
-EMAIL_PORT=
-EMAIL_HOST_USER=
-EMAIL_HOST_PASSWORD=
-DEFAULT_FROM_EMAIL=
+Tài liệu thiết kế chi tiết và sơ đồ kiến trúc riêng cho từng module được lưu tại thư mục `docs/`:
 
-PAYOS_CLIENT_ID=
-PAYOS_API_KEY=
-PAYOS_CHECKSUM_KEY=
+### 5.1. Module Metro Tracking Real-time ([Xem tài liệu chi tiết & sơ đồ kiến trúc](docs/metro-tracking-realtime.md))
+- Container `train_simulator` chạy lệnh `manage.py run_train_simulator --interval 3` liên tục tính toán tọa độ 6 đoàn tàu theo tốc độ trung bình `45 km/h`, dừng ga `30s`, quay đầu `300s` bằng công thức **Haversine** và nội suy tuyến tính.
+- Toàn bộ lịch chạy tuân thủ múi giờ `Asia/Ho_Chi_Minh`: đúng **23:00:00** chuyến tàu cuối kết thúc hành trình và toàn bộ hệ thống chuyển sang trạng thái `idle` cho tới **05:00:00** sáng hôm sau (không ghi log trạm giả vào PostgreSQL trong giờ nghỉ).
+- Dữ liệu được cache vào Redis (`TTL 15s`) và broadcast qua Redis Pub/Sub tới `LiveTrainStreamView` (SSE + heartbeat 10s), giúp `/lo-trinh` và `/ban-do-so` cập nhật mượt mà theo thời gian thực.
 
-GROQ_API_KEY=
-```
+### 5.2. Module Đặt vé & Thanh toán PayOS ([Xem tài liệu chi tiết & sơ đồ kiến trúc](docs/dat-ve.md))
+- **Định giá & Nâng hạng thông minh:** `BookingService` tính cự ly giữa 2 ga bằng `geodesic` (cache Redis 24h), áp dụng công thức `7,000 + km × 1,000` (làm tròn 100 VNĐ), nhân đôi cho vé khứ hồi và giảm `30%` cho HSSV (`<= 22` tuổi). Hàm `validate_ticket_upgrade()` chặn mua vé hạng thấp hơn vé đang còn hiệu lực (`single < day < 3day/week < month`).
+- **Thanh toán bất đồng bộ chống trùng lặp:** Khi PayOS trả webhook hoặc redirect return, `process_payment_status_update_task` khóa dòng `Payment` bằng `select_for_update()` trong `transaction.atomic()` để đảm bảo kích hoạt vé chính xác đúng 1 lần, sau đó đẩy `send_ticket_email_task` gửi mã QR + nhắc giờ hoạt động `05:00 – 23:00`.
+- **Tự động hủy vé lượt sau 2 ngày:** Vé `single` có hạn 2 ngày; Celery Beat chạy `cancel_expired_single_tickets_task` mỗi 15 phút để tự động chuyển các vé lượt chưa từng quét (`TicketScanHistory`) quá 2 ngày sang trạng thái `cancelled`.
 
-Lưu ý:
+### 5.3. Module Trợ lý AI & Tìm đường Đa phương thức ([Xem tài liệu chi tiết & sơ đồ kiến trúc](docs/ai-assistant.md))
+- **Bảo vệ nhiều lớp:** `ChatboxGuardMiddleware` kiểm tra độ dài tối đa 500 ký tự, sanitize HTML, chặn từ khóa `INPUT_BLOCKLIST` và giới hạn **20 tin nhắn/giờ** kết hợp view kiểm tra **100 tin nhắn/ngày** từ PostgreSQL.
+- **Động cơ tìm đường 3 chặng (`route_planner.py`):** Kết hợp regex nhanh + Groq JSON để tách điểm đi/đến, định vị qua 4 tầng (`HCMC_LANDMARKS` 121 địa danh → `Station` DB → Redis cache → OSM Nominatim fallback), sau đó tính toán đồng thời phương án đi **xe ôm công nghệ** và phương án tiết kiệm kết hợp **xe buýt từ bảng `BusStop`** trước khi truyền số liệu thực vào prompt để Groq stream SSE câu trả lời.
 
-- `backend` đọc biến môi trường từ `.env`
-- `frontend` cũng sử dụng một phần biến môi trường từ `.env`
-- Nếu dùng đăng nhập Google thì cần cấu hình `GOOGLE_CLIENT_ID` và `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+---
 
-### 2.4. Chạy project bằng Docker Compose
-Từ thư mục gốc của project, chạy:
-
-```bash
-docker compose up --build
-```
-
-Lệnh trên sẽ khởi động các service:
-
-- `db`: PostgreSQL
-- `redis`: Redis
-- `rabbitmq`: RabbitMQ
-- `pgadmin`: giao diện quản trị PostgreSQL
-- `backend`: Django API
-- `frontend`: Next.js app
-- `celery_worker`: xử lý task nền
-- `celery_beat`: chạy scheduler cho task định kỳ
-
-### 2.5. Truy cập hệ thống sau khi chạy
-Sau khi chạy thành công, có thể truy cập:
-
-- `Frontend`: http://localhost:3000
-- `Backend API`: http://localhost:8000
-- `pgAdmin`: http://localhost:5050
-- `RabbitMQ Management`: http://localhost:15672
-
-### 2.6. Một số lệnh hữu ích
-
-1. `Chạy nền`
-
-```bash
-docker compose up -d
-```
-
-2. `Dừng hệ thống`
-
-```bash
-docker compose down
-```
-
-3. `Xem log`
-
-```bash
-docker compose logs -f
-```
-
-4. `Chỉ xem log backend`
-
-```bash
-docker compose logs -f backend
-```
-
-5. `Chạy migration`
-
-```bash
-docker compose exec backend python manage.py migrate
-```
-
-6. `Tạo tài khoản admin`
-
-```bash
-docker compose exec backend python manage.py createsuperuser
-```
-
-### 2.7. Kiểm tra nhanh sau khi khởi động
-Sau khi hệ thống lên, có thể kiểm tra nhanh:
-
-1. Mở `http://localhost:3000` để kiểm tra giao diện frontend
-2. Mở `http://localhost:8000` để kiểm tra backend đang hoạt động
-3. Kiểm tra đăng ký / đăng nhập
-4. Kiểm tra các trang admin nếu đã có tài khoản quản trị
-
-### 2.8. Cấu trúc thư mục chính
+## 6. Cấu trúc thư mục dự án
 
 ```text
 HCMC-Metro/
-├─ backend/              # Django + DRF backend
-├─ frontend/             # Next.js frontend
-├─ database/             # SQL khởi tạo dữ liệu
-├─ docker-compose.yml    # Cấu hình chạy toàn bộ hệ thống
-├─ .env                  # Biến môi trường
-└─ README.md
-```
-
-### 2.9. Ghi chú
-
-- Frontend mặc định chạy ở cổng `3000`
-- Backend mặc định chạy ở cổng `8000`
-- Project ưu tiên chạy bằng Docker để tránh lỗi khác biệt môi trường
-- Nếu thay đổi `.env`, nên chạy lại:
-
-```bash
-docker compose up --build
+├─ backend/                         # Django 5 + Django REST Framework
+│  ├─ config/                       # Settings (base, dev, prod), Celery app & Root URLs
+│  ├─ core/                         # Permissions, Pagination, Middleware & Exception handlers
+│  ├─ infrastructure/               # Redis client & hạ tầng kết nối dùng chung
+│  ├─ data/                         # Dữ liệu tọa độ tuyến Metro Line 1
+│  └─ apps/
+│     ├─ users/                     # Xác thực JWT, OTP, Google OAuth2, phân quyền & hồ sơ
+│     ├─ metro/                     # Ga, tàu, bản đồ số, tiện ích, xe buýt & TrackingService
+│     ├─ ticketing/                 # Loại vé, tính giá, nâng hạng, soát QR, email & Beat cleanup
+│     ├─ payments/                  # Tích hợp PayOS, ký HMAC-SHA256 & xử lý webhook
+│     ├─ news/                      # Tin tức Metro & crawler lấy tin từ báo chí uy tín
+│     ├─ feedback/                  # Góp ý hành khách & quản trị phản hồi
+│     └─ chatbox/                   # Guard middleware, rate limiter, route_planner & Groq SSE
+├─ frontend/                        # Next.js 14 + React 18 + TypeScript + Tailwind CSS
+│  ├─ public/images/                # Ảnh tĩnh đã kiểm duyệt cho tiện ích & bài viết tin tức
+│  └─ src/
+│     ├─ app/(routes)/              # Các route công khai ((main): dat-ve, lo-trinh, ban-do-so, tien-ich, tin-tuc) & admin
+│     ├─ components/                # UI primitives (shadcn/ui), AppChrome, Navbar, Footer, ChatboxWidget
+│     ├─ features/                  # Feature modules (auth, metro, news, feedback, admin)
+│     ├─ store/                     # Zustand stores (useAuthStore, useBookingStore, useToastStore)
+│     └─ lib/ & types/              # Axios client interceptors & TypeScript definitions
+├─ database/
+│  └─ schema.sql                    # Script khởi tạo schema & dữ liệu nền PostgreSQL
+├─ docs/
+│  ├─ metro-tracking-realtime.md    # Tài liệu kỹ thuật module Tracking Real-time
+│  ├─ dat-ve.md                     # Tài liệu kỹ thuật module Đặt vé & Thanh toán PayOS
+│  └─ ai-assistant.md               # Tài liệu kỹ thuật module Trợ lý AI
+├─ references/                      # Domain reference notes cho dev
+├─ .env.example                     # Mẫu biến môi trường cho Docker Compose
+└─ docker-compose.yml               # Điều phối 9 container toàn hệ thống
 ```
 
 ---
 
-## Phần 3. Giao diện hệ thống
+## 7. Hướng dẫn chạy cục bộ (Local Setup)
 
-### 3.1. Giao diện dành cho người dùng
+### Yêu cầu môi trường
+- **Docker** và **Docker Compose** (khuyến nghị RAM tối thiểu `8 GB`)
+- **Git**
 
-- **Trang chủ:**
-![Trang chủ 1](docs/images/Home1.png)
-![Trang chủ 2](docs/images/Home2.png)
-![Trang chủ 3](docs/images/Home3.png)
-![Trang chủ 4](docs/images/Home4.png)
-![Trang chủ 5](docs/images/Home5.png)
+### Bước 1: Clone repository & tạo file `.env`
+```bash
+git clone <url-repository>
+cd HCMC-Metro
+cp .env.example .env
+```
 
-- **Bản đồ số Metro:**
-![Bản đồ Metro](docs/images/Map.png)
+Cập nhật các nhóm biến môi trường quan trọng trong `.env`:
+- **Database & Admin:** `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY`, `PGADMIN_DEFAULT_EMAIL`, `PGADMIN_DEFAULT_PASSWORD`
+- **Google OAuth2 (tùy chọn đăng nhập Google):** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+- **SMTP Email (gửi OTP & vé QR):** `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`
+- **PayOS Gateway:** `PAYOS_CLIENT_ID`, `PAYOS_API_KEY`, `PAYOS_CHECKSUM_KEY`
+- **Groq AI Chatbox:** `GROQ_API_KEY`, `GROQ_MODEL`
 
-- **Tra cứu lộ trình & ga Metro:**
-![Tra cứu 1](docs/images/Route1.png)
-![Tra cứu 2](docs/images/Route2.png)
-![Thông tin ga](docs/images/Info.png)
+### Bước 2: Khởi động toàn bộ 9 service bằng Docker Compose
+```bash
+docker compose up --build -d
+```
 
-- **Tiện ích quanh Ga:**
-![Tiện ích 1](docs/images/Amenity1.png)
-![Tiện ích 2](docs/images/Amenity2.png)
-![Tiện ích 3](docs/images/Amenity3.png)
+Lệnh trên khởi động đồng thời:
+`db` (PostgreSQL 16), `redis` (Redis 7), `rabbitmq` (RabbitMQ 3.12), `pgadmin`, `backend` (Django + Gunicorn), `frontend` (Next.js), `celery_worker`, `celery_beat` và `train_simulator`.
 
-- **Quy trình đặt vé & thanh toán:**
-![Đặt vé 1](docs/images/TicketBooking1.png)
-![Đặt vé 2](docs/images/TicketBooking2.png)
-![Thanh toán PayOS](docs/images/PayOS.png)
-![Đặt vé thành công](docs/images/TicketBookingSuccess.png)
+### Bước 3: Nạp dữ liệu mẫu thực tế (tùy chọn khi chạy lần đầu)
+```bash
+# Crawl tin tức Metro thật từ VnExpress, Tuổi Trẻ, Thanh Niên
+docker compose exec backend python manage.py crawl_news
 
-- **Trang cá nhân & quản lý vé:**
-![Lịch sử đặt vé](docs/images/TicketHistory.png)
-![Vé đang hoạt động](docs/images/ActiveTicket.png)
-![Đổi mật khẩu](docs/images/ChangePassword.png)
-![Góp ý](docs/images/Feedback.png)
-![Đăng nhập](docs/images/Login.png)
-![Đăng ký](docs/images/Register.png)
+# Đồng bộ dữ liệu trạm xe buýt kết nối & thông tin tiện ích quanh 14 ga
+docker compose exec backend python manage.py crawl_bus_stops
+docker compose exec backend python manage.py update_amenities_data
+```
 
-### 3.2. Giao diện dành cho quản trị viên
+### Bước 4: Truy cập các cổng dịch vụ
+- **Ứng dụng Web (Next.js):** http://localhost:3000
+- **Backend API (Django DRF):** http://localhost:8000
+- **API Docs (Swagger UI):** http://localhost:8000/api/schema/swagger-ui/
+- **RabbitMQ Management:** http://localhost:15672 (`guest` / `guest`)
+- **pgAdmin:** http://localhost:5050
 
-- **Dashboard thống kê:**
-*(Thêm ảnh chụp dashboard tại đây)*
+### Một số lệnh vận hành thường dùng
+```bash
+# Xem log các service
+docker compose logs -f backend celery_worker train_simulator
 
-- **Quản lý dữ liệu hệ thống Metro:**
-*(Thêm ảnh chụp quản lý ga, tuyến tại đây)*
+# Chạy tác vụ dọn vé lượt quá hạn 2 ngày thủ công
+docker compose exec backend python manage.py cancel_expired_single_tickets
 
-- **Quản lý vé & doanh thu:**
-*(Thêm ảnh chụp quản lý vé tại đây)*
+# Dừng toàn bộ hệ thống
+docker compose down
+```

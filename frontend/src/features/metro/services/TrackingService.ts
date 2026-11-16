@@ -18,6 +18,11 @@ export interface LiveTrain {
   time_to_next_seconds: number;
   latitude: number;
   longitude: number;
+  speed_kph?: number;
+  is_operating?: boolean;
+  operating_hours?: string;
+  source?: string;
+  updated_at?: string;
 }
 
 export interface TrainArrival {
@@ -59,6 +64,32 @@ class TrackingService {
       console.error('Error fetching tracking stations:', error);
       return [];
     }
+  }
+
+  static subscribeToLiveTrains(
+    onUpdate: (trains: LiveTrain[]) => void,
+    onError?: () => void
+  ): () => void {
+    if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
+      return () => {};
+    }
+    const source = new EventSource(`${API_BASE_URL}/metro/tracking/stream/`);
+    source.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data);
+        if (Array.isArray(parsed)) {
+          onUpdate(parsed);
+        }
+      } catch (err) {
+        console.error('Error parsing SSE train payload:', err);
+      }
+    };
+    source.onerror = () => {
+      if (onError) onError();
+    };
+    return () => {
+      source.close();
+    };
   }
 }
 

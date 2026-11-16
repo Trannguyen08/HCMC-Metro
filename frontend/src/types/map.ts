@@ -43,6 +43,19 @@ export interface AmenityMap {
   station_code: string | null;
 }
 
+export interface BusRouteSchedule {
+  route: string;
+  route_name?: string;
+  is_electric_feeder?: boolean;
+  operating_hours?: string;
+  peak_headway_min?: number;
+  offpeak_headway_min?: number;
+  current_headway_min?: number;
+  fare_vnd?: number;
+  next_arrivals?: string[];
+  is_operating_now?: boolean;
+}
+
 export interface BusStopMap {
   id: number;
   name: string;
@@ -51,6 +64,7 @@ export interface BusStopMap {
   longitude: number;
   address: string | null;
   routes: string[] | null;
+  schedules?: BusRouteSchedule[];
   station_code: string | null;
   station_name: string | null;
   distance_to_station: number | null;

@@ -60,3 +60,16 @@ def send_ticket_exhausted_email_task(ticket_id):
     except Exception as e:
         logger.error(f"Failed to send ticket exhausted email for ticket {ticket_id}: {str(e)}")
         return False
+
+
+@shared_task(name="apps.ticketing.tasks.cancel_expired_single_tickets_task")
+def cancel_expired_single_tickets_task():
+    """
+    Periodic task to cancel unused single-trip tickets older than 2 days
+    and mark remaining outdated tickets as expired.
+    """
+    from apps.ticketing.services.booking_service import BookingService
+
+    BookingService.expire_outdated_tickets()
+    logger.info("Checked and updated expired/unused single-trip tickets.")
+    return True
