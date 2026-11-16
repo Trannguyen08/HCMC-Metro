@@ -164,6 +164,7 @@ HCMC-Metro/
 ├─ database/
 │  └─ schema.sql                    # Script khởi tạo schema & dữ liệu nền PostgreSQL
 ├─ docs/
+│  ├─ demo/                         # Ảnh chụp màn hình Demo giao diện Client & Admin (PNG)
 │  ├─ metro-tracking-realtime.md    # Tài liệu kỹ thuật module Tracking Real-time
 │  ├─ dat-ve.md                     # Tài liệu kỹ thuật module Đặt vé & Thanh toán PayOS
 │  └─ ai-assistant.md               # Tài liệu kỹ thuật module Trợ lý AI
@@ -230,3 +231,57 @@ docker compose exec backend python manage.py cancel_expired_single_tickets
 # Dừng toàn bộ hệ thống
 docker compose down
 ```
+
+---
+
+## 8. Demo Giao diện Hệ thống
+
+*(Ảnh chụp thực tế từ hệ thống chạy cục bộ qua Docker Compose tại `http://localhost:3000`)*
+
+### 8.1. Giao diện Khách hàng (Client)
+
+- **Trang chủ:**
+![Trang chủ HCMC Metro](docs/demo/client-home.png)
+
+- **Theo dõi tàu Real-time & Tra cứu lộ trình (`/lo-trinh`):**
+![Tra cứu lộ trình và tàu chạy real-time](docs/demo/client-lo-trinh.png)
+
+- **Bản đồ số tương tác 14 ga, xe buýt & tiện ích (`/ban-do-so`):**
+![Bản đồ số Metro TP.HCM](docs/demo/client-ban-do-so.png)
+
+- **Đặt vé Metro 24/7 & kiểm tra nâng hạng (`/dat-ve`):**
+![Trang đặt vé Metro](docs/demo/client-dat-ve.png)
+
+- **Trợ lý AI tư vấn lộ trình 3 chặng (Mở rộng nửa màn hình & Render bảng/thẻ):**
+![Trợ lý AI HCMC Metro](docs/demo/client-chatbox-ai.png)
+
+- **Danh sách & Chi tiết Tiện ích quanh Ga (`/tien-ich` & `/tien-ich/[id]`):**
+![Danh sách tiện ích quanh ga](docs/demo/client-tien-ich.png)
+![Trang chi tiết tiện ích](docs/demo/client-tien-ich-detail.png)
+
+- **Tin tức chính thống & Chi tiết bài viết (`/tin-tuc`):**
+![Danh sách tin tức Metro](docs/demo/client-tin-tuc.png)
+![Chi tiết tin tức kèm nguồn gốc](docs/demo/client-tin-tuc-detail.png)
+
+- **Hồ sơ cá nhân & Lịch sử vé (`/profile/tickets`):**
+![Lịch sử vé cá nhân](docs/demo/client-profile-tickets.png)
+
+### 8.2. Giao diện Quản trị viên (Admin)
+
+- **Dashboard thống kê doanh thu & cơ cấu vé (`/admin`):**
+![Admin Dashboard](docs/demo/admin-dashboard.png)
+
+- **Quản lý tuyến, 14 nhà ga & 6 đoàn tàu (`/admin/metro`):**
+![Admin Quản lý Metro](docs/demo/admin-metro.png)
+
+- **Quản lý vé, doanh thu & Soát vé QR bằng camera (`/admin/tickets`):**
+![Admin Quản lý vé & Soát QR](docs/demo/admin-tickets.png)
+
+- **Quản lý tiện ích quanh ga (`/admin/amenities`):**
+![Admin Quản lý tiện ích](docs/demo/admin-amenities.png)
+
+- **Quản lý tin tức (`/admin/news`):**
+![Admin Quản lý tin tức](docs/demo/admin-news.png)
+
+- **Quản lý người dùng (`/admin/users`):**
+![Admin Quản lý người dùng](docs/demo/admin-users.png)
