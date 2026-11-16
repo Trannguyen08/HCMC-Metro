@@ -134,8 +134,8 @@ export function RouteLookup() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="py-8 text-center bg-white/5 rounded-2xl border border-white/5 italic text-sm opacity-60">
-                                    Không có tàu nào trong phạm vi theo dõi sắp tới ga này.
+                                <div className="py-8 px-4 text-center bg-white/10 rounded-2xl border border-white/10 italic text-sm opacity-90">
+                                    Hiện đang ngoài giờ vận hành (23:00 – 05:00) hoặc không có tàu sắp cập ga này.
                                 </div>
                             )}
                         </div>
@@ -153,6 +153,7 @@ export function RouteLookup() {
                     <Clock className="w-3 h-3" />
                     Ghi chú vận hành:
                 </p>
+                <p>• Giờ tàu chạy hằng ngày: 05:00 – 23:00 (chuyến tàu cuối kết thúc đúng 23:00).</p>
                 <p>• Dữ liệu tàu được cập nhật dựa trên cảm biến vị trí (giả lập) và vận tốc thực tế trung bình 45km/h.</p>
                 <p>• Thời gian dừng ga quy định là 30 giây mỗi trạm.</p>
             </div>

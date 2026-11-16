@@ -144,16 +144,16 @@ class TicketSerializer(serializers.ModelSerializer):
 
 class BookingCalculateRequestSerializer(serializers.Serializer):
     ticket_type_id = serializers.IntegerField()
-    from_station_id = serializers.IntegerField(required=False)
-    to_station_id = serializers.IntegerField(required=False)
+    from_station_id = serializers.IntegerField(required=False, allow_null=True)
+    to_station_id = serializers.IntegerField(required=False, allow_null=True)
     is_round_trip = serializers.BooleanField(required=False, default=False)
 
 
 class BookingCreateRequestSerializer(serializers.Serializer):
     ticket_type_id = serializers.IntegerField()
-    from_station_id = serializers.IntegerField(required=False)
-    to_station_id = serializers.IntegerField(required=False)
-    valid_from = serializers.DateField(required=False)
+    from_station_id = serializers.IntegerField(required=False, allow_null=True)
+    to_station_id = serializers.IntegerField(required=False, allow_null=True)
+    valid_from = serializers.DateField(required=False, allow_null=True)
     is_round_trip = serializers.BooleanField(required=False, default=False)
 
 

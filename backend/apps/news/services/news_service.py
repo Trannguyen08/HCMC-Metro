@@ -120,15 +120,12 @@ class NewsService:
         cache.set(cache_key, result, ttl)
         return result
 
-    def get_news_detail_by_slug(self, slug: str) -> Optional[News]:
+    def get_news_detail_by_slug(self, slug_or_id: str) -> Optional[News]:
         """
-        Fetches a single published article.  Cached as a model instance
-        (django-redis JSONSerializer handles basic field types).
-        TTL: HOT (5 min).
+        Fetches a single published article. Supports both raw slug and {uuid}-{slug} format.
+        A UUID is always exactly 36 characters (8-4-4-4-12 with dashes).
         """
-        cache_key = _detail_key(slug)
-        # We cache the PK only (JSON-safe) then re-fetch to get the full object.
-        # This avoids pickling model instances.
+        cache_key = _detail_key(slug_or_id)
         pk = cache.get(cache_key)
         if pk is not None:
             try:
@@ -137,7 +134,40 @@ class NewsService:
                 cache.delete(cache_key)
                 return None
 
-        news = News.objects.filter(slug=slug, is_published=True).first()
+        import uuid as uuid_module
+        news = None
+
+        # 1. If long enough, try first 36 chars as UUID
+        if len(slug_or_id) >= 36:
+            potential_uuid = slug_or_id[:36]
+            try:
+                uuid_module.UUID(potential_uuid)  # validate format
+                news = News.objects.filter(pk=potential_uuid, is_published=True).first()
+            except (ValueError, Exception):
+                pass
+
+        # 2. Try as a direct exact UUID (bare /tin-tuc/{uuid})
+        if not news and len(slug_or_id) == 36:
+            try:
+                news = News.objects.filter(pk=slug_or_id, is_published=True).first()
+            except Exception:
+                pass
+
+        # 3. Try by exact slug (legacy / direct slug lookup)
+        if not news:
+            news = News.objects.filter(slug=slug_or_id, is_published=True).first()
+
+        # 4. Extract slug part: when format is {uuid_or_prefix}-{slug},
+        #    the slug starts after the first 37 chars (36-char UUID + 1 dash).
+        #    Also try from position 38 onward in case UUID has extra chars.
+        if not news and len(slug_or_id) > 37:
+            for offset in [37, 38, 36]:
+                if offset < len(slug_or_id):
+                    slug_part = slug_or_id[offset:]
+                    news = News.objects.filter(slug=slug_part, is_published=True).first()
+                    if news:
+                        break
+
         if news:
             ttl: int = getattr(settings, "CACHE_TTL_HOT", 300)
             cache.set(cache_key, news.pk, ttl)
@@ -238,13 +268,18 @@ class NewsService:
         result = []
         for n in qs:
             result.append({
-                "id": n.pk,
+                "id": str(n.pk),
                 "title": n.title,
                 "slug": n.slug,
                 "summary": n.summary,
-                "image_url": n.image_url if hasattr(n, "image_url") else None,
+                "content": n.content,
+                "author": n.author,
+                "source_name": n.source_name,
+                "source_url": n.source_url,
+                "thumbnail_url": n.thumbnail_url,
                 "published_at": n.published_at.isoformat() if n.published_at else None,
-                "category_id": n.category_id,
+                "created_at": n.created_at.isoformat() if n.created_at else None,
+                "category": n.category_id,
                 "category_name": n.category.name if n.category_id else None,
             })
         return result

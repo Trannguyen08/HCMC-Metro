@@ -140,6 +140,26 @@ services:
     networks:
       - project-network
 
+  train_simulator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: project_train_simulator
+    command: python manage.py run_train_simulator --interval 3
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=db
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-postgres}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+    networks:
+      - project-network
+
 networks:
   project-network:
     driver: bridge

@@ -1,15 +1,16 @@
 import { BusStopMap } from "@/types/map";
-import { Bus, MapPin, Navigation } from "lucide-react";
+import { Bus, Clock, MapPin, Navigation } from "lucide-react";
 
 interface BusStopPopupProps {
   stop: BusStopMap;
+  fullWidth?: boolean;
 }
 
-export function BusStopPopup({ stop }: BusStopPopupProps) {
+export function BusStopPopup({ stop, fullWidth = false }: BusStopPopupProps) {
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${stop.latitude},${stop.longitude}`;
 
   return (
-    <div className="w-[300px] rounded-xl bg-white p-1">
+    <div className={`${fullWidth ? "w-full" : "w-[300px]"} rounded-xl bg-white p-1`}>
       <div className="mb-4 flex items-start gap-3">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
           <Bus className="h-7 w-7" />
@@ -46,7 +47,56 @@ export function BusStopPopup({ stop }: BusStopPopupProps) {
             Cách ga khoảng <span className="font-semibold text-slate-800">{stop.distance_to_station} m</span>
           </div>
         ) : null}
-        {stop.routes?.length ? (
+        {stop.schedules?.length ? (
+          <div>
+            <div className="mb-1.5 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <Clock className="h-3.5 w-3.5 text-cyan-600" />
+              Lịch trình & giờ xe qua trạm
+            </div>
+            <div className={`${fullWidth ? "space-y-2" : "max-h-44 space-y-1.5 overflow-y-auto pr-1"}`}>
+              {stop.schedules.map((sc) => (
+                <div
+                  key={sc.route}
+                  className="rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-1.5 text-[11px]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-cyan-800">
+                      Tuyến {sc.route}
+                      {sc.is_electric_feeder ? " ⚡" : ""}
+                    </span>
+                    <span className="font-semibold text-emerald-700">
+                      {sc.fare_vnd ? `${sc.fare_vnd.toLocaleString("vi-VN")}đ` : "6.000đ"}
+                    </span>
+                  </div>
+                  {sc.route_name ? (
+                    <div className="truncate text-[10px] text-slate-500">{sc.route_name}</div>
+                  ) : null}
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-600">
+                    <span>{sc.operating_hours || "05:00 - 22:00"}</span>
+                    <span>~{sc.current_headway_min || 10}p/chuyến</span>
+                  </div>
+                  {sc.next_arrivals?.length ? (
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                      <span className="text-[10px] font-medium text-slate-500">Sắp tới:</span>
+                      {sc.next_arrivals.map((t) => (
+                        <span
+                          key={t}
+                          className="rounded bg-cyan-100 px-1.5 py-0.5 text-[10px] font-bold text-cyan-800"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-0.5 text-[10px] italic text-amber-600">
+                      Ngoài giờ hoạt động hôm nay
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : stop.routes?.length ? (
           <div>
             <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Tuyến kết nối

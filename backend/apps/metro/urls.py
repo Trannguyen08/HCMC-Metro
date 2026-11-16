@@ -23,6 +23,7 @@ urlpatterns = [
 
     # Tracking & Real-time API
     path("tracking/live/", tracking_views.LiveTrainTrackingView.as_view(), name="live_tracking"),
+    path("tracking/stream/", tracking_views.LiveTrainStreamView.as_view(), name="live_tracking_stream"),
     path("tracking/eta/<int:station_id>/", tracking_views.StationArrivalETAView.as_view(), name="station_eta"),
     path("tracking/stations/", tracking_views.StationListView.as_view(), name="tracking_stations"),
 ]

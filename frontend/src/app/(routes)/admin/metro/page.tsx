@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Train, Activity, Plus, MapPin, Edit, EyeOff, Trash2, Search } from "lucide-react";
+import { Train, Activity, Plus, MapPin, Edit, EyeOff, Trash2, Search, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,7 @@ export default function AdminMetroPage() {
   const [lines, setLines] = useState<any[]>([]);
   const [stations, setStations] = useState<any[]>([]);
   const [trains, setTrains] = useState<any[]>([]);
+  const [trainLogs, setTrainLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openStationDialog, setOpenStationDialog] = useState(false);
@@ -34,11 +35,13 @@ export default function AdminMetroPage() {
       api.get("/admin/lines/").catch(() => ({ data: [] })),
       api.get("/admin/stations/").catch(() => ({ data: [] })),
       api.get("/admin/trains/").catch(() => ({ data: [] })),
+      api.get("/admin/train-logs/").catch(() => ({ data: [] })),
     ])
-    .then(([resLines, resStations, resTrains]: any) => {
+    .then(([resLines, resStations, resTrains, resLogs]: any) => {
       setLines(resLines.data || []);
       setStations(resStations.data || []);
       setTrains(resTrains.data || []);
+      setTrainLogs(resLogs.data || []);
     })
     .finally(() => setLoading(false));
   };
@@ -145,6 +148,7 @@ export default function AdminMetroPage() {
         <TabsList className="mb-4">
           <TabsTrigger value="stations">Nhà Ga</TabsTrigger>
           <TabsTrigger value="trains">Hệ Thống Tàu</TabsTrigger>
+          <TabsTrigger value="logs">Lịch Sử Di Chuyển</TabsTrigger>
         </TabsList>
         
 
@@ -289,6 +293,50 @@ export default function AdminMetroPage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="logs">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between w-full">
+                <CardTitle className="text-lg flex items-center gap-2"><Clock className="h-5 w-5 text-metro-blue" /> Lịch sử di chuyển</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? <div className="py-10 text-center text-muted-foreground">Đang tải...</div> : (
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-gray-50/80 border-b">
+                        <tr>
+                          <th className="px-4 py-3 font-semibold text-gray-700">Mã Tàu</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700">Chuyến</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700">Ga</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700">Hướng đi</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700">Đến lúc</th>
+                          <th className="px-4 py-3 font-semibold text-gray-700">Rời lúc</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {trainLogs.length === 0 ? (
+                          <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Chưa có lịch sử chuyến đi nào.</td></tr>
+                        ) : trainLogs.map((log: any) => (
+                          <tr key={log.id} className="border-b last:border-0 hover:bg-slate-50/50 transition-colors">
+                            <td className="px-4 py-3 font-mono font-semibold text-xs">{log.train_number}</td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{log.trip_run.split("_").pop()}</td>
+                            <td className="px-4 py-3 font-medium">{log.station_name}</td>
+                            <td className="px-4 py-3"><Badge variant="outline">{log.direction_display}</Badge></td>
+                            <td className="px-4 py-3">{log.arrived_at ? new Date(log.arrived_at).toLocaleTimeString() : "—"}</td>
+                            <td className="px-4 py-3">{log.departed_at ? new Date(log.departed_at).toLocaleTimeString() : "Đang đỗ..."}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </CardContent>

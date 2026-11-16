@@ -169,6 +169,22 @@ class MyTicketViewSet(viewsets.ReadOnlyModelViewSet):
         BookingService.expire_outdated_tickets()
         return Ticket.objects.filter(user=self.request.user).order_by("-created_at")
 
+    @action(detail=False, methods=["get"], url_path="active-tier")
+    def active_tier(self, request):
+        """Return the highest currently active ticket tier owned by the user."""
+        highest = BookingService.get_highest_active_ticket(request.user)
+        if not highest:
+            return Response({"has_active_ticket": False, "tier_rank": 0})
+        return Response({
+            "has_active_ticket": True,
+            "ticket_id": str(highest.id),
+            "ticket_type_id": highest.ticket_type_id,
+            "type": highest.ticket_type.type,
+            "name": highest.ticket_type.name,
+            "tier_rank": BookingService.get_ticket_tier_rank(highest.ticket_type),
+            "valid_until": highest.valid_until.isoformat() if highest.valid_until else None,
+        })
+
     @action(detail=True, methods=["get"], url_path="public-info", permission_classes=[permissions.AllowAny])
     def public_info(self, request, pk=None):
         """Show limited ticket info for the success page without login."""

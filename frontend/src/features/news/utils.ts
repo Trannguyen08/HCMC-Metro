@@ -32,6 +32,11 @@ export function resolveMediaUrl(url?: string | null) {
     return value;
   }
 
+  // Keep Next.js public static assets (e.g. /images/...) relative to the frontend origin
+  if (value.startsWith("/images/")) {
+    return value;
+  }
+
   if (value.startsWith("//")) {
     return `https:${value}`;
   }

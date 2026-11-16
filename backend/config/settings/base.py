@@ -99,7 +99,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = True
 
@@ -218,7 +218,7 @@ PAYOS_API_BASE = env("PAYOS_API_BASE", default="https://api-merchant.payos.vn")
 
 # Groq AI Settings (dùng cho Chatbox AI)
 GROQ_API_KEY = env("GROQ_API_KEY", default="")
-GROQ_MODEL = env("GROQ_MODEL", default="llama-3.3-70b-versatile")
+GROQ_MODEL = env("GROQ_MODEL", default="openai/gpt-oss-120b")
 MAX_TOKENS = env.int("MAX_TOKENS", default=800)
 
 # ---------------------------------------------------------------------------
@@ -232,6 +232,12 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+CELERY_BEAT_SCHEDULE = {
+    "cancel-expired-single-tickets-every-15m": {
+        "task": "apps.ticketing.tasks.cancel_expired_single_tickets_task",
+        "schedule": 900.0,  # every 15 minutes
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Spectacular Settings (Swagger/OpenAPI)

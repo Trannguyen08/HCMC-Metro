@@ -68,4 +68,8 @@ class ChatboxGuardMiddleware:
 
     def _is_blocked(self, text):
         text_lower = text.lower()
-        return any(kw.lower() in text_lower for kw in INPUT_BLOCKLIST)
+        for kw in INPUT_BLOCKLIST:
+            pattern = r"(?<!\w)" + re.escape(kw.lower()) + r"(?!\w)"
+            if re.search(pattern, text_lower):
+                return True
+        return False

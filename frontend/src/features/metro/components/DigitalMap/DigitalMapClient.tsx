@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { Bus, MapPin, Navigation, Ticket, Train, X } from "lucide-react";
 import {
   CircleMarker,
   MapContainer,
   Marker,
-  Polyline,
-  Popup,
   TileLayer,
   Tooltip,
   useMap,
@@ -16,6 +16,7 @@ import L from "leaflet";
 
 import { AmenityMap, BusStopMap, MapInitData, StationMap } from "@/types/map";
 import { MapService } from "../../services/MapService";
+import TrackingService, { LiveTrain } from "../../services/TrackingService";
 import { FilterBar } from "./FilterBar";
 import { AmenityPopup } from "./AmenityPopup";
 import { BusStopPopup } from "./BusStopPopup";
@@ -126,8 +127,106 @@ const createBusIcon = (color: string, glow = false) =>
     iconAnchor: [16, 32],
   });
 
-const busIcon = createBusIcon("#0891B2");
-const busIconActive = createBusIcon("#06B6D4", true);
+const busIcon = createBusIcon("#0891B2", true);
+const busIconActive = createBusIcon("#0284C7", true);
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const createStationIcon = (sequenceOrder: number, stationName: string, isSelected = false) =>
+  L.divIcon({
+    html: `
+      <div style="position: relative; width: 34px; height: 34px;">
+        <div style="
+          position: absolute;
+          bottom: 40px;
+          left: 50%;
+          transform: translateX(-50%);
+          white-space: nowrap;
+          background: ${isSelected ? "#0055A5" : "rgba(255, 255, 255, 0.96)"};
+          color: ${isSelected ? "#FFFFFF" : "#0F172A"};
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.2;
+          padding: 3px 8px;
+          border-radius: 9999px;
+          border: 1.5px solid ${isSelected ? "#FFFFFF" : "#1D4ED8"};
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.22);
+          pointer-events: auto;
+        ">Ga ${escapeHtml(stationName)}</div>
+        <div style="
+          position: relative;
+          background: ${isSelected ? "#0F172A" : "#1D4ED8"};
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2.5px solid #FFFFFF;
+          box-shadow: ${isSelected ? "0 0 0 4px rgba(37,99,235,0.45), 0 4px 10px rgba(0,0,0,0.4)" : "0 3px 8px rgba(15,23,42,0.45)"};
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+            <rect width="16" height="16" x="4" y="3" rx="2"/>
+            <path d="M4 11h16"/>
+            <path d="M12 3v8"/>
+            <path d="m8 19-2 3"/>
+            <path d="m18 22-2-3"/>
+            <circle cx="8.5" cy="15" r="1" fill="white"/>
+            <circle cx="15.5" cy="15" r="1" fill="white"/>
+          </svg>
+          <span style="
+            position: absolute;
+            top: -7px;
+            right: -7px;
+            background: #F59E0B;
+            color: #111827;
+            font-size: 10px;
+            font-weight: 800;
+            line-height: 1;
+            padding: 2px 4px;
+            border-radius: 9999px;
+            border: 1.5px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+          ">${sequenceOrder}</span>
+        </div>
+      </div>
+    `,
+    className: "",
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+  });
+
+const createTrainIcon = (direction: "outbound" | "inbound") =>
+  L.divIcon({
+    html: `
+      <div style="
+        background-color: ${direction === "outbound" ? "#2563EB" : "#059669"};
+        width: 28px;
+        height: 28px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        box-shadow: 0 0 10px ${direction === "outbound" ? "rgba(37,99,235,0.6)" : "rgba(5,150,105,0.6)"};
+      ">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 15px; height: 15px;">
+          <rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/><path d="M8 15h.01"/><path d="M16 15h.01"/>
+        </svg>
+      </div>
+    `,
+    className: "",
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+
+const outboundTrainIcon = createTrainIcon("outbound");
+const inboundTrainIcon = createTrainIcon("inbound");
 
 function MapEvents({ onBoundsChanged }: { onBoundsChanged: (bounds: L.LatLngBounds) => void }) {
   useMapEvents({
@@ -148,12 +247,20 @@ function MapController({ center }: { center?: [number, number] }) {
   return null;
 }
 
+type SelectedMapItem =
+  | { type: "bus"; data: BusStopMap }
+  | { type: "station"; data: StationMap }
+  | { type: "amenity"; data: AmenityMap }
+  | null;
+
 export default function DigitalMapClient() {
   const [initData, setInitData] = useState<MapInitData | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [amenities, setAmenities] = useState<AmenityMap[]>([]);
   const [busStops, setBusStops] = useState<BusStopMap[]>([]);
+  const [liveTrains, setLiveTrains] = useState<LiveTrain[]>([]);
   const [selectedStation, setSelectedStation] = useState<StationMap | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SelectedMapItem>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
   const [refreshTick, setRefreshTick] = useState(0);
   const boundsRef = useRef<L.LatLngBounds | null>(null);
@@ -165,8 +272,12 @@ export default function DigitalMapClient() {
         setInitData(data);
       }
     });
+    const unsubscribe = TrackingService.subscribeToLiveTrains((trains) => {
+      if (active) setLiveTrains(trains);
+    });
     return () => {
       active = false;
+      unsubscribe();
     };
   }, []);
 
@@ -236,6 +347,7 @@ export default function DigitalMapClient() {
 
   const handleStationClick = (station: StationMap) => {
     setSelectedStation(station);
+    setSelectedItem({ type: "station", data: station });
   };
 
   if (!initData) {
@@ -263,60 +375,70 @@ export default function DigitalMapClient() {
         zoomControl
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
         <MapEvents onBoundsChanged={handleBoundsChanged} />
         {mapCenter ? <MapController center={mapCenter} /> : null}
 
-        {initData.lines.map((line) => {
-          if (!line.geojson_coordinates) return null;
-          const positions: [number, number][] = line.geojson_coordinates.map((coordinate) => [coordinate[1], coordinate[0]]);
-          return (
-            <div key={line.id}>
-              <Polyline
-                positions={positions}
-                pathOptions={{ color: line.color_hex || "#0066CC", weight: (line.stroke_weight || 5) + 4, opacity: 0.3 }}
-              />
-              <Polyline
-                positions={positions}
-                pathOptions={{ color: line.color_hex || "#0066CC", weight: line.stroke_weight || 5 }}
-              />
-            </div>
-          );
-        })}
-
         {initData.stations.map((station) => {
           if (!station.latitude || !station.longitude) return null;
+          const isSelected = selectedStation?.id === station.id;
           return (
-            <CircleMarker
+            <Marker
               key={station.id}
-              center={[Number(station.latitude), Number(station.longitude)]}
-              pathOptions={{ fillColor: "#ffffff", fillOpacity: 1, color: "#0055A5", weight: 3 }}
-              radius={6}
+              position={[Number(station.latitude), Number(station.longitude)]}
+              icon={createStationIcon(station.sequence_order, station.name, isSelected)}
+              zIndexOffset={isSelected ? 1500 : 1000}
               eventHandlers={{ click: () => handleStationClick(station) }}
-            >
-              <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                {station.name}
-              </Tooltip>
-            </CircleMarker>
+            />
           );
         })}
 
         {busStops.map((stop) => {
           if (!stop.latitude || !stop.longitude) return null;
+          const isHighlighted =
+            selectedCategory === "bus" ||
+            (selectedStation && stop.station_code === selectedStation.code);
+          return (
+            <div key={stop.id}>
+              <CircleMarker
+                center={[Number(stop.latitude), Number(stop.longitude)]}
+                radius={isHighlighted ? 20 : 14}
+                pathOptions={{
+                  color: "#06B6D4",
+                  weight: isHighlighted ? 2 : 1,
+                  fillColor: "#06B6D4",
+                  fillOpacity: isHighlighted ? 0.28 : 0.14,
+                }}
+              />
+              <Marker
+                position={[Number(stop.latitude), Number(stop.longitude)]}
+                icon={isHighlighted ? busIconActive : busIcon}
+                eventHandlers={{
+                  click: () => setSelectedItem({ type: "bus", data: stop }),
+                }}
+              >
+                <Tooltip direction="top" offset={[0, -10]}>
+                  {stop.name} {stop.routes?.length ? `(${stop.routes.slice(0, 4).join(", ")})` : ""}
+                </Tooltip>
+              </Marker>
+            </div>
+          );
+        })}
+
+        {liveTrains.map((train) => {
+          if (!train.latitude || !train.longitude) return null;
           return (
             <Marker
-              key={stop.id}
-              position={[Number(stop.latitude), Number(stop.longitude)]}
-              icon={selectedCategory === "bus" ? busIconActive : busIcon}
+              key={train.train_number}
+              position={[Number(train.latitude), Number(train.longitude)]}
+              icon={train.direction === "outbound" ? outboundTrainIcon : inboundTrainIcon}
+              zIndexOffset={1200}
             >
-              <Popup closeButton minWidth={300} className="amenity-custom-popup">
-                <BusStopPopup stop={stop} />
-              </Popup>
-              <Tooltip direction="top" offset={[0, -10]}>
-                {stop.name}
+              <Tooltip direction="top" offset={[0, -14]}>
+                {train.train_number} • {train.status === "moving" ? `${train.speed_kph ?? 45} km/h` : "Đang dừng ga"} ({train.current_station.name})
               </Tooltip>
             </Marker>
           );
@@ -329,10 +451,10 @@ export default function DigitalMapClient() {
               key={amenity.id}
               position={[Number(amenity.latitude), Number(amenity.longitude)]}
               icon={createAmenityIcon(amenity.category_slug)}
+              eventHandlers={{
+                click: () => setSelectedItem({ type: "amenity", data: amenity }),
+              }}
             >
-              <Popup closeButton minWidth={300} className="amenity-custom-popup">
-                <AmenityPopup amenity={amenity} />
-              </Popup>
               <Tooltip direction="top" offset={[0, -10]}>
                 {amenity.name}
               </Tooltip>
@@ -340,6 +462,131 @@ export default function DigitalMapClient() {
           );
         })}
       </MapContainer>
+
+      {selectedItem ? (
+        <aside className="absolute bottom-4 right-4 top-4 z-20 flex w-[calc(100%-2rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-2xl backdrop-blur-md sm:w-1/4 sm:min-w-[330px] sm:max-w-[440px]">
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/90 px-4 py-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+              {selectedItem.type === "bus" ? (
+                <>
+                  <Bus className="h-4 w-4 text-cyan-600" />
+                  <span>Thông tin trạm xe buýt</span>
+                </>
+              ) : selectedItem.type === "station" ? (
+                <>
+                  <Train className="h-4 w-4 text-blue-600" />
+                  <span>Thông tin nhà ga Metro</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="h-4 w-4 text-emerald-600" />
+                  <span>Thông tin tiện ích</span>
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedItem(null)}
+              aria-label="Đóng bảng thông tin"
+              className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-200/70 hover:text-slate-800"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {selectedItem.type === "bus" ? (
+              <BusStopPopup stop={selectedItem.data} fullWidth />
+            ) : null}
+
+            {selectedItem.type === "amenity" ? (
+              <AmenityPopup amenity={selectedItem.data} fullWidth />
+            ) : null}
+
+            {selectedItem.type === "station" ? (
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-lg font-extrabold text-white shadow-sm">
+                    {selectedItem.data.sequence_order}
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                      Tuyến Metro số 1 • Mã {selectedItem.data.code}
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800">
+                      Ga {selectedItem.data.name}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Trạm xe buýt kết nối gần ga
+                  </div>
+                  {busStops.filter((bs) => bs.station_code === selectedItem.data.code).length > 0 ? (
+                    <div className="space-y-2">
+                      {busStops
+                        .filter((bs) => bs.station_code === selectedItem.data.code)
+                        .map((bs) => (
+                          <button
+                            key={bs.id}
+                            type="button"
+                            onClick={() => setSelectedItem({ type: "bus", data: bs })}
+                            className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-left transition-all hover:border-cyan-400 hover:bg-cyan-50/40"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-800">{bs.name}</span>
+                              {bs.distance_to_station ? (
+                                <span className="shrink-0 text-[11px] font-semibold text-cyan-700">
+                                  {bs.distance_to_station}m
+                                </span>
+                              ) : null}
+                            </div>
+                            {bs.routes?.length ? (
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {bs.routes.slice(0, 6).map((r) => (
+                                  <span
+                                    key={r}
+                                    className="rounded bg-cyan-100 px-1.5 py-0.5 text-[10px] font-bold text-cyan-800"
+                                  >
+                                    {r}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </button>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      Đang tải hoặc chưa có trạm buýt liên kết trực tiếp trong vùng hiển thị.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedItem.data.latitude},${selectedItem.data.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2.5 text-[13px] font-bold !text-white shadow-sm transition-all hover:bg-blue-700"
+                  >
+                    <Navigation className="h-4 w-4" />
+                    Dẫn đường
+                  </a>
+                  <Link
+                    href="/dat-ve"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 py-2.5 text-[13px] font-bold text-slate-800 transition-all hover:bg-slate-200"
+                  >
+                    <Ticket className="h-4 w-4 text-blue-600" />
+                    Đặt vé Metro
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </aside>
+      ) : null}
     </div>
   );
 }
