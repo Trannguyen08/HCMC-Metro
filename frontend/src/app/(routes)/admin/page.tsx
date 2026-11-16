@@ -174,7 +174,7 @@ export default function AdminDashboard() {
                     tickFormatter={(value) => `${(value / 1000).toLocaleString()}k`}
                   />
                   <Tooltip 
-                    formatter={(value: number) => [value.toLocaleString("vi-VN") + " đ", "Doanh thu"]}
+                    formatter={(value) => [Number(value || 0).toLocaleString("vi-VN") + " đ", "Doanh thu"]}
                     contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
                   />
                   <Area 
